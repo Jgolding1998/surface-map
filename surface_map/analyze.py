@@ -4,7 +4,9 @@ import json
 import math
 import re
 import time
+from html.entities import html5
 from html.parser import HTMLParser
+import html.parser as html_parser
 from urllib.parse import parse_qsl, unquote, urlsplit
 
 MAX_ARTIFACTS = 6
@@ -20,6 +22,60 @@ FIELDS = set("id name email password token authorization api_key secret access_t
 
 class ArtifactError(ValueError):
     pass
+
+
+def _needs_html_attribute_guard():
+    class Probe(HTMLParser):
+        value = None
+        def handle_starttag(self, tag, attrs):
+            self.value = dict(attrs).get("href")
+    parser = Probe()
+    parser.feed('<a href="?x=1&notx=1&reg=2">')
+    parser.close()
+    return parser.value != "?x=1&notx=1&reg=2"
+
+
+_HTML_ATTRIBUTE_GUARD = _needs_html_attribute_guard()
+_AMBIGUOUS_ATTRIBUTE_REF = re.compile(r"&(?:" + "|".join(re.escape(name) for name in
+    sorted((name for name in html5 if not name.endswith(";")), key=len, reverse=True)) + r")(?=[=A-Za-z0-9])")
+_NAMED_REF = re.compile(r"&[A-Za-z][A-Za-z0-9]*;?")
+_ATTRIBUTE_GUIDANCE = "This Python HTML parser may change a URL attribute. Update Python or encode attribute ampersands as &amp;."
+
+
+def _ambiguous_attribute_reference(value):
+    return any(not (ref.group().endswith(";") and ref.group()[1:] in html5)
+               and _AMBIGUOUS_ATTRIBUTE_REF.match(value, ref.start()) for ref in _NAMED_REF.finditer(value))
+
+
+def _guard_html_url(raw, attribute, decoded=None):
+    if not _HTML_ATTRIBUTE_GUARD or not raw or "&" not in raw:
+        return
+    if decoded is not None and (page_relative(decoded) or safe_path(decoded) is None):
+        return
+    # Match the same raw attribute boundaries as this interpreter. An unknown
+    # tokenizer cannot safely distinguish a risky URL from an unrelated value.
+    tag_pattern = getattr(html_parser, "tagfind_tolerant", None)
+    attr_pattern = getattr(html_parser, "attrfind_tolerant", None)
+    start = tag_pattern.match(raw, 1) if callable(getattr(tag_pattern, "match", None)) else None
+    if not start or not callable(getattr(attr_pattern, "match", None)) or getattr(attr_pattern, "groups", 0) < 3:
+        if _ambiguous_attribute_reference(raw):
+            raise ArtifactError(_ATTRIBUTE_GUIDANCE)
+        return
+    position = start.end()
+    while match := attr_pattern.match(raw, position):
+        if match.end() <= position:
+            raise ArtifactError(_ATTRIBUTE_GUIDANCE)
+        name = match.group(1)
+        if not isinstance(name, str):
+            break
+        if name.lower() == attribute:
+            # HTML uses the first duplicate attribute, just as handle_starttag.
+            if _ambiguous_attribute_reference(match.group(3) or ""):
+                raise ArtifactError(_ATTRIBUTE_GUIDANCE)
+            return
+        position = match.end()
+    if _ambiguous_attribute_reference(raw):
+        raise ArtifactError(_ATTRIBUTE_GUIDANCE)
 
 
 def page_relative(raw):
@@ -410,6 +466,7 @@ class HTML(HTMLParser):
             attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
         location = f"line {self.getpos()[0]}"
         if tag == "a" and attrs.get("href"):
+            _guard_html_url(self.get_starttag_text(), "href", attrs["href"])
             self.builder.add(attrs["href"], "GET", "link", self.source, location)
         elif tag == "script" and attrs.get("src"):
             self.builder.asset(attrs["src"], "script", self.source, location)
@@ -421,6 +478,7 @@ class HTML(HTMLParser):
             if not attrs.get("action"):
                 self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
             elif method != "dialog":
+                _guard_html_url(self.get_starttag_text(), "action", attrs["action"])
                 self.form = {"url": attrs["action"], "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
         elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
             fields, names = self.form["fields"], self.form["names"]

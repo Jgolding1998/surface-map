@@ -75,6 +75,7 @@ This is deliberately lossy. Different origins or private route names can normali
 - OpenAPI exports omit servers. Equivalent redacted path templates merge with combined evidence; a parameter observed as both numeric and text uses a string schema. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
 - The saved page URL is unknown, so relative links, form actions, asset paths and fetch URLs are omitted, as are forms without an action. Absolute and root-relative URLs are kept; in-page `#` links are ignored.
 - Form methods follow browser submission: `post` is POST, `dialog` is ignored and anything else is GET. GET form controls become query fields. Duplicate HTML attributes use their first value, matching browser handling.
+- On Python parsers that change ambiguous attribute references, link and form URLs such as `?page=1&currency=USD` produce a controlled error. Update Python or write `&amp;` in HTML attributes. The guard checks used URL attributes; an unfamiliar attribute tokenizer conservatively rejects ambiguous tags. Asset queries are discarded.
 - Comparison reports added, absent and changed normalized evidence. Absence from a capture does not prove removal from a service.
 
 ## Check it

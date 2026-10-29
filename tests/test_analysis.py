@@ -1,4 +1,6 @@
 import json
+from html.parser import HTMLParser
+import re
 import unittest
 from unittest.mock import patch
 
@@ -187,6 +189,78 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(route["confidence"], "declared")
         self.assertEqual(route["request_shapes"][0]["properties"], {"q": {"type": "string"}, "email": {"type": "string"}})
         self.assertNotIn(CANARY, json.dumps(report))
+
+    def test_html_url_references_never_silently_lose_query_evidence(self):
+        class Probe(HTMLParser):
+            value = None
+            def handle_starttag(self, tag, attrs):
+                self.value = dict(attrs).get("href")
+        probe = Probe()
+        probe.feed('<a href="?x=1&notx=1&reg=2">')
+        probe.close()
+        affected = probe.value != "?x=1&notx=1&reg=2"
+        for query in ("?x=1&region=us", "?x=1&notx=1", "?page=1&currency=" + CANARY):
+            for html in (f'<a href="/api/products{query}">Products</a>',
+                         f'<form action="/api/products{query}" method="POST"><input name="email"></form>'):
+                with self.subTest(query=query, kind=html[:5]):
+                    if affected:
+                        with self.assertRaises(ArtifactError) as error:
+                            analyze([{"kind": "html", "text": html}])
+                        self.assertIn("Update Python", str(error.exception))
+                        self.assertNotIn(CANARY, str(error.exception))
+                        self.assertNotIn(query, str(error.exception))
+                    else:
+                        report = analyze([{"kind": "html", "text": html}])
+                        expected = ["currency", "page"] if query.startswith("?page") else ["field_1", "field_2"]
+                        self.assertEqual(report["routes"][0]["query_fields"], expected)
+                        self.assertEqual(contract(report)["routes"][0]["query_fields"], expected)
+                        operation = next(iter(openapi(report)["paths"]["/api/products"].values()))
+                        self.assertEqual([parameter["name"] for parameter in operation["parameters"]], expected)
+                        self.assertNotIn(CANARY, json.dumps(report))
+
+    def test_html_escaped_and_complete_attribute_references_remain_usable(self):
+        for quote in ('"', "'", ""):
+            html = f'<a href={quote}/api/products?page=1&amp;currency=USD{quote}>Products</a>'
+            report = analyze([{"kind": "html", "text": html}])
+            self.assertEqual(report["routes"][0]["query_fields"], ["currency", "page"])
+        report = analyze([{"kind": "html", "text": '<a href="/api/products?page=1&copy;=x">Products</a>'}])
+        self.assertEqual(report["routes"][0]["query_fields"], ["page"])
+
+    def test_legacy_url_guard_uses_first_attribute_and_ignores_unrelated_values(self):
+        with patch("surface_map.analyze._HTML_ATTRIBUTE_GUARD", True, create=True):
+            for html in ('<A HREF="/api/products?x=1&reg=x">x</A>',
+                         '<a href=/api/products?x=1&reg=x>x</a>',
+                         '<form ACTION="/api/products?x=1&notx=1" method="post"></form>',
+                         '<a href="/api/products?x=1&reg=x" href="/api/products">x</a>'):
+                with self.subTest(html=html), self.assertRaises(ArtifactError):
+                    analyze([{"kind": "html", "text": html}])
+            html = ('<a href="/api/products?page=1" href="/api/products?x=1&reg=x" title="&notx=1">x</a>'
+                    '<script src="/assets/app.js?x=1&region=us"></script>'
+                    '<link href="/assets/app.css?x=1&region=us" rel="stylesheet">'
+                    '<form method="dialog" action="/api/orders?x=1&notx=1"></form>')
+            report = analyze([{"kind": "html", "text": html}])
+            self.assertEqual(report["routes"][0]["query_fields"], ["page"])
+            self.assertEqual(len(report["routes"]), 1)
+            self.assertEqual(len(report["assets"]), 2)
+            for omitted in ('<a href="search?x=1&reg=x">x</a>', '<a href="#tab&notx=1">x</a>',
+                            '<form action="search?x=1&reg=x" method="post"></form>',
+                            '<a href="mailto:?x=1&reg=x">x</a>', '<a href="javascript:x&reg=x">x</a>'):
+                with self.subTest(omitted=omitted):
+                    self.assertEqual(analyze([{"kind": "html", "text": omitted}])["routes"], [])
+
+    def test_unknown_attribute_tokenizer_fails_closed_without_raw_values(self):
+        from surface_map.analyze import _guard_html_url
+        with patch("surface_map.analyze._HTML_ATTRIBUTE_GUARD", True), patch("html.parser.tagfind_tolerant", None):
+            _guard_html_url('<a href="/api/products?page=1&amp;currency=USD">', "href")
+            with self.assertRaises(ArtifactError) as error:
+                _guard_html_url('<a href="/api/products?x=1&reg=' + CANARY + '">', "href")
+            self.assertNotIn(CANARY, str(error.exception))
+        for pattern in (re.compile(r"(x)(y)(z)"), re.compile(r"(missing)?(.*)(.*)")):
+            with self.subTest(pattern=pattern.pattern), patch("surface_map.analyze._HTML_ATTRIBUTE_GUARD", True), patch("html.parser.attrfind_tolerant", pattern):
+                _guard_html_url('<a href="/api/products?page=1&amp;currency=USD">', "href")
+                with self.assertRaises(ArtifactError) as error:
+                    _guard_html_url('<a href="/api/products?x=1&reg=' + CANARY + '">', "href")
+                self.assertNotIn(CANARY, str(error.exception))
 
     def test_body_shapes_do_not_infer_required_fields_or_constants(self):
         report = analyze([har([entry(body={"id": 23, "name": "Test", "enabled": True, "amount": 1.2, "items": [1, "a", None]})])])
