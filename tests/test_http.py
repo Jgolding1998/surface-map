@@ -36,6 +36,26 @@ class HTTPTests(unittest.TestCase):
         client.close()
         return result
 
+    def test_second_server_cannot_share_an_active_listener_port(self):
+        duplicate = None
+        try:
+            duplicate = make_server(self.port)
+        except OSError:
+            pass
+        else:
+            self.fail("An active listener port must be exclusive")
+        finally:
+            if duplicate is not None:
+                duplicate.server_close()
+
+    @unittest.skipUnless(hasattr(socket, "SO_EXCLUSIVEADDRUSE"), "Windows exclusive socket option")
+    def test_windows_exclusive_listener_rejects_reuse_address_binding(self):
+        self.assertEqual(self.server.socket.getsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE), 1)
+        with socket.socket() as contender:
+            contender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            with self.assertRaises(OSError):
+                contender.bind(("127.0.0.1", self.port))
+
     def test_demo_and_fixed_routes(self):
         result = self.request("/api/demo", "POST", {})
         self.assertEqual(result[0], 200)

@@ -14,7 +14,7 @@ Minimization trades fidelity for disclosure reduction. A normalized path, field 
 
 ## Local server
 
-- IPv4 loopback bind with exact Host and same-origin checks; no CORS permissions.
+- IPv4 loopback bind with exact Host and same-origin checks; no CORS permissions. Windows listeners reserve the port with `SO_EXCLUSIVEADDRUSE` so another reuse-enabled listener cannot share it.
 - Per-process random request token, checked before processing POST bodies.
 - Duplicate security/framing headers and transfer encoding rejected. Content-Length and JSON content type required.
 - 3 MiB HTTP request/response caps, bounded incremental export serialization, a ten-second total request-line/header deadline, an eight-second body deadline, two concurrent analysis slots and at most sixteen connection workers.

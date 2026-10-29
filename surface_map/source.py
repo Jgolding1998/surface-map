@@ -479,7 +479,7 @@ def _parse_python(text, inventory, source):
 def _python_import(module, inventory, source, line):
     top = module.split(".", 1)[0]
     label = PY_IMPORTS.get(top)
-    if top == "google" and module.startswith("google.generativeai"):
+    if module == "google.generativeai" or module.startswith("google.generativeai."):
         label = "google-generativeai"
     if label:
         inventory.dependency(label, "pypi", "inferred", source, f"line {line}")
@@ -858,7 +858,7 @@ SHELL_HINTS = (
     (("uv", "pip", "install"), "uv-install"), (("uv", "sync"), "uv-install"), (("uv", "venv"), "python-virtualenv"),
     (("poetry", "install"), "poetry-install"), (("conda", "install"), "conda-install"), (("conda", "create"), "conda-install"),
     (("npm", "install"), "npm-install"), (("npm", "i"), "npm-install"), (("npm", "ci"), "npm-install"), (("pnpm", "install"), "pnpm-install"),
-    (("pnpm", "i"), "pnpm-install"), (("yarn", "install"), "yarn-install"), (("yarn",), "yarn-install"), (("bun", "install"), "bun-install"),
+    (("pnpm", "i"), "pnpm-install"), (("yarn", "install"), "yarn-install"), (("bun", "install"), "bun-install"),
     (("cargo", "install"), "cargo-install"), (("cargo", "build"), "cargo-build"), (("cargo", "tauri"), "tauri-cli"), (("rustup",), "rust-toolchain-setup"),
     (("apt", "install"), "system-package-install"), (("apt-get", "install"), "system-package-install"), (("dnf", "install"), "system-package-install"),
     (("yum", "install"), "system-package-install"), (("pacman", "-S"), "system-package-install"), (("brew", "install"), "homebrew-install"),
@@ -883,13 +883,85 @@ def _shell_words(line):
     return words
 
 
+def _shell_heredoc(line):
+    if "<<" not in line:
+        return None
+    markers, index, quote, arithmetic = [], 0, None, 0
+    while index < len(line):
+        char = line[index]
+        if quote:
+            if char == "\\" and quote == '"':
+                index += 2
+                continue
+            if quote == '"' and (line.startswith(("${", "$("), index) or char == "`"):
+                raise _Rejected("shell expansions with redirection text are unsupported")
+            if char == quote:
+                quote = None
+            index += 1
+            continue
+        if char == "\\":
+            index += 2
+            continue
+        if char in "\"'":
+            quote = char
+            index += 1
+            continue
+        if arithmetic:
+            arithmetic += (char == "(") - (char == ")")
+            index += 1
+            continue
+        if line.startswith(("${", "$'"), index) or (line.startswith("$(", index) and not line.startswith("$((", index)) or char == "`":
+            raise _Rejected("shell expansions with redirection text are unsupported")
+        if line.startswith("$((", index) or line.startswith("((", index):
+            arithmetic = 2
+            index += 3 if char == "$" else 2
+            continue
+        if char == "#" and (index == 0 or line[index - 1].isspace() or line[index - 1] in ";&|()<> "):
+            break
+        if not line.startswith("<<", index) or line.startswith("<<<", index) or (index and line[index - 1] == "<"):
+            index += 1
+            continue
+        index += 2
+        strip_tabs = index < len(line) and line[index] == "-"
+        index += int(strip_tabs)
+        while index < len(line) and line[index] in " \t":
+            index += 1
+        delimiter, delimiter_quote = [], None
+        while index < len(line):
+            char = line[index]
+            if char == "\\" and delimiter_quote != "'":
+                index += 1
+                if index == len(line):
+                    raise _Rejected("unsupported shell here-document")
+                delimiter.append(line[index])
+            elif delimiter_quote:
+                if char == delimiter_quote:
+                    delimiter_quote = None
+                else:
+                    delimiter.append(char)
+            elif char in "\"'":
+                delimiter_quote = char
+            elif char.isspace() or char in ";&|()<>":
+                break
+            else:
+                delimiter.append(char)
+            index += 1
+        delimiter = "".join(delimiter)
+        if delimiter_quote or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", delimiter):
+            raise _Rejected("unsupported shell here-document")
+        markers.append((delimiter, strip_tabs))
+    if len(markers) > 1:
+        raise _Rejected("multiple shell here-documents are unsupported")
+    return markers[0] if markers else None
+
+
 def _parse_shell(text, inventory, source):
     lines, logical, start, heredoc = _lines(text), "", 0, None
     for number, line in enumerate(lines, 1):
         if number % 1024 == 0:
             inventory.tick()
         if heredoc is not None:
-            if line.strip() == heredoc:
+            if (line.lstrip("\t") if heredoc[1] else line) == heredoc[0]:
                 heredoc = None
             continue
         if not logical:
@@ -901,14 +973,11 @@ def _parse_shell(text, inventory, source):
         if len(current) > 8192:
             inventory.warn(source, "overlong shell line skipped")
             continue
-        marker = re.search(r"(?<!<)<<(?!<)-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)", current)
-        if marker:
-            heredoc = marker.group(1)
+        heredoc = _shell_heredoc(current)
         try:
             words = _shell_words(current)
         except ValueError:
-            inventory.warn(source, "shell line could not be tokenized")
-            continue
+            raise _Rejected("unsupported shell quoting") from None
         commands, command = [], []
         for word in words:
             if word in SHELL_SEPARATORS or set(word) <= set(";&|"):
@@ -934,10 +1003,14 @@ def _parse_shell(text, inventory, source):
                 inventory.warn(source, "remote script piped to an interpreter")
             fetched = False
             sequence = (head, *[word for word in words[1:] if not word.startswith("-") or word in ("-m", "-S")])
+            if head == "yarn" and all(word in {"--frozen-lockfile", "--immutable", "--offline", "--ignore-scripts", "--non-interactive"} for word in words[1:]):
+                inventory.hint("yarn-install", source, f"line {start}")
             for pattern, label in SHELL_HINTS:
                 if sequence[: len(pattern)] == pattern:
                     inventory.hint(label, source, f"line {start}")
                     break
+    if heredoc is not None:
+        raise _Rejected("shell here-document is unterminated")
 
 
 PARSERS = {

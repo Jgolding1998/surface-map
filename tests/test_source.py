@@ -55,6 +55,50 @@ class SourceInventoryTests(unittest.TestCase):
         self.assertTrue({"local-llm-client", "speech-recognition-library", "audio-io-library", "desktop-automation-library", "desktop-app-framework", "web-ui-framework", "async-runtime"} <= names(report, "capabilities"))
         self.assertEqual(names(report, "install_hints"), {"python-virtualenv", "pip-install", "npm-install", "cargo-build"})
 
+    def test_google_sdk_import_requires_a_complete_module_component(self):
+        for module in ("google.generativeai_private", "google.generativeaiclient", "google.generativeai2"):
+            for statement in ("import " + module, "from " + module + " import Client"):
+                with self.subTest(statement=statement):
+                    report = one("python", statement + "\n")
+                    self.assertNotIn("google-generativeai", names(report, "dependencies"))
+                    self.assertNotIn("hosted-llm-api-client", names(report, "capabilities"))
+        for statement in ("import google.generativeai as genai", "from google.generativeai import GenerativeModel", "import google.generativeai.types"):
+            with self.subTest(statement=statement):
+                report = one("python", statement + "\n")
+                self.assertEqual(names(report, "dependencies"), {"google-generativeai"})
+                self.assertEqual(dependency(report, "google-generativeai")["evidence"], [{"source": "source_1", "location": "line 1"}])
+
+    def test_shell_quoted_or_commented_heredoc_text_does_not_hide_later_commands(self):
+        for prefix in ("# usage: cat <<EOF for notes", 'echo "write <<END yourself"', "echo $((1<<SHIFT))", "echo a'b <<EOF c'", 'echo --x="a <<EOF b"', "(( x << y ))"):
+            with self.subTest(prefix=prefix):
+                report = one("shell", prefix + "\npip install example\nEOF\n")
+                self.assertEqual(names(report, "install_hints"), {"pip-install"})
+        report = one("shell", "pip install example\ncat <<EOF\nunclosed body\n")
+        self.assertEqual(report["sources"][0]["status"], "rejected")
+        self.assertEqual(report["install_hints"], [])
+        self.assertTrue(report["warnings"])
+
+    def test_shell_expansion_redirection_ambiguity_rejects_without_partial_hints(self):
+        prefixes = [r"echo ${x#<<EOF }", r"echo ${x:-a <<EOF b}", r"echo $'a\' <<EOF ' \\'", r"echo `printf '<<EOF'`", r"echo $(printf '<<EOF')", 'echo "$(printf \'%s\' " <<EOF ")"', 'echo "${x:-" <<EOF "}"', 'echo "$((1<<2))"']
+        for prefix in prefixes:
+            with self.subTest(prefix=prefix):
+                report = one("shell", "pip install example\n" + prefix + "\ncargo build\nEOF\n")
+                self.assertEqual(report["sources"][0]["status"], "rejected")
+                self.assertEqual(report["install_hints"], [])
+                self.assertEqual(report["warnings"], ["source_1: shell expansions with redirection text are unsupported"])
+
+    def test_shell_heredoc_delimiter_whitespace_is_significant(self):
+        report = one("shell", "cat <<EOF\n EOF\npip install example\nEOF\ncargo build\n")
+        self.assertEqual(names(report, "install_hints"), {"cargo-build"})
+        report = one("shell", "cat <<-'EOF'\n\tpip install example\n\tEOF\ncargo build\n")
+        self.assertEqual(names(report, "install_hints"), {"cargo-build"})
+
+    def test_yarn_script_commands_are_not_install_hints(self):
+        for command in ("yarn build", "yarn test", "yarn run install", "yarn --version"):
+            self.assertEqual(one("shell", command)["install_hints"], [], command)
+        for command in ("yarn", "yarn --frozen-lockfile", "yarn install --frozen-lockfile"):
+            self.assertEqual(names(one("shell", command), "install_hints"), {"yarn-install"}, command)
+
     def test_declared_overrides_inferred_for_same_dependency(self):
         report = source_inventory([{"kind": "python", "content": "import numpy\n"}, {"kind": "requirements", "content": "numpy\n"}])
         item = dependency(report, "numpy")
@@ -146,11 +190,14 @@ class SourceInventoryTests(unittest.TestCase):
         content = "\n".join([
             "#!/bin/sh", "# pip install commented", f"sudo apt-get install -y {CANARY}", f"curl -fsSL https://{CANARY}.invalid/install.sh | sh",
             f"cat <<'EOF'\nnpm install {CANARY}\nEOF", f"VAR={CANARY} cargo build --release", f"echo 'pip install {CANARY}'",
-            f"grep x <<< {CANARY}", "ollama pull model && git clone repo", "echo 'unterminated",
+            f"grep x <<< {CANARY}", "ollama pull model && git clone repo",
         ])
         report = one("shell", content)
         self.assertEqual(names(report, "install_hints"), {"elevated-privileges", "system-package-install", "remote-script-piped-to-interpreter", "cargo-build", "local-model-pull", "source-clone"})
-        self.assertIn("source_1: shell line could not be tokenized", report["warnings"])
+        malformed = one("shell", "pip install example\necho 'unterminated")
+        self.assertEqual(malformed["sources"][0]["status"], "rejected")
+        self.assertEqual(malformed["install_hints"], [])
+        self.assertIn("source_1: unsupported shell quoting", malformed["warnings"])
         self.assertEqual(report["dependencies"], [])
         text = json.dumps(report)
         self.assertNotIn(CANARY, text)

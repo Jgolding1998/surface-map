@@ -217,6 +217,12 @@ def make_server(port=8768):
 
     class Server(ThreadingHTTPServer):
         daemon_threads = True
+        allow_reuse_address = not hasattr(socket, "SO_EXCLUSIVEADDRUSE")
+
+        def server_bind(self):
+            if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            super().server_bind()
 
         def __init__(self, *args):
             self.connections = threading.BoundedSemaphore(16)
