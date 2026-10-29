@@ -368,7 +368,8 @@ def _check_node(node):
     try:
         raw = _run([str(node), "--version"], cwd=ANALYZER, env=_environment(node, ANALYZER), cap=256)
         match = re.fullmatch(rb"v(\d+)\.(\d+)\.(\d+)\s*", raw)
-        if not match or tuple(map(int, match.groups())) < (24, 22, 1):
+        version = tuple(map(int, match.groups())) if match else ()
+        if not version or version[0] != 24 or version < (24, 22, 1):
             raise JsParserError("node_unsupported")
     except JsParserError:
         raise JsParserError("node_unsupported") from None
@@ -609,7 +610,10 @@ class _Worker:
         wire = json.dumps({"v": 1, "nonce": nonce, "sequence": self.requests, "source": source, "kind": kind}, ensure_ascii=False).encode("utf-8") + b"\n"
         request = _Request(wire, nonce, self.requests)
         try:
-            self._queue.put_nowait(request)
+            with self._lock:
+                if self.closed:
+                    raise JsParserError("failed")
+                self._queue.put_nowait(request)
             remaining = deadline - time.monotonic()
             if remaining <= 0 or not request.done.wait(remaining):
                 self.close(error="timeout")

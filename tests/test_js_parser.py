@@ -26,6 +26,47 @@ def document():
 
 
 class SchemaTests(unittest.TestCase):
+    def test_closed_worker_rejects_without_queueing_or_waiting(self):
+        worker = object.__new__(bridge._Worker)
+        worker.requests, worker.closed = 0, True
+        worker._lock = threading.RLock()
+        worker._queue = mock.Mock()
+        worker.close = mock.Mock()
+        request = mock.Mock()
+        request.done.wait.return_value = False
+        with mock.patch.object(bridge, "_Request", return_value=request):
+            with self.assertRaises(bridge.JsParserError) as caught:
+                worker.exchange(CANARY, "javascript", time.monotonic() + 1)
+        self.assertEqual(caught.exception.code, "failed")
+        worker._queue.put_nowait.assert_not_called()
+        request.done.wait.assert_not_called()
+        self.assertNotIn(CANARY, str(caught.exception))
+
+    def test_node_package_metadata_matches_supported_series(self):
+        package = json.loads((bridge.ANALYZER / "package.json").read_text("utf-8"))
+        lock = json.loads((bridge.ANALYZER / "package-lock.json").read_text("utf-8"))
+        self.assertEqual(package["engines"]["node"], ">=24.22.1 <25")
+        self.assertEqual(lock["packages"][""]["engines"], package["engines"])
+
+    def test_node_version_policy_stays_in_supported_24_series(self):
+        node = Path(sys.executable)
+        self.addCleanup(bridge._VERSION_CACHE.clear)
+        for version, accepted in [(b"v24.22.1\n", True), (b"v24.22.2\n", True),
+                                  (b"v24.99.0\n", True), (b"v24.22.0\n", False),
+                                  (b"v23.99.99\n", False), (b"v25.0.0\n", False),
+                                  (b"v26.13.0\n", False), (b"v999.0.0\n", False),
+                                  (b"v24.22.1-rc.1\n", False), (b"not a version", False)]:
+            with self.subTest(version=version), mock.patch.object(bridge, "_run", return_value=version):
+                bridge._VERSION_CACHE.clear()
+                if accepted:
+                    bridge._check_node(node)
+                    self.assertEqual(len(bridge._VERSION_CACHE), 1)
+                else:
+                    with self.assertRaises(bridge.JsParserError) as caught:
+                        bridge._check_node(node)
+                    self.assertEqual(caught.exception.code, "node_unsupported")
+                    self.assertEqual(bridge._VERSION_CACHE, {})
+
     def test_valid_graph_and_utf16_offsets(self):
         self.assertEqual(bridge._validate(document(), "x;"), document())
         doc = document()
