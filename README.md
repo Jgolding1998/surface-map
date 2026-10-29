@@ -97,6 +97,8 @@ This is deliberately lossy. Different origins or private route names can normali
 python -m unittest discover -s tests -v
 ```
 
+For a reproducible static-route regression check, run `python -m evals.run --mode enhanced --trials 3 --check` after parser setup, or use `--mode basic` to inspect lexical hints. The [16-case synthetic corpus](evals/README.md) reports exact cases, TP/FP/FN, precision/recall/F1 and separate unknown-method targets, with explicit cold/warm timing samples. It tests known patterns and negative controls; it is not an unseen benchmark or a claim about live endpoints. Enhanced mode is required when selected and never falls back.
+
 The tests cover extraction, browser form and relative URL semantics, evidence labels, body shapes, capture differences, planted-secret redaction across every export, malformed Unicode and JSON, 128/256/500 KiB JavaScript samples, work limits, hostile origins, CSRF, framing, slow header drips, export amplification and processing admission. Source tests add manifest and import inspection, ignored installer arguments and includes, no execution or network, bounded malformed inputs, explicit file selection, minimized CLI errors, and source evidence comparison.
 
 The optional real-browser check uses Node.js and Playwright:

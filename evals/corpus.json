@@ -1,0 +1,24 @@
+{
+  "schema": "surface-map-static-route-corpus/1",
+  "version": 1,
+  "task": "Known synthetic regression cases for static client intent, not executed requests, reachability, HAR evidence or unseen accuracy.",
+  "allowed_paths": ["/api/items", "/api/users", "/api/search"],
+  "cases": [
+    {"id":"literal-get","category":"literal fetch","kind":"javascript","file":"cases/literal-get.js","known":[["GET","/api/items"]],"unresolved":[]},
+    {"id":"explicit-post","category":"literal options","kind":"javascript","file":"cases/explicit-post.js","known":[["POST","/api/items"]],"unresolved":[]},
+    {"id":"fetch-alias","category":"client alias","kind":"javascript","file":"cases/fetch-alias.js","known":[["GET","/api/users"]],"unresolved":[]},
+    {"id":"constant-template","category":"constant template","kind":"javascript","file":"cases/constant-template.js","known":[["GET","/api/search"]],"unresolved":[]},
+    {"id":"constant-concat","category":"constant concatenation","kind":"javascript","file":"cases/constant-concat.js","known":[["PUT","/api/users"]],"unresolved":[]},
+    {"id":"escaped-literal","category":"escaped string","kind":"javascript","file":"cases/escaped-literal.js","known":[["GET","/api/users"]],"unresolved":[]},
+    {"id":"axios-import","category":"imported Axios","kind":"javascript","file":"cases/axios-import.js","known":[["GET","/api/users"]],"unresolved":[]},
+    {"id":"axios-instance","category":"Axios instance baseURL","kind":"javascript","file":"cases/axios-instance.js","known":[["POST","/api/items"]],"unresolved":[]},
+    {"id":"xhr-open","category":"XMLHttpRequest","kind":"javascript","file":"cases/xhr-open.js","known":[["DELETE","/api/items"]],"unresolved":[]},
+    {"id":"typed-fetch","category":"TypeScript annotation","kind":"typescript","file":"cases/typed-fetch.ts","known":[["GET","/api/items"]],"unresolved":[]},
+    {"id":"unknown-method","category":"known URI with unknown operation","kind":"javascript","file":"cases/unknown-method.js","known":[],"unresolved":["/api/search"]},
+    {"id":"unknown-target","category":"dynamic target negative","kind":"javascript","file":"cases/unknown-target.js","known":[],"unresolved":[]},
+    {"id":"syntax-noise","category":"comment string and JSX text negative","kind":"javascript","file":"cases/syntax-noise.jsx","known":[],"unresolved":[]},
+    {"id":"shadowed-client","category":"shadowed client negative","kind":"javascript","file":"cases/shadowed-client.js","known":[],"unresolved":[]},
+    {"id":"mutated-target","category":"mutated target negative","kind":"javascript","file":"cases/mutated-target.js","known":[],"unresolved":[]},
+    {"id":"nonclient-method","category":"nonclient receiver negative","kind":"javascript","file":"cases/nonclient-method.js","known":[],"unresolved":[]}
+  ]
+}

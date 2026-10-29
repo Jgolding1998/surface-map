@@ -1,0 +1,25 @@
+{
+  "schema": "surface-map-static-route-hashes/1",
+  "corpus_version": 1,
+  "normalization": "CRLF-to-LF",
+  "files": {
+    "corpus.json": "cc648845c09dd8220a2aee0ef5b5906c97977ddc71c3506190951ae474819e3d",
+    "cases/literal-get.js": "fbbc3056a3138b36d81fed3b4302ca505407e9e39a65ee3551aca46d749585b7",
+    "cases/explicit-post.js": "c46eb4566026d7af1d2a7586be6812734ca61621c138f3373c9979cd3e252aa6",
+    "cases/fetch-alias.js": "8339fb86f0476468f8446238d64b0d27e85af7219970afaad194f65e76e3750a",
+    "cases/constant-template.js": "eb0f798061fcb49acc80caae69b7d43b0f41462c2fce221d4f37e2eb905219e8",
+    "cases/constant-concat.js": "7a540cfeee53e48634fd370c44094f6ef86fedc68a60337291d8175deffb5a47",
+    "cases/escaped-literal.js": "ba3c8767957bc43a75a965edaf082b4b5e3ed3e5b2c4deec57368b5b8eb7be8e",
+    "cases/axios-import.js": "e6b0ef7990d15bdb06d842f0fca66751c2790c1b2f2bf062571ddfe9de38682e",
+    "cases/axios-instance.js": "03395022c735009a214fc97f19ea3a74fe8e600ee4527997f408e5c4db0d519c",
+    "cases/xhr-open.js": "0666dacc50b21cfb9163413ed5a0416097b3a4acca4dc39a2316bcb65999b194",
+    "cases/typed-fetch.ts": "af224fc622f1ffedb98db90d8d9527ee9d1924229fcb784c25c9a92b91c2d763",
+    "cases/unknown-method.js": "9e78d1b2a83e8f61015edcc3a90fa520bed4ed8bd31524bab1ae3a373f05254d",
+    "cases/unknown-target.js": "fdb044b2ee20ad7c426cfb478b7cdfd89c053cc31981f6c0cb3a1790293904b7",
+    "cases/syntax-noise.jsx": "da91462f55e8754240a823b0ede52f168562aadb2bf306118c8107ae2fa856c5",
+    "cases/shadowed-client.js": "05b8ba456b26d88fb61043ee595cf58c381d705f9e942016ec2779ecea556a53",
+    "cases/mutated-target.js": "e4a6d589651ff1e3ce031166ff8696b3af7cbdb9a4e0d2d632701dac60b3a0f1",
+    "cases/nonclient-method.js": "35d4382ff131558cde9b2de74d3db83fc571b2994bb70ba88b9b1f6911a61cd5"
+  },
+  "aggregate_sha256": "c1249df44653f85a4d8cb841a702229a76bac50bdd64e96c55354357ffeec7c8"
+}

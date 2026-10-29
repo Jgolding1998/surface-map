@@ -26,3 +26,7 @@ jobs:
         working-directory: analyzers/javascript
       - run: python -c "from surface_map.js_parser import available; ready, reason = available(); assert ready, reason"
       - run: python -m unittest discover -s tests -v
+      - name: Basic static-route regression report
+        run: python -m evals.run --mode basic --trials 1
+      - name: Required syntax static-route regressions
+        run: python -m evals.run --mode enhanced --trials 3 --check
