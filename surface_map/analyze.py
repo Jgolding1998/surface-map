@@ -146,16 +146,16 @@ def safe_field(raw, index, used=None):
 
 
 def safe_path(raw):
-    if not isinstance(raw, str) or not raw or len(raw) > 4096 or any(ord(c) < 32 or ord(c) == 127 for c in raw):
+    if not isinstance(raw, str) or not raw or len(raw) > 4096 or "\\" in raw or any(ord(c) < 32 or ord(c) == 127 for c in raw):
         return None
     try:
         parts = urlsplit(raw)
         if parts.scheme and parts.scheme.lower() not in {"http", "https"}:
             return None
-        decoded = unquote(parts.path, errors="replace")
-        if len(decoded) > 2048:
+        chunks = [unquote(part, errors="replace") for part in parts.path.split("/")]
+        if sum(map(len, chunks)) + len(chunks) - 1 > 2048:
             return None
-        chunks = [part for part in decoded.split("/") if part]
+        chunks = [part for part in chunks if part]
         if len(chunks) > 24 or any(part in {".", ".."} for part in chunks):
             return None
         result = []

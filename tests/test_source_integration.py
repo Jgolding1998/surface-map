@@ -29,7 +29,7 @@ class SourceInputTests(unittest.TestCase):
 
     def test_javascript_imports_keep_javascript_language_and_minimized_evidence(self):
         report = inspect_sources([{"kind": "javascript", "content": "const note = '" + CANARY + "';\nconst ui = require('react');\nimport axios from 'axios';\n"}])
-        self.assertEqual([item["name"] for item in report["languages"]], ["javascript"])
+        self.assertEqual([item["name"] for item in report["languages"]], ["javascript"], report["warnings"])
         self.assertEqual({item["name"] for item in report["dependencies"]}, {"react", "axios"})
         self.assertNotIn(CANARY, json.dumps(report))
         self.assertEqual(report["dependencies"][0]["evidence"][0]["location"], "line 3")

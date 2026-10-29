@@ -28,6 +28,7 @@ MAX_FILE_BYTES = 512 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024
 MAX_NODES = 20000
 MAX_DEPTH = 20
+MAX_PYTHON_AST_DEPTH = 256
 MAX_LINES = 50000
 MAX_EVIDENCE = 5
 MAX_LEX_TOKENS = 300000
@@ -470,11 +471,11 @@ def _parse_python(text, inventory, source):
             tree = ast.parse(text, mode="exec")
         except (SyntaxError, tokenize.TokenError, ValueError, RecursionError, MemoryError, OverflowError):
             raise _Rejected("document is not parseable Python") from None
-    pending, seen = [(tree, 0)], 0
+    pending, seen = [(tree, 0, 0)], 0
     while pending:
-        node, depth = pending.pop()
+        node, depth, statement_depth = pending.pop()
         seen += 1
-        if seen > MAX_NODES or depth > MAX_DEPTH:
+        if seen > MAX_NODES or depth > MAX_PYTHON_AST_DEPTH or statement_depth > MAX_DEPTH:
             raise _Rejected("document structure exceeds the supported limit")
         if seen % 1024 == 0:
             inventory.tick()
@@ -483,7 +484,8 @@ def _parse_python(text, inventory, source):
                 _python_import(alias.name, inventory, source, node.lineno)
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             _python_import(node.module, inventory, source, node.lineno)
-        pending.extend((child, depth + 1) for child in reversed(list(ast.iter_child_nodes(node))))
+        pending.extend((child, depth + 1, statement_depth + isinstance(child, ast.stmt))
+                       for child in reversed(list(ast.iter_child_nodes(node))))
 
 
 def _python_import(module, inventory, source, line):
