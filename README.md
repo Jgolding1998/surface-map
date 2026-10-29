@@ -46,7 +46,8 @@ This is deliberately lossy. Different origins or private route names can normali
 - The JavaScript detector finds lexical hints, not complete program behavior. It may miss calls or find calls in code that never runs.
 - A HAR observation describes that capture. It does not prove a route still works, is safe to call, or represents a complete service contract.
 - OpenAPI exports omit servers. Equivalent redacted path templates merge with combined evidence; a parameter observed as both numeric and text uses a string schema. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
-- HTML forms without an explicit action are omitted because the saved page URL is unknown. Duplicate HTML attributes use their first value, matching browser handling.
+- The saved page URL is unknown, so relative links, form actions, asset paths and fetch URLs are omitted, as are forms without an action. Absolute and root-relative URLs are kept; in-page `#` links are ignored.
+- Form methods follow browser submission: `post` is POST, `dialog` is ignored and anything else is GET. GET form controls become query fields. Duplicate HTML attributes use their first value, matching browser handling.
 - Comparison reports added, absent and changed normalized evidence. Absence from a capture does not prove removal from a service.
 
 ## Check it
@@ -55,7 +56,7 @@ This is deliberately lossy. Different origins or private route names can normali
 python -m unittest discover -s tests -v
 ```
 
-The 39 tests cover extraction, evidence labels, body shapes, capture differences, planted-secret redaction across every export, malformed Unicode and JSON, 128/256/500 KiB JavaScript samples, work limits, hostile origins, CSRF, framing, slow header drips, export amplification and processing admission.
+The tests cover extraction, browser form and relative URL semantics, evidence labels, body shapes, capture differences, planted-secret redaction across every export, malformed Unicode and JSON, 128/256/500 KiB JavaScript samples, work limits, hostile origins, CSRF, framing, slow header drips, export amplification and processing admission.
 
 The optional real-browser check uses Node.js and Playwright:
 

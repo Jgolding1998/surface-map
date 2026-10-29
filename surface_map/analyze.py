@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 from html.parser import HTMLParser
 from urllib.parse import parse_qsl, unquote, urlsplit
@@ -19,6 +20,10 @@ FIELDS = set("id name email password token authorization api_key secret access_t
 
 class ArtifactError(ValueError):
     pass
+
+
+def page_relative(raw):
+    return isinstance(raw, str) and not raw.startswith("/") and re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", raw) is None
 
 
 def strict_json(text: str, *, depth=20, nodes=20000):
@@ -170,11 +175,17 @@ class Builder:
         self.routes, self.assets, self.sources, self.warnings = {}, {}, [], []
 
     def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None):
+        if kind != "har" and page_relative(raw):
+            if not raw.startswith("#"):
+                self.warn(source, "A relative URL was omitted because the page URL is unknown")
+            return
         sanitized = safe_path(raw)
         if sanitized is None or not isinstance(method, str) or method not in METHODS:
             self.warn(source, "An unsupported URL or request method was omitted")
             return
         path, query_fields = sanitized
+        if fields is not None and method == "GET":
+            query_fields, fields = sorted(fields), None
         key = (method, path)
         if key not in self.routes:
             if len(self.routes) >= MAX_ROUTES:
@@ -195,6 +206,9 @@ class Builder:
             route["evidence"].append(evidence)
 
     def asset(self, raw, kind, source, location):
+        if page_relative(raw):
+            self.warn(source, "A relative URL was omitted because the page URL is unknown")
+            return
         sanitized = safe_path(raw)
         if sanitized is None:
             return
@@ -362,26 +376,27 @@ class HTML(HTMLParser):
             raise ArtifactError("HTML tag limit exceeded")
         attrs = {}
         for key, value in attributes:
-            attrs.setdefault(key, value)
+            attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
         location = f"line {self.getpos()[0]}"
         if tag == "a" and attrs.get("href"):
             self.builder.add(attrs["href"], "GET", "link", self.source, location)
         elif tag == "script" and attrs.get("src"):
             self.builder.asset(attrs["src"], "script", self.source, location)
         elif tag == "link" and attrs.get("href"):
-            self.builder.asset(attrs["href"], "stylesheet" if attrs.get("rel") == "stylesheet" else "link", self.source, location)
+            self.builder.asset(attrs["href"], "stylesheet" if "stylesheet" in (attrs.get("rel") or "").lower().split() else "link", self.source, location)
         elif tag == "form":
             self._finish_form()
-            if not (attrs.get("action") or "").strip():
+            method = (attrs.get("method") or "").lower()
+            if not attrs.get("action"):
                 self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
-            else:
-                self.form = {"url": attrs["action"], "method": (attrs.get("method") or "GET").upper(), "fields": {}, "location": location}
+            elif method != "dialog":
+                self.form = {"url": attrs["action"], "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
         elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
-            fields = self.form["fields"]
-            if len(fields) >= 32:
+            fields, names = self.form["fields"], self.form["names"]
+            if len(fields) >= 32 or attrs["name"] in names:
                 return
-            name = safe_field(attrs["name"], len(fields) + 1, set(fields))
-            fields[name] = {"type": "string"}
+            names.add(attrs["name"])
+            fields[safe_field(attrs["name"], len(fields) + 1, set(fields))] = {"type": "string"}
 
     def _finish_form(self):
         if self.form:

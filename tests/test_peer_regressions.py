@@ -58,6 +58,33 @@ class AnalysisRegressionTests(unittest.TestCase):
         report = analyze([{"kind": "html", "text": '<a href="/dashboard" HREF="/admin">x</a><form action="/api/orders" action="/api/users" method="POST" method="DELETE"></form>'}])
         self.assertEqual({(route["method"], route["path"]) for route in report["routes"]}, {("GET", "/dashboard"), ("POST", "/api/orders")})
 
+    def test_page_relative_urls_are_omitted_instead_of_rooted(self):
+        html = ('<a href="#main">Skip</a><a href="?page=2">Next</a><a href="orders/5">Order</a><a href=" /dashboard ">Home</a>'
+                '<form action="search"><input name="q"></form><script src="app.js"></script><link rel="stylesheet" href="../site.css">')
+        report = analyze([{"kind": "html", "text": html}, {"kind": "javascript", "text": "fetch('api/notifications'); fetch('//cdn.example/api/messages');"}])
+        self.assertEqual([(route["method"], route["path"]) for route in report["routes"]], [("GET", "/api/messages"), ("GET", "/dashboard")])
+        self.assertEqual(report["assets"], [])
+        self.assertEqual({item["source"] for item in report["warnings"] if "relative URL" in item["reason"]}, {"source_1", "source_2"})
+
+    def test_forms_use_browser_submission_methods_and_encoding(self):
+        html = ('<form action="/api/items/7" method="delete"><input name="id"></form>'
+                '<form action="/api/search"><input name="q"><input name="q"><input name="page"></form>'
+                '<form action="/api/orders" method="PoSt"><input name="sku"><input name="sku"></form>'
+                '<form action="/api/close" method="dialog"><input name="note"></form>')
+        report = analyze([{"kind": "html", "text": html}])
+        routes = {(route["method"], route["path"]): route for route in report["routes"]}
+        self.assertEqual(set(routes), {("GET", "/api/items/{integer_3}"), ("GET", "/api/search"), ("POST", "/api/orders")})
+        self.assertEqual(routes[("GET", "/api/search")]["query_fields"], ["page", "q"])
+        self.assertEqual(routes[("GET", "/api/search")]["request_shapes"], [])
+        self.assertEqual(routes[("POST", "/api/orders")]["request_shapes"], [{"type": "object", "properties": {"sku": {"type": "string"}}}])
+        operation = openapi(report)["paths"]["/api/search"]["get"]
+        self.assertNotIn("requestBody", operation)
+        self.assertEqual({item["name"] for item in operation["parameters"]}, {"page", "q"})
+
+    def test_stylesheet_detection_uses_rel_tokens(self):
+        report = analyze([{"kind": "html", "text": '<link rel="preload Stylesheet" href="/assets/app.css"><link rel="icon" href="/favicon.ico">'}])
+        self.assertEqual([(item["kind"], item["path"]) for item in report["assets"]], [("link", "/favicon.ico"), ("stylesheet", "/assets/app.css")])
+
     def test_header_heavy_har_hits_the_node_limit_before_the_entry_limit(self):
         headers = [{"name": f"header-{index}", "value": "discarded"} for index in range(30)]
         entries = [entry(f"/api/orders/{index}") for index in range(150)]
