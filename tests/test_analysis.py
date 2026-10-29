@@ -73,6 +73,29 @@ class AnalysisTests(unittest.TestCase):
             with self.subTest(options=options):
                 self.assertEqual(report["routes"], [])
 
+    def test_shorthand_computed_accessor_and_inherited_methods_are_not_get(self):
+        options = ["{method}", "{[method]: 'POST'}", "{['method']: 'POST'}", "{get method() {return 'POST'}}",
+                   "{get [method]() {return 'POST'}}", "{method() {return 'POST'}}", "{__proto__: {method: 'POST'}}",
+                   r"{'m\u0065thod': 'POST'}", r"{m\u0065thod: 'POST'}"]
+        for value in options:
+            with self.subTest(options=value):
+                report = analyze([{"kind": "javascript", "text": f"const method='POST'; fetch('/api/orders', {value});"}])
+                self.assertEqual(report["routes"], [])
+                self.assertTrue(report["warnings"])
+
+    def test_unescaped_literal_method_and_nested_unrelated_method_still_work(self):
+        for options, expected in [("{method:'POST', headers:{method:'ignored'}}", "POST"),
+                                  ("{headers:{method:'ignored'}, body:[1,2]}", "GET"),
+                                  ("{mode:'method'}", "GET")]:
+            with self.subTest(options=options):
+                report = analyze([{"kind": "javascript", "text": f"fetch('/api/orders', {options});"}])
+                self.assertEqual([(route["method"], route["path"]) for route in report["routes"]], [(expected, "/api/orders")])
+
+    def test_escaped_url_literals_are_omitted_without_guessing_decoding(self):
+        report = analyze([{"kind": "javascript", "text": r"fetch('\x2fapi\x2forders');"}])
+        self.assertEqual(report["routes"], [])
+        self.assertTrue(report["warnings"])
+
     def test_html_does_not_execute_or_export_text_and_values(self):
         report = analyze([{"kind": "html", "text": f'<script>throw "{CANARY}"; fetch("/api/private");</script><form action="/api/search" method="POST"><input name="q" value="{CANARY}"><input name="email" value="{EMAIL}"></form>'}])
         self.assertEqual(len(report["routes"]), 1)

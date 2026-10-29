@@ -268,7 +268,7 @@ def js_tokens(text):
             index = end
             continue
         if char in "\"'`":
-            quote, value, start_line = char, [], line
+            quote, value, start_line, escaped = char, [], line, False
             index += 1
             while index < len(text):
                 current = text[index]
@@ -278,12 +278,15 @@ def js_tokens(text):
                     index += 1
                     break
                 if current == "\\" and index + 1 < len(text):
+                    escaped = True
                     index += 1
                     current = text[index]
+                    if current == "\n":
+                        line += 1
                 if len(value) < 4097:
                     value.append(current)
                 index += 1
-            emit("template" if quote == "`" else "string", "".join(value), start_line)
+            emit("template" if quote == "`" else "escaped_string" if escaped else "string", "".join(value), start_line)
             continue
         if char.isascii() and (char.isalpha() or char in "_$"):
             end = index + 1
@@ -316,6 +319,14 @@ def parse_js(text, source, builder):
             level, closed, methods, dynamic = 0, None, [], False
             for offset in range(len(tail)):
                 value = tail[offset][1]
+                previous = tail[offset - 1][1] if offset else None
+                if level == 1:
+                    if (value == "[" and previous in {"{", ",", "get", "set", "async"}) or tail[offset][0] == "escaped_string" or value == "\\":
+                        dynamic = True
+                    if value == "__proto__" and previous in {"{", ","}:
+                        dynamic = True
+                    if value == "method" and previous in {"{", ",", "get", "set", "async"} and (offset + 1 >= len(tail) or tail[offset + 1][1] != ":"):
+                        dynamic = True
                 if tail[offset][0] == "punctuation" and value in "{[":
                     level += 1
                 elif tail[offset][0] == "punctuation" and value in "}]":
@@ -349,7 +360,9 @@ class HTML(HTMLParser):
         self.tags += 1
         if self.tags > 5000:
             raise ArtifactError("HTML tag limit exceeded")
-        attrs = dict(attributes)
+        attrs = {}
+        for key, value in attributes:
+            attrs.setdefault(key, value)
         location = f"line {self.getpos()[0]}"
         if tag == "a" and attrs.get("href"):
             self.builder.add(attrs["href"], "GET", "link", self.source, location)
@@ -359,7 +372,10 @@ class HTML(HTMLParser):
             self.builder.asset(attrs["href"], "stylesheet" if attrs.get("rel") == "stylesheet" else "link", self.source, location)
         elif tag == "form":
             self._finish_form()
-            self.form = {"url": attrs.get("action") or "/", "method": (attrs.get("method") or "GET").upper(), "fields": {}, "location": location}
+            if not (attrs.get("action") or "").strip():
+                self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
+            else:
+                self.form = {"url": attrs["action"], "method": (attrs.get("method") or "GET").upper(), "fields": {}, "location": location}
         elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
             fields = self.form["fields"]
             if len(fields) >= 32:

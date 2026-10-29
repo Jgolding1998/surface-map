@@ -8,9 +8,40 @@ def union(schemas):
     return schemas[0] if len(schemas) == 1 else {"anyOf": schemas} if schemas else {}
 
 
+def openapi_routes(routes):
+    groups = {}
+    for route in routes:
+        template = re.sub(r"\{(?:integer|segment)_[0-9]+\}", "{}", route["path"])
+        groups.setdefault(template, []).append(route)
+    result = []
+    for group in groups.values():
+        segments = [route["path"].split("/") for route in group]
+        canonical = segments[0][:]
+        for index, segment in enumerate(canonical):
+            if segment.startswith("{") and any(parts[index].startswith("{segment_") for parts in segments):
+                canonical[index] = f"{{segment_{index}}}"
+        path, operations = "/".join(canonical), {}
+        for route in group:
+            method = route["method"]
+            if method not in operations:
+                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}}
+            merged = operations[method]
+            for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence"):
+                for value in route[key]:
+                    if value not in merged[key]:
+                        merged[key].append(value)
+            if ("inferred", "declared", "observed").index(route["confidence"]) > ("inferred", "declared", "observed").index(merged["confidence"]):
+                merged["confidence"] = route["confidence"]
+        for route in operations.values():
+            route["statuses"].sort()
+            route["query_fields"].sort()
+            result.append(route)
+    return result
+
+
 def openapi(report):
     paths = {}
-    for route in report["routes"]:
+    for route in openapi_routes(report["routes"]):
         parameters = [{"name": field, "in": "query", "required": False, "schema": {"type": "string"}, "description": "Name observed; values discarded and type unverified."} for field in route["query_fields"]]
         parameters.extend({"name": name, "in": "path", "required": True, "schema": {"type": "integer" if name.startswith("integer_") else "string"}, "description": "Inferred redaction placeholder, not a verified API parameter."} for name in re.findall(r"\{([a-z0-9_]+)\}", route["path"]))
         operation = {"operationId": route["id"], "summary": f"{route['method']} {route['path']}", "description": "Evidence-derived skeleton only. Origins, raw values and unknown names were removed. Confirm behavior and supply your own server before use.", "parameters": parameters, "responses": {}, "x-surface-map-confidence": route["confidence"], "x-surface-map-evidence": route["evidence"]}

@@ -39,13 +39,14 @@ This is deliberately lossy. Different origins or private route names can normali
 
 ## Practical limits
 
-- Up to 6 artifacts per capture, 512 KiB each and 1 MiB combined; HAR supports up to 300 entries.
+- Up to 6 artifacts per capture, 512 KiB each and 1 MiB combined; HAR supports up to 300 entries and 20,000 JSON nodes. Header-heavy captures can reach the node limit before the entry limit.
 - Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. JavaScript supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget; unusually dense or complex files can be rejected below 512 KiB.
 - Export serialization stops at 3 MiB, including amplification from combined response shapes. Smaller captures may be needed. Errors include only predefined reasons and generic source IDs, without source text.
-- Base64 HAR bodies, non-JSON bodies, dynamic JavaScript calls, archives, APKs, native binaries and .NET assemblies are unsupported.
+- Base64 HAR bodies, non-JSON bodies, dynamic JavaScript calls, archives, APKs, native binaries and .NET assemblies are unsupported. JavaScript hints require unescaped string URLs; computed, shorthand, inherited or accessor method definitions are omitted.
 - The JavaScript detector finds lexical hints, not complete program behavior. It may miss calls or find calls in code that never runs.
 - A HAR observation describes that capture. It does not prove a route still works, is safe to call, or represents a complete service contract.
-- OpenAPI exports omit servers. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
+- OpenAPI exports omit servers. Equivalent redacted path templates merge with combined evidence; a parameter observed as both numeric and text uses a string schema. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
+- HTML forms without an explicit action are omitted because the saved page URL is unknown. Duplicate HTML attributes use their first value, matching browser handling.
 - Comparison reports added, absent and changed normalized evidence. Absence from a capture does not prove removal from a service.
 
 ## Check it

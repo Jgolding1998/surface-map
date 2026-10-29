@@ -67,10 +67,14 @@ def make_server(port=8768):
 
         def parse_request(self):
             try:
-                return super().parse_request()
+                parsed = super().parse_request()
             finally:
                 self._headers_complete.set()
                 self._header_timer.cancel()
+            if parsed and self.request_version not in {"HTTP/1.0", "HTTP/1.1"}:
+                self.send_error(505)
+                return False
+            return parsed
 
         def log_message(self, *_):
             pass
@@ -96,6 +100,9 @@ def make_server(port=8768):
             self.wfile.write(body)
 
         def send_error(self, code, message=None, explain=None):
+            self.close_connection = True
+            if getattr(self, "request_version", "HTTP/0.9") == "HTTP/0.9":
+                self.request_version = "HTTP/1.0"
             self.reply(code, {"error": "Invalid HTTP request"})
 
         def allowed(self, post=False):
