@@ -25,6 +25,118 @@ def document():
     ]}
 
 
+def parse_with_busy_retry(source, *, attempts=100, seconds=5.0):
+    """Bound retry starts; each parse retains its own production deadline."""
+    deadline = time.monotonic() + seconds
+    last_busy = None
+    for attempt in range(attempts):
+        if last_busy is not None and time.monotonic() >= deadline:
+            raise last_busy
+        try:
+            return bridge.parse(source)
+        except bridge.JsParserError as error:
+            if error.code != "busy":
+                raise
+            last_busy = error
+            remaining = deadline - time.monotonic()
+            if attempt + 1 >= attempts or remaining <= 0:
+                raise
+            time.sleep(min(.01 * 2 ** min(attempt, 4), .1, remaining))
+    raise bridge.JsParserError("busy")
+
+
+class AdmissionContractTests(unittest.TestCase):
+    def pool_state(self, *, waiting, occupied):
+        pool = bridge._Pool()
+        idle = SimpleNamespace(busy=False, expired=lambda now: False, close=lambda **kwargs: None)
+        active = SimpleNamespace(busy=True, expired=lambda now: False, close=lambda **kwargs: None)
+        pool._workers = [idle, active]
+        pool._generation = ("owned",)
+        pool._waiting = waiting
+        pool._reaper = object()  # No reaper thread is needed for a fixed state.
+        for _ in range(occupied):
+            self.assertTrue(pool._slots.acquire(blocking=False))
+        self.addCleanup(pool.shutdown)
+        return pool, idle
+
+    def test_idle_worker_does_not_bypass_two_existing_waiters(self):
+        self.assertEqual((bridge.MAX_WORKERS, bridge.MAX_WAITERS), (2, 2))
+        pool, idle = self.pool_state(waiting=2, occupied=3)
+        with mock.patch.object(bridge, "_Worker", side_effect=AssertionError("No real worker")):
+            with self.assertRaises(bridge.JsParserError) as caught:
+                pool.acquire(("owned",), None, time.monotonic() + 1)
+        self.assertEqual(caught.exception.code, "busy")
+        self.assertFalse(idle.busy)
+        self.assertEqual(pool._waiting, 2)
+        self.assertTrue(pool._slots.acquire(blocking=False))
+        self.assertFalse(pool._slots.acquire(blocking=False))
+        pool._slots.release()
+
+    def test_idle_worker_is_available_below_the_waiter_limit(self):
+        pool, idle = self.pool_state(waiting=1, occupied=2)
+        with mock.patch.object(bridge, "_Worker", side_effect=AssertionError("No real worker")):
+            worker = pool.acquire(("owned",), None, time.monotonic() + 1)
+        self.assertIs(worker, idle)
+        self.assertTrue(worker.busy)
+        self.assertEqual(pool._waiting, 1)
+        pool.release(worker)
+        self.assertFalse(worker.busy)
+
+    def test_full_admission_still_rejects_before_taking_the_pool_lock(self):
+        pool, _ = self.pool_state(waiting=2, occupied=4)
+        with mock.patch.object(pool._condition, "acquire", side_effect=AssertionError("Pool lock must not be taken")):
+            with self.assertRaises(bridge.JsParserError) as caught:
+                pool.acquire(("owned",), None, time.monotonic() + 1)
+        self.assertEqual(caught.exception.code, "busy")
+        self.assertFalse(pool._slots.acquire(blocking=False))
+
+    def test_busy_retry_preserves_the_successful_document(self):
+        clock, delays = [0.0], []
+        def sleep(delay):
+            delays.append(delay)
+            clock[0] += delay
+        expected = document()
+        with mock.patch.object(bridge, "parse", side_effect=[bridge.JsParserError("busy"), bridge.JsParserError("busy"), expected]) as parse, \
+                mock.patch.object(time, "monotonic", side_effect=lambda: clock[0]), mock.patch.object(time, "sleep", side_effect=sleep):
+            self.assertIs(parse_with_busy_retry("x;"), expected)
+        self.assertEqual(parse.call_count, 3)
+        self.assertEqual(delays, [.01, .02])
+
+    def test_busy_retry_propagates_every_other_parser_error(self):
+        for code in ("syntax", "timeout", "failed", "parser_integrity", "output_limit", "node_unsupported"):
+            with self.subTest(code=code), mock.patch.object(bridge, "parse", side_effect=bridge.JsParserError(code)) as parse, \
+                    mock.patch.object(time, "sleep") as sleep:
+                with self.assertRaises(bridge.JsParserError) as caught:
+                    parse_with_busy_retry("x;")
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(parse.call_count, 1)
+                sleep.assert_not_called()
+
+    def test_busy_retry_has_a_finite_attempt_limit(self):
+        with mock.patch.object(bridge, "parse", side_effect=bridge.JsParserError("busy")) as parse, \
+                mock.patch.object(time, "monotonic", return_value=0), mock.patch.object(time, "sleep") as sleep:
+            with self.assertRaises(bridge.JsParserError) as caught:
+                parse_with_busy_retry("x;", attempts=3)
+        self.assertEqual(caught.exception.code, "busy")
+        self.assertEqual(parse.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_busy_retry_checks_monotonic_deadline_before_another_attempt(self):
+        clock, delays = [0.0], []
+        def sleep(delay):
+            delays.append(delay)
+            clock[0] += delay
+        with mock.patch.object(bridge, "parse", side_effect=bridge.JsParserError("busy")) as parse, \
+                mock.patch.object(time, "monotonic", side_effect=lambda: clock[0]), mock.patch.object(time, "sleep", side_effect=sleep):
+            with self.assertRaises(bridge.JsParserError) as caught:
+                parse_with_busy_retry("x;", seconds=.015)
+        self.assertEqual(caught.exception.code, "busy")
+        self.assertEqual(parse.call_count, 2)
+        self.assertEqual(len(delays), 2)
+        self.assertAlmostEqual(sum(delays), .015)
+        self.assertTrue(all(0 < delay <= .1 for delay in delays))
+
+
 class SchemaTests(unittest.TestCase):
     def test_closed_worker_rejects_without_queueing_or_waiting(self):
         worker = object.__new__(bridge._Worker)
@@ -439,7 +551,8 @@ class PoolTests(unittest.TestCase):
 
     def test_concurrent_callers_share_at_most_two_owned_workers(self):
         def run(value):
-            doc = bridge.parse("const value=" + str(value) + ";")
+            # A new executor task can beat notified waiters to the pool lock.
+            doc = parse_with_busy_retry("const value=" + str(value) + ";")
             return next(n["fields"]["value"] for n in doc["nodes"] if n["type"] == "NumericLiteral")
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             self.assertEqual(list(executor.map(run, range(12))), list(range(12)))
