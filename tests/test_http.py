@@ -5,7 +5,7 @@ import socket
 import threading
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from surface_map.server import MAX_REQUEST, make_server
 from test_analysis import CANARY, EMAIL, entry, har
@@ -156,6 +156,71 @@ class HTTPTests(unittest.TestCase):
         finally:
             for client in held:
                 client.close()
+
+    def test_connection_overload_is_visible_to_ordinary_get_and_post_clients(self):
+        held = 0
+        try:
+            for _ in range(16):
+                self.assertTrue(self.server.connections.acquire(timeout=1))
+                held += 1
+            document = {"artifacts": [{"kind": "javascript", "text": "const note='" + "x" * 8192 + "'; fetch('/api/items');"}]}
+            self.assertEqual(len(json.dumps(document).encode()), 8278)
+            for _ in range(8):
+                status, headers, body = self.request("/health")
+                self.assertEqual((status, body), (503, b""))
+                self.assertEqual(headers["Connection"], "close")
+            for _ in range(8):
+                status, headers, body = self.request("/api/analyze", "POST", document)
+                self.assertEqual((status, body), (503, b""))
+                self.assertEqual(headers["Content-Length"], "0")
+        finally:
+            for _ in range(held):
+                self.server.connections.release()
+        self.assertEqual(self.request("/health")[0], 200)
+
+
+class AdmissionDrainTests(unittest.TestCase):
+    def setUp(self):
+        self.server = make_server(0)
+        self.addCleanup(self.server.server_close)
+        self.server.connections = Mock()
+        self.server.connections.acquire.return_value = False
+
+    def test_busy_response_half_closes_then_drains_at_most_16_kib(self):
+        request = Mock(spec=socket.socket)
+        request.recv.return_value = b"x" * 4096
+        events = Mock()
+        events.attach_mock(request, "socket")
+        with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", return_value=0):
+            events.attach_mock(finish, "finish")
+            self.server.process_request(request, ("127.0.0.1", 0))
+            finish.assert_called_once_with(request)
+        self.assertEqual(events.mock_calls[:3], [
+            call.socket.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"),
+            call.socket.shutdown(socket.SHUT_WR), call.socket.settimeout(0.05),
+        ])
+        self.assertEqual(request.recv.call_args_list, [call(4096)] * 4)
+        self.assertEqual(events.mock_calls[-1], call.finish(request))
+        self.server.connections.release.assert_not_called()
+
+    def test_busy_drain_stops_at_the_deadline_with_a_fixed_read_timeout(self):
+        request = Mock(spec=socket.socket)
+        request.recv.return_value = b"x"
+        with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", side_effect=[0, 0.01, 0.06, 0.11]):
+            self.server.process_request(request, ("127.0.0.1", 0))
+            finish.assert_called_once_with(request)
+        self.assertEqual(request.recv.call_count, 2)
+        request.settimeout.assert_called_once_with(0.05)
+
+    def test_eof_and_socket_failure_still_finish_the_rejected_connection(self):
+        for result in (b"", socket.timeout("idle")):
+            with self.subTest(result=type(result).__name__):
+                request = Mock(spec=socket.socket)
+                request.recv.side_effect = [result]
+                with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", return_value=0):
+                    self.server.process_request(request, ("127.0.0.1", 0))
+                    finish.assert_called_once_with(request)
+                self.assertEqual(request.recv.call_count, 1)
 
 
 if __name__ == "__main__":

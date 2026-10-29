@@ -224,6 +224,16 @@ def make_server(port=8768):
             if not self.connections.acquire(blocking=False):
                 try:
                     request.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                    request.shutdown(socket.SHUT_WR)
+                    request.settimeout(0.05)
+                    remaining, deadline = 16 * 1024, time.monotonic() + 0.1
+                    while remaining > 0 and time.monotonic() < deadline:
+                        block = request.recv(min(4096, remaining))
+                        if not block:
+                            break
+                        remaining -= len(block)
+                except OSError:
+                    pass
                 finally:
                     self.shutdown_request(request)
                 return
