@@ -20,6 +20,7 @@ function notice(message, error = false) {
 function refresh() {
   const source = sourceMode(), active = source ? sourceCurrent : current;
   $("#analysis-mode").disabled = busy;
+  $("#javascript-engine").disabled = busy;
   $("#files").disabled = busy;
   $("#analyze").disabled = busy || files.length === 0;
   $("#demo").disabled = busy;
@@ -44,7 +45,8 @@ function sourceList(sources) {
 
 function details(route) {
   const panel = $("#detail"); panel.replaceChildren();
-  panel.append(node("span", "detail-label", "ROUTE EVIDENCE"), node("h3", "", `${route.method} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
+  panel.append(node("span", "detail-label", "ROUTE EVIDENCE"), node("h3", "", `${route.method || "METHOD UNKNOWN"} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
+  if (!route.method) panel.append(node("p", "", "The target is known, but its method is unresolved. This is retained as an extension, never invented as an OpenAPI operation."));
   panel.append(node("h4", "", "Source locations"));
   const evidence = node("ul");
   for (const entry of route.evidence) evidence.append(node("li", "", `${entry.source.replace("_", " ")} · ${entry.location} · ${entry.kind}`));
@@ -52,23 +54,27 @@ function details(route) {
   panel.append(node("h4", "", "Query fields"), node("p", "", route.query_fields.join(", ") || "None observed"));
   for (const [key, title] of [["request_shapes", "Request field shapes"], ["response_shapes", "Response field shapes"]]) {
     panel.append(node("h4", "", title));
-    panel.append(route[key].length ? node("pre", "", JSON.stringify(route[key], null, 2)) : node("p", "", "No supported body shape observed."));
+    panel.append(route[key]?.length ? node("pre", "", JSON.stringify(route[key], null, 2)) : node("p", "", "No supported body shape observed."));
   }
+}
+
+function allRoutes(report) {
+  return [...report.routes, ...(report.unresolved_operations || [])];
 }
 
 function table() {
   const rows = $("#route-rows"); rows.replaceChildren();
   const query = $("#search").value.toLowerCase();
-  const routes = current ? current.report.routes.filter(route => (filter === "all" || route.confidence === filter) && route.path.toLowerCase().includes(query)) : [];
+  const routes = current ? allRoutes(current.report).filter(route => (filter === "all" || route.confidence === filter) && route.path.toLowerCase().includes(query)) : [];
   $("#empty-routes").hidden = routes.length !== 0;
   for (const route of routes) {
     const row = node("tr", selected === route.id ? "selected" : "");
-    const method = node("td"); method.append(node("span", "method " + route.method.toLowerCase(), route.method));
+    const method = node("td"); method.append(node("span", "method " + (route.method || "unknown").toLowerCase(), route.method || "UNKNOWN"));
     const path = node("td", "", route.path);
     const confidence = node("td"); confidence.append(node("span", "confidence " + route.confidence, route.confidence));
-    const status = node("td", "", route.statuses.join(", ") || "Unobserved");
+    const status = node("td", "", (route.statuses || []).join(", ") || "Unobserved");
     const action = node("td"); const button = node("button", "row-detail", "↗");
-    button.setAttribute("aria-label", `Inspect ${route.method} ${route.path}`);
+    button.setAttribute("aria-label", `Inspect ${route.method || "unknown method"} ${route.path}`);
     button.addEventListener("click", () => { selected = route.id; details(route); table(); });
     action.append(button); row.append(method, path, confidence, status, action); rows.append(row);
   }
@@ -77,19 +83,22 @@ function table() {
 function show(result, example = false) {
   current = result; selected = null;
   const report = result.report;
-  $("#routes-count").textContent = report.routes.length;
+  const routes = allRoutes(report);
+  $("#routes-count").textContent = routes.length;
   const observed = report.routes.filter(route => route.confidence === "observed").length;
   $("#observed-count").textContent = observed;
-  $("#inferred-count").textContent = report.routes.length - observed;
+  $("#inferred-count").textContent = routes.length - observed;
   $("#sources-count").textContent = report.sources.length;
   $("#workspace-mode").textContent = example ? "EXAMPLE WORKSPACE" : "YOUR SAVED ARTIFACTS";
   sourceList(report.sources); table();
-  if (report.routes.length) { selected = report.routes[0].id; details(report.routes[0]); table(); }
-  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} normalized routes, ${report.assets.length} declared assets. ${report.warnings.length ? `${report.warnings.length} unsupported or dynamic patterns were omitted. ` : ""}No service was contacted. Exports retain structure, types and aliases; body and query values are discarded.`);
+  if (routes.length) { selected = routes[0].id; details(routes[0]); table(); }
+  const engines = [...new Set((report.javascript_analysis || []).map(item => item.engine))].join(", ");
+  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}No service was contacted. Exports discard body and query values.`);
   refresh();
 }
 
 async function request(path, payload) {
+  payload = {...payload, javascript_engine:$("#javascript-engine").value};
   const response = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json", "X-Surface-Token":token}, body:JSON.stringify(payload), signal:AbortSignal.timeout(20000)});
   const result = await response.json();
   if (!response.ok) {
@@ -110,7 +119,7 @@ function kind(file) {
   }
   const dot = file.name.lastIndexOf(".");
   const extension = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : "";
-  return ["har", "json"].includes(extension) ? "har" : ["html", "htm"].includes(extension) ? "html" : ["js", "mjs"].includes(extension) ? "javascript" : null;
+  return ["har", "json"].includes(extension) ? "har" : ["html", "htm"].includes(extension) ? "html" : ["js", "jsx", "mjs", "cjs"].includes(extension) ? "javascript" : ["ts", "tsx"].includes(extension) ? "typescript" : null;
 }
 
 async function read(selection) {
@@ -134,13 +143,20 @@ async function action(task) {
 
 function showDiff(value) {
   diff = value; $("#diff-panel").hidden = false;
-  $("#diff-summary").textContent = `${value.added.length} added · ${value.removed.length} absent · ${value.changed.length} changed`;
+  const unresolved = (value.unresolved_added || []).length + (value.unresolved_removed || []).length;
+  $("#diff-summary").textContent = `${value.added.length} added · ${value.removed.length} absent · ${value.changed.length} changed${unresolved ? ` · ${unresolved} unresolved-method changes` : ""}`;
   const list = $("#diff-list"); list.replaceChildren();
   for (const [key, label] of [["added", "Added"], ["removed", "Absent"], ["changed", "Changed"]]) {
     for (const route of value[key]) {
       const row = node("div", "diff-row");
       row.append(node("strong", "", label), node("code", "", `${route.method} ${route.path}`), node("span", "", route.changed_fields ? route.changed_fields.join(", ") : "Capture evidence only"));
       list.append(row);
+    }
+  }
+  for (const [key, label] of [["unresolved_added", "Added unknown method"], ["unresolved_removed", "Absent unknown method"]]) {
+    for (const route of value[key] || []) {
+      const row = node("div", "diff-row");
+      row.append(node("strong", "", label), node("code", "", route.path)); list.append(row);
     }
   }
   if (!list.children.length) list.append(node("div", "diff-row", "No changes in the normalized evidence."));
@@ -180,7 +196,8 @@ function showSource(inventory, example = false) {
     container.append(section);
   }
   const rejected = inventory.sources.filter(item => item.status === "rejected").length;
-  notice(`${example ? "Synthetic example." : "Static inspection complete."} ${inventory.sources.length} logical sources, ${inventory.dependencies.length} known dependency labels. ${rejected ? `${rejected} sources were rejected; inspect the warnings. ` : ""}No code was executed, dependency installed, or service contacted. Declarations and imports do not prove runtime behavior.`);
+  const engines = [...new Set(inventory.sources.map(item => item.engine).filter(Boolean))].join(", ");
+  notice(`${example ? "Synthetic example." : "Static inspection complete."} ${inventory.sources.length} logical sources, ${inventory.dependencies.length} known dependency labels. ${engines ? `JavaScript engine: ${engines}. ` : ""}${rejected ? `${rejected} sources were rejected; inspect the warnings. ` : ""}No source code was executed, dependency installed, or service contacted. Declarations and imports do not prove runtime behavior.`);
   refresh();
 }
 
@@ -218,7 +235,7 @@ $("#files").addEventListener("change", () => {
   table(); notice("Selection ready. Analyze artifacts to build a fresh evidence map."); refresh();
 });
 $("#analyze").addEventListener("click", () => action(async () => {
-  const result = await request(sourceMode() ? "/api/source" : "/api/analyze", {artifacts:await read(files)});
+  const result = await request(sourceMode() ? "/api/source" : "/api/analyze", {artifacts:await read(files), javascript_engine:$("#javascript-engine").value});
   if (sourceMode()) showSource(result.inventory); else show(result);
 }));
 $("#demo").addEventListener("click", () => action(async () => {
@@ -230,7 +247,7 @@ $("#demo").addEventListener("click", () => action(async () => {
 }));
 $("#baseline").addEventListener("click", () => { baselineFiles=files.slice(); $("#baseline-status").textContent=`Baseline kept: ${baselineFiles.length} artifacts in browser memory. Import a second capture, analyze it, then compare.`; refresh(); });
 $("#compare").addEventListener("click", () => action(async () => {
-  const result = await request(sourceMode() ? "/api/source-compare" : "/api/compare", {baseline:await read(baselineFiles),candidate:await read(files)});
+  const result = await request(sourceMode() ? "/api/source-compare" : "/api/compare", {baseline:await read(baselineFiles),candidate:await read(files),javascript_engine:$("#javascript-engine").value});
   if (sourceMode()) showSourceDiff(result.diff); else showDiff(result.diff);
 }));
 $("#demo-diff").addEventListener("click", () => action(async () => showDiff((await request("/api/demo-diff", {})).diff)));
@@ -249,7 +266,7 @@ $("#analysis-mode").addEventListener("change", () => {
   $("#source-panel").hidden = !source;
   $("#upload-title").textContent = source ? "Add selected source files" : "Add saved artifacts";
   $("#upload-formats").textContent = source ? "Manifests, Python, JS/TS, Rust or shell" : "HTML, HAR or JavaScript";
-  $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.mjs";
+  $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.jsx,.mjs,.cjs,.ts,.tsx";
   $("#workspace-mode").textContent = source ? "STATIC SOURCE INSPECTION" : "WEB ARTIFACT INSPECTION";
   notice(source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example.");
   refresh();

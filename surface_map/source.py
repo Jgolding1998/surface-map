@@ -1312,7 +1312,34 @@ def _validate(artifacts):
     return prepared
 
 
-def source_inventory(artifacts):
+def _parse_javascript(text, inventory, source, kind, engine):
+    from .js_parser import JsParserError, available, parse
+    from .js_analysis import AnalysisLimit, inspect_ast
+
+    ready, reason = available() if engine != "basic" else (False, "explicit_basic")
+    if not ready:
+        if engine == "enhanced":
+            raise _Rejected("Enhanced JavaScript parser unavailable: " + reason)
+        _parse_typescript(text, inventory, source)
+        if engine != "basic":
+            inventory.warn(source, "Basic JavaScript analysis used: " + reason)
+        return "basic"
+    try:
+        result = inspect_ast(parse(text, kind))
+    except JsParserError as error:
+        raise _Rejected("Enhanced JavaScript analysis rejected: " + error.code) from None
+    except AnalysisLimit:
+        raise _Rejected("JavaScript analysis exceeded its work limit") from None
+    for item in result["imports"]:
+        name = _npm_package(item["module"])
+        if name:
+            inventory.dependency(name, "npm", "inferred", source, f"line {item['line']}")
+    return "babel-8.0.4"
+
+
+def source_inventory(artifacts, *, javascript_engine="auto"):
+    if javascript_engine not in ("auto", "basic", "enhanced"):
+        raise ArtifactError("Unsupported JavaScript analysis engine")
     prepared = _validate(artifacts)
     inventory, sources = _Inventory(), []
     for number, (kind, content, size) in enumerate(prepared, 1):
@@ -1320,7 +1347,10 @@ def source_inventory(artifacts):
         entry = {"id": source, "kind": kind, "bytes": size, "status": "parsed"}
         saved = copy.deepcopy((inventory.languages, inventory.dependencies, inventory.capabilities, inventory.hints))
         try:
-            PARSERS[kind](content, inventory, source)
+            if kind in ("javascript", "typescript"):
+                entry["engine"] = _parse_javascript(content, inventory, source, kind, javascript_engine)
+            else:
+                PARSERS[kind](content, inventory, source)
         except _Rejected as error:
             entry["status"] = "rejected"
             inventory.languages, inventory.dependencies, inventory.capabilities, inventory.hints = saved

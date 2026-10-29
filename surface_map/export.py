@@ -54,11 +54,17 @@ def openapi(report):
         if route["request_shapes"]:
             operation["requestBody"] = {"required": False, "description": "Observed JSON or declared form field shapes. Required fields and encoding are unverified.", "content": {"application/json": {"schema": union(route["request_shapes"])}}}
         paths.setdefault(route["path"], {})[route["method"].lower()] = operation
-    return {"openapi": "3.1.0", "info": {"title": "Surface Map evidence skeleton", "version": "0.1.0", "description": "Lossy reconstruction of supplied artifacts. Not a complete or tested service contract."}, "paths": paths, "x-surface-map-privacy": report["privacy"]}
+    result = {"openapi": "3.1.0", "info": {"title": "Surface Map evidence skeleton", "version": "0.1.0", "description": "Lossy reconstruction of supplied artifacts. Not a complete or tested service contract."}, "paths": paths, "x-surface-map-privacy": report["privacy"]}
+    if report.get("unresolved_operations"):
+        result["x-surface-map-unresolved-operations"] = report["unresolved_operations"]
+    return result
 
 
 def contract(report):
-    return {"format": "surface-map-contract-v1", "routes": [{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")} for route in report["routes"]], "privacy": report["privacy"]}
+    result = {"format": "surface-map-contract-v1", "routes": [{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")} for route in report["routes"]], "privacy": report["privacy"]}
+    if report.get("unresolved_operations"):
+        result["unresolved_operations"] = report["unresolved_operations"]
+    return result
 
 
 def compare(before, after):
@@ -80,4 +86,10 @@ def compare(before, after):
                 fields.append(key)
         if fields:
             changed.append({"method": method, "path": path, "changed_fields": fields, "evidence": b["evidence"]})
-    return {"added": added, "removed": removed, "changed": changed, "note": "Differences are between supplied, normalized evidence. Missing from a capture does not prove a route was removed from a service."}
+    result = {"added": added, "removed": removed, "changed": changed, "note": "Differences are between supplied, normalized evidence. Missing from a capture does not prove a route was removed from a service."}
+    old_targets = {row["path"]: row for row in before.get("unresolved_operations", [])}
+    new_targets = {row["path"]: row for row in after.get("unresolved_operations", [])}
+    if old_targets or new_targets:
+        result["unresolved_added"] = [new_targets[path] for path in sorted(new_targets.keys() - old_targets.keys())]
+        result["unresolved_removed"] = [old_targets[path] for path in sorted(old_targets.keys() - new_targets.keys())]
+    return result

@@ -227,8 +227,10 @@ def json_body(container):
 
 
 class Builder:
-    def __init__(self):
+    def __init__(self, javascript_engine="auto"):
         self.routes, self.assets, self.sources, self.warnings = {}, {}, [], []
+        self.unresolved, self.javascript = {}, []
+        self.javascript_engine = javascript_engine
 
     def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None):
         if kind != "har" and page_relative(raw):
@@ -244,7 +246,7 @@ class Builder:
             query_fields, fields = sorted(fields), None
         key = (method, path)
         if key not in self.routes:
-            if len(self.routes) >= MAX_ROUTES:
+            if len(self.routes) + len(self.unresolved) >= MAX_ROUTES:
                 raise ArtifactError("Too many normalized routes")
             self.routes[key] = {"method": method, "path": path, "kinds": [], "statuses": [], "query_fields": [], "request_shapes": [], "response_shapes": [], "evidence": []}
         route = self.routes[key]
@@ -260,6 +262,26 @@ class Builder:
         evidence = {"source": source, "location": location, "kind": kind}
         if evidence not in route["evidence"] and len(route["evidence"]) < 32:
             route["evidence"].append(evidence)
+
+    def unresolved_operation(self, raw, source, location):
+        if page_relative(raw):
+            self.warn(source, "A relative URL was omitted because the page URL is unknown")
+            return
+        sanitized = safe_path(raw)
+        if sanitized is None:
+            return
+        path, fields = sanitized
+        if path not in self.unresolved:
+            if len(self.routes) + len(self.unresolved) >= MAX_ROUTES:
+                raise ArtifactError("Too many normalized routes")
+            self.unresolved[path] = {"method": None, "path": path, "confidence": "inferred", "query_fields": [], "evidence": []}
+        target = self.unresolved[path]
+        for name in fields:
+            if name not in target["query_fields"] and len(target["query_fields"]) < 64:
+                target["query_fields"].append(name)
+        evidence = {"source": source, "location": location, "kind": "javascript"}
+        if evidence not in target["evidence"] and len(target["evidence"]) < 32:
+            target["evidence"].append(evidence)
 
     def asset(self, raw, kind, source, location):
         if page_relative(raw):
@@ -289,7 +311,16 @@ class Builder:
             route["id"] = f"route_{index}"
             route["confidence"] = "observed" if "har" in route["kinds"] else "declared" if "form" in route["kinds"] or "link" in route["kinds"] else "inferred"
             routes.append(route)
-        return {"version": 1, "sources": self.sources, "routes": routes, "assets": sorted(self.assets.values(), key=lambda item: (item["kind"], item["path"])), "warnings": self.warnings, "privacy": {"mode": "conservative", "origins": "discarded", "filenames": "discarded", "headers_cookies_values": "discarded", "unknown_names": "aliased", "scope": "Normalized paths may merge unrelated origins or identifiers. Evidence is incomplete; no route was requested or verified by this tool."}}
+        report = {"version": 1, "sources": self.sources, "routes": routes, "assets": sorted(self.assets.values(), key=lambda item: (item["kind"], item["path"])), "warnings": self.warnings, "privacy": {"mode": "conservative", "origins": "discarded", "filenames": "discarded", "headers_cookies_values": "discarded", "unknown_names": "aliased", "scope": "Normalized paths may merge unrelated origins or identifiers. Evidence is incomplete; no route was requested or verified by this tool."}}
+        if self.javascript:
+            report["javascript_analysis"] = self.javascript
+        if self.unresolved:
+            report["unresolved_operations"] = []
+            for index, (_, target) in enumerate(sorted(self.unresolved.items()), 1):
+                target["id"] = f"target_{index}"
+                target["query_fields"].sort()
+                report["unresolved_operations"].append(target)
+        return report
 
 
 def parse_har(text, source, builder):
@@ -376,7 +407,7 @@ def literal_constants(tokens):
     return {name: literal for name, literal in candidates.items() if literal is not None and sites[name] == 1}
 
 
-def parse_js(text, source, builder):
+def parse_js_basic(text, source, builder):
     from .source import _Rejected, _binding_counts
 
     tokens = _js_tokens(text)
@@ -451,6 +482,38 @@ def parse_js(text, source, builder):
         builder.add(url, method, "javascript", source, f"line {token[2]}")
 
 
+def parse_js(text, source, builder, *, kind="javascript"):
+    from .js_analysis import AnalysisLimit, inspect_ast
+    from .js_parser import JsParserError, available, parse
+
+    mode = builder.javascript_engine
+    if mode == "basic":
+        builder.javascript.append({"source": source, "engine": "basic"})
+        return parse_js_basic(text, source, builder)
+    ready, reason = available()
+    if not ready:
+        if mode == "enhanced":
+            raise ArtifactError("Enhanced JavaScript analysis is unavailable. Run setup-js with a supported Node installation.")
+        builder.javascript.append({"source": source, "engine": "basic", "reason": reason})
+        builder.warn(source, "Basic JavaScript hints only. Run setup-js to enable syntax and scope analysis.")
+        return parse_js_basic(text, source, builder)
+    try:
+        result = inspect_ast(parse(text, kind))
+    except JsParserError as error:
+        raise ArtifactError("Enhanced JavaScript analysis rejected the input: " + error.code) from None
+    except AnalysisLimit:
+        raise ArtifactError("JavaScript interpretation exceeded its work limit") from None
+    builder.javascript.append({"source": source, "engine": "enhanced", "parser": "babel-8.0.4"})
+    for call in result["calls"]:
+        if call["method"] is None:
+            builder.unresolved_operation(call["url"], source, f"line {call['line']}")
+        else:
+            body = shape(call["body"]) if "body" in call else None
+            builder.add(call["url"], call["method"], "javascript", source, f"line {call['line']}", request=body)
+    if result["omitted"]:
+        builder.warn(source, "Some dynamic JavaScript targets could not be resolved safely.")
+
+
 class HTML(HTMLParser):
     def __init__(self, source, builder):
         super().__init__(convert_charrefs=True)
@@ -497,13 +560,15 @@ class HTML(HTMLParser):
             self._finish_form()
 
 
-def analyze(artifacts):
+def analyze(artifacts, *, javascript_engine="auto"):
+    if type(javascript_engine) is not str or javascript_engine not in {"auto", "basic", "enhanced"}:
+        raise ArtifactError("Choose auto, basic or enhanced JavaScript analysis")
     if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= MAX_ARTIFACTS:
         raise ArtifactError("Choose 1 to 6 HTML, HAR or JavaScript artifacts")
-    builder, total = Builder(), 0
+    builder, total = Builder(javascript_engine), 0
     for index, artifact in enumerate(artifacts, 1):
         source = f"source_{index}"
-        if not isinstance(artifact, dict) or set(artifact) - {"kind", "text"} or not isinstance(artifact.get("kind"), str) or artifact.get("kind") not in {"har", "html", "javascript"} or not isinstance(artifact.get("text"), str):
+        if not isinstance(artifact, dict) or set(artifact) - {"kind", "text"} or not isinstance(artifact.get("kind"), str) or artifact.get("kind") not in {"har", "html", "javascript", "typescript"} or not isinstance(artifact.get("text"), str):
             raise ArtifactError(f"{source}: unsupported artifact format")
         text, kind = artifact["text"], artifact["kind"]
         try:
@@ -517,8 +582,8 @@ def analyze(artifacts):
         try:
             if kind == "har":
                 parse_har(text, source, builder)
-            elif kind == "javascript":
-                parse_js(text, source, builder)
+            elif kind in {"javascript", "typescript"}:
+                parse_js(text, source, builder, kind=kind)
             else:
                 parser = HTML(source, builder)
                 parser.feed(text)

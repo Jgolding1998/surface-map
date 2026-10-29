@@ -8,10 +8,35 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from surface_map.server import MAX_REQUEST, make_server
+from surface_map import js_parser
 from test_analysis import CANARY, EMAIL, entry, har
 
 
 class HTTPTests(unittest.TestCase):
+    def test_engine_selection_is_validated_before_analysis(self):
+        for engine in (None, [], "unexpected"):
+            response = self.request("/api/analyze", "POST", {"artifacts": [], "javascript_engine": engine})
+            self.assertEqual(response[0], 422)
+            self.assertIn("engine", json.loads(response[2])["error"])
+        response = self.request("/api/analyze", "POST", {"artifacts": [{"kind": "javascript", "text": 'fetch("/api/orders")'}], "javascript_engine": "basic"})
+        self.assertEqual(response[0], 200)
+        self.assertEqual(json.loads(response[2])["report"]["javascript_analysis"][0]["engine"], "basic")
+        response = self.request("/api/demo", "POST", {"javascript_engine": "basic"})
+        self.assertEqual(response[0], 200)
+        self.assertEqual(json.loads(response[2])["report"]["javascript_analysis"][0]["engine"], "basic")
+
+    @unittest.skipUnless(js_parser.available()[0], "Optional parser and supported Node required")
+    def test_real_http_enhanced_unknown_method_and_source_imports(self):
+        response = self.request("/api/analyze", "POST", {"artifacts": [{"kind": "typescript", "text": 'const path:string="/api/orders"; fetch(path,{method:chosen})'}], "javascript_engine": "enhanced"})
+        self.assertEqual(response[0], 200)
+        value = json.loads(response[2])
+        self.assertEqual(value["report"]["routes"], [])
+        self.assertEqual(value["report"]["unresolved_operations"][0]["method"], None)
+        self.assertEqual(value["openapi"]["paths"], {})
+        response = self.request("/api/source", "POST", {"artifacts": [{"kind": "javascript", "content": 'import("react"); function f(require){require("axios")};'}], "javascript_engine": "enhanced"})
+        self.assertEqual(response[0], 200)
+        self.assertEqual([row["name"] for row in json.loads(response[2])["inventory"]["dependencies"]], ["react"])
+
     def setUp(self):
         self.server = make_server(0)
         self.port = self.server.server_address[1]

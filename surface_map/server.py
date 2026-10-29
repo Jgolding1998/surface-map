@@ -179,20 +179,24 @@ def make_server(port=8768):
                 document = self.body()
                 if not isinstance(document, dict):
                     raise ArtifactError("Request must be a JSON object")
-                if self.path == "/api/analyze" and set(document) == {"artifacts"}:
-                    result = bundle(analyze(document["artifacts"]))
-                elif self.path == "/api/compare" and set(document) == {"baseline", "candidate"}:
-                    result = {"diff": compare(analyze(document["baseline"]), analyze(document["candidate"]))}
-                elif self.path == "/api/demo" and not document:
-                    result = bundle(analyze(artifacts()))
-                elif self.path == "/api/demo-diff" and not document:
-                    result = {"diff": compare(analyze(artifacts()), analyze(artifacts(2)))}
-                elif self.path == "/api/source" and set(document) == {"artifacts"}:
-                    result = {"inventory": inspect_sources(document["artifacts"])}
-                elif self.path == "/api/source-compare" and set(document) == {"baseline", "candidate"}:
-                    result = {"diff": compare_sources(inspect_sources(document["baseline"]), inspect_sources(document["candidate"]))}
-                elif self.path == "/api/source-demo" and not document:
-                    result = {"inventory": inspect_sources(source_examples())}
+                engine = document.get("javascript_engine", "auto")
+                if not isinstance(engine, str) or engine not in ("auto", "basic", "enhanced"):
+                    raise ArtifactError("Unsupported JavaScript analysis engine")
+                keys = set(document) - {"javascript_engine"}
+                if self.path == "/api/analyze" and keys == {"artifacts"}:
+                    result = bundle(analyze(document["artifacts"], javascript_engine=engine))
+                elif self.path == "/api/compare" and keys == {"baseline", "candidate"}:
+                    result = {"diff": compare(analyze(document["baseline"], javascript_engine=engine), analyze(document["candidate"], javascript_engine=engine))}
+                elif self.path == "/api/demo" and not keys:
+                    result = bundle(analyze(artifacts(), javascript_engine=engine))
+                elif self.path == "/api/demo-diff" and not keys:
+                    result = {"diff": compare(analyze(artifacts(), javascript_engine=engine), analyze(artifacts(2), javascript_engine=engine))}
+                elif self.path == "/api/source" and keys == {"artifacts"}:
+                    result = {"inventory": inspect_sources(document["artifacts"], javascript_engine=engine)}
+                elif self.path == "/api/source-compare" and keys == {"baseline", "candidate"}:
+                    result = {"diff": compare_sources(inspect_sources(document["baseline"], javascript_engine=engine), inspect_sources(document["candidate"], javascript_engine=engine))}
+                elif self.path == "/api/source-demo" and not keys:
+                    result = {"inventory": inspect_sources(source_examples(), javascript_engine=engine)}
                 else:
                     raise ArtifactError("Unsupported request shape")
                 self.reply(200, result)

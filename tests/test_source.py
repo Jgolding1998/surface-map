@@ -10,11 +10,16 @@ from unittest import mock
 
 from surface_map import source as source_module
 from surface_map.analyze import ArtifactError
-from surface_map.source import FORMAT, MAX_FILE_BYTES, SOURCE_KINDS, source_inventory
+from surface_map.source import FORMAT, MAX_FILE_BYTES, SOURCE_KINDS, source_inventory as inspect_source
 
 
 CANARY = "PRIVATE" + "-CANARY-51730284"
 EMAIL = "maintainer" + chr(64) + "example.invalid"
+
+
+def source_inventory(artifacts):
+    """Preserve the basic source scanner's existing regression cases."""
+    return inspect_source(artifacts, javascript_engine="basic")
 
 
 def one(kind, content):

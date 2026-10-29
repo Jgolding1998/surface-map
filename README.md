@@ -14,6 +14,16 @@ python -m surface_map
 
 Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose `--port 9000` if needed.
 
+For syntax and scope analysis of JavaScript, JSX and TypeScript, install Node.js 24.22.1 or later in the 24.x line, then explicitly install the pinned parser:
+
+```sh
+python -m surface_map setup-js
+```
+
+This command installs the exact locked Babel dependencies with npm lifecycle scripts disabled. Analysis never installs packages. Keep the `analyzers/javascript` directory with the Python module. Use an absolute `SURFACE_MAP_NODE` path to select a particular Node executable when needed.
+
+The **JavaScript analysis** selector offers automatic, required syntax analysis, and basic lexical hints. Automatic mode uses the parser when available and reports a missing-parser fallback in the export and warnings. Required mode also rejects unavailable parser dependencies. Once syntax analysis starts, syntax, work-limit and worker failures reject the input in both modes; they never trigger weaker lexical parsing. Basic mode needs only Python and retains the narrower lexical scanner.
+
 ## Use
 
 1. Choose **Saved web artifacts** and add UTF-8 HTML, HAR or JavaScript files you own or have permission to inspect.
@@ -25,9 +35,9 @@ Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose 
 | --- | --- | --- |
 | HAR | Request method, normalized path, status, query names and supported JSON body shapes | Observed |
 | HTML | Links, form actions and control names, script and stylesheet asset paths | Declared |
-| JavaScript | Literal `fetch` URLs, single-binding module string constants and simple literal methods | Inferred |
+| JavaScript/TypeScript | Syntax and scope analysis of Fetch, XMLHttpRequest and supported Axios calls, aliases, constant expressions and options | Inferred |
 
-No source is executed, no traffic is replayed, and no URL is fetched. Inline scripts inside HTML are ignored. Import a separate JavaScript file to inspect its literal fetch hints.
+No source is executed, no traffic is replayed, and no URL is fetched. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension.
 
 ## Inspect selected source files
 
@@ -43,6 +53,7 @@ The CLI prints the same minimized inventory without starting a server:
 python -m surface_map inspect --files requirements.txt example.py
 python -m surface_map inspect --files package.json Cargo.toml > inventory.json
 python -m surface_map inspect --capture selection.source.json > inventory.json
+python -m surface_map inspect --javascript-engine enhanced --files example.ts
 ```
 
 The selected-file CLI reads only the explicit ordinary files supplied. It does not walk a checkout, follow symbolic links or Windows reparse points, access Windows UNC/device paths, mapped network drives or alternate streams, open requirements includes, install dependencies, fetch GitHub URLs, or run an installer. Save the authorized files first. A source capture JSON can supply logical files without retaining their original names:
@@ -57,7 +68,7 @@ Each source reports `parsed` or `rejected`. Unsupported syntax or structural lim
 
 ## Privacy choices
 
-Input stays in request memory; the server keeps no uploads or reports. The browser keeps selected File objects while the workspace is open. Exports contain generic source IDs, never original filenames or source snippets.
+Input stays in process memory; the server keeps no upload files or reports. Optional parser workers are reused briefly and release explicit request references after responding; idle workers expire after five seconds. This does not securely erase process memory or operating-system swap. The browser keeps selected File objects while the workspace is open. Exports contain generic source IDs, never original filenames or source snippets.
 
 Headers, cookies, hostnames, query values and body values are discarded. A small fixed vocabulary preserves common route and field names. Other names become aliases, and numeric path segments become inferred parameters. For example, a customer-specific path can become `/api/customers/{integer_3}/{segment_4}`. JSON bodies contribute types and field shapes, without examples, constants or inferred required fields.
 
@@ -66,11 +77,13 @@ This is deliberately lossy. Different origins or private route names can normali
 ## Practical limits
 
 - Up to 6 artifacts per capture, 512 KiB each and 1 MiB combined; HAR supports up to 300 entries and 20,000 JSON nodes. Header-heavy captures can reach the node limit before the entry limit.
-- Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. JavaScript supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget; unusually dense or complex files can be rejected below 512 KiB.
+- Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. The basic JavaScript scanner supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget. The optional parser allows 100,000 flat AST nodes, 200,000 edges, an 8 MiB protocol response, a 256 MiB Node heap and a three-second request deadline. Python interpretation has separate nesting and work limits. Dense files can be rejected below 512 KiB.
 - Source manifests have structural limits, source code has parser and work limits, and evidence lists are bounded. The source inventory uses a cooperative five-second work budget. Registry dependencies are recognized only from a curated list; local paths, URLs, editable installs and Cargo workspace inheritance are not resolved. Shell hints are POSIX only. Simple here-documents are skipped with exact delimiter handling; unsupported or unterminated here-documents and unsupported shell quoting reject that source. Ambiguous parameter, command or ANSI-C expansions on a line containing `<<` also reject the source. Compound guards, command substitution and wrapper options can hide installer commands from the lexical hints. The scanner does not build a call graph, resolve every module or distinguish reachable code from dead code.
 - Export serialization stops at 3 MiB, including amplification from combined response shapes. Smaller captures may be needed. Errors include only predefined reasons and generic source IDs, without source text.
-- Base64 HAR bodies, non-JSON bodies, dynamic JavaScript calls, archives, APKs, native binaries and .NET assemblies are unsupported. JavaScript hints require unescaped string URLs, or a module-level `const` bound to one such string and used in a direct module-level `fetch` call. Constants are not resolved inside functions, blocks, parentheses or object literals. Constant resolution is disabled by uncertain lexical regions, escaped identifiers, arrow functions, decorators, TypeScript access modifiers, `with` or direct `eval`; another recognized declaration, parameter, import or assignment of the name also disables it. Computed, shorthand, inherited or accessor method definitions are omitted.
-- The JavaScript detector finds lexical hints, not complete program behavior. Literal methods are retained when unrelated fetch options use member expressions such as `JSON.stringify(body)`; spreads that could replace the method remain unsupported. Ambiguous regex lines and child-text lines of closed JSX elements are omitted with warnings; JSX is not fully parsed, so text in an element that never closes can still produce hints. A recognized local binding or assignment of `fetch` omits fetch hints, and a recognized rebinding of `require` omits those source import hints. Scope is not analyzed, so one such site disables these hints for the whole file. Uncertain syntax can conceal other bindings. It may miss calls or find calls in code that never runs.
+- Base64 HAR bodies, non-JSON bodies, fully dynamic targets, archives, APKs, native binaries and .NET assemblies are unsupported. Syntax analysis recognizes supported Fetch, XMLHttpRequest and Axios patterns, constant aliases and expressions, lexical scope, options spreads and conservative mutation effects. Unknown options can leave a known target with an unresolved method. It does not execute functions, resolve an arbitrary module graph, prove reachability, or reconstruct application behavior.
+- The basic JavaScript fallback is narrower: it recognizes literal fetch calls and selected module-level string constants, without full syntax or scope analysis. Recognized client shadowing can suppress hints for the whole file. Uncertain syntax, JSX text or hidden bindings can conceal or fabricate lexical hints. Required syntax mode is preferable when reviewing JavaScript evidence. Both modes can miss calls or find calls in code that never runs; static hints need verification.
+- Inferred calls describe intended targets, not valid executable requests. A call can throw before sending, for example a Node client given a relative URL or a GET request with a body. Runtime environment, request validity, proxies, external scripts, arbitrary function returns and module side effects are not reconstructed. Mutation and aliasing analysis is approximate; unsupported behavior can hide calls or produce incorrect hints. Review the source evidence before using a generated contract.
+- Parser workers are reused, with at most two active workers and two waiting callers. Saturation returns a fixed `busy` reason. The three-second parser deadline excludes bounded process cleanup, which can add about 3.6 seconds per worker on exceptional termination. Python interpretation has its own cooperative three-second deadline; these are work safeguards, not a total HTTP latency guarantee.
 - A HAR observation describes that capture. It does not prove a route still works, is safe to call, or represents a complete service contract.
 - OpenAPI exports omit servers. Equivalent redacted path templates merge with combined evidence; a parameter observed as both numeric and text uses a string schema. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
 - The saved page URL is unknown, so relative links, form actions, asset paths and fetch URLs are omitted, as are forms without an action. Absolute and root-relative URLs are kept; in-page `#` links are ignored.
@@ -94,6 +107,7 @@ npx playwright install chromium
 # Keep the app running in another terminal:
 node tests/browser_smoke.cjs
 node tests/source_browser.cjs
+node tests/enhanced_browser.cjs
 ```
 
 Set `SURFACE_BROWSER_CHANNEL=chrome` to use an installed Chrome. The browser check verifies imports, downloads, filters, capture comparison, clearing, redaction in the page and exported files, and desktop/mobile overflow. It fails on script errors or external requests and refreshes the synthetic screenshots in `docs/`.

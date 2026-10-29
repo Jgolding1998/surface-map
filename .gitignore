@@ -5,6 +5,7 @@ __pycache__/
 .env.*
 node_modules/
 package-lock.json
+!/analyzers/javascript/package-lock.json
 captures/
 *.har
 *.zip

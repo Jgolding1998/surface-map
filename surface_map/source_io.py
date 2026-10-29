@@ -9,10 +9,10 @@ from pathlib import Path
 from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_TOTAL_BYTES, strict_json
 
 
-def inspect_sources(artifacts):
+def inspect_sources(artifacts, *, javascript_engine="auto"):
     from .source import source_inventory
 
-    return source_inventory(artifacts)
+    return source_inventory(artifacts, javascript_engine=javascript_engine)
 
 
 def source_kind(name):

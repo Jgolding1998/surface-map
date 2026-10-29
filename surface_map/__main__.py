@@ -17,15 +17,20 @@ def main(argv=None):
     parser = Parser(prog="surface-map", description="Explore authorized saved web artifacts or selected source files. No network retrieval or execution.")
     parser.add_argument("--port", type=int, default=8768)
     commands = parser.add_subparsers(dest="command")
+    commands.add_parser("setup-js", help="Explicitly install the pinned optional JavaScript parser with lifecycle scripts disabled")
     inspect = commands.add_parser("inspect", help="Print a minimized static source inventory as JSON")
+    inspect.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
     inputs = inspect.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--capture", type=Path, help="Source capture JSON with an artifacts array")
     inputs.add_argument("--files", nargs="+", type=Path, help="1 to 6 explicit local manifests or supported source files")
     args = parser.parse_args(argv)
+    if args.command == "setup-js":
+        from .js_parser import setup
+        return setup()
     if args.command == "inspect":
         try:
             artifacts = capture_sources(args.capture) if args.capture else selected_sources(args.files)
-            report = inspect_sources(artifacts)
+            report = inspect_sources(artifacts, javascript_engine=args.javascript_engine)
             print(json.dumps(report, ensure_ascii=True, allow_nan=False, separators=(",", ":")))
             return 0
         except (OSError, ValueError, TypeError, UnicodeError, RecursionError, OverflowError):

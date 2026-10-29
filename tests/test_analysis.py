@@ -4,13 +4,18 @@ import re
 import unittest
 from unittest.mock import patch
 
-from surface_map.analyze import ArtifactError, MAX_FILE_BYTES, analyze, js_tokens, safe_path, strict_json
+from surface_map.analyze import ArtifactError, MAX_FILE_BYTES, analyze as analyze_capture, js_tokens, safe_path, strict_json
 from surface_map.export import compare, contract, openapi
 from surface_map.samples import artifacts
 
 
 CANARY = "PRIVATE" + "-CANARY-92837465"
 EMAIL = "person" + chr(64) + "example.invalid"
+
+
+def analyze(artifacts):
+    """Keep the original lexical-engine regression contract explicit."""
+    return analyze_capture(artifacts, javascript_engine="basic")
 
 
 def har(entries):

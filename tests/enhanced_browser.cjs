@@ -1,0 +1,56 @@
+"use strict";
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const {chromium} = require("playwright");
+
+(async () => {
+  const browser = await chromium.launch({headless:true,channel:process.env.SURFACE_BROWSER_CHANNEL || undefined});
+  let checks = 0;
+  const check = (value, message) => {assert.ok(value, message); checks++;};
+  try {
+    const page = await browser.newPage({viewport:{width:1440,height:1100}});
+    const base = process.env.SURFACE_TEST_URL || "http://127.0.0.1:8768";
+    const errors = [], external = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("request", request => {if (!request.url().startsWith(base + "/") && !request.url().startsWith("blob:")) external.push(request.url());});
+    await page.goto(base);
+    await page.waitForFunction(() => document.querySelector("#routes-count").textContent === "7");
+    await page.selectOption("#javascript-engine", "enhanced");
+    const upload = async text => {
+      await page.locator("#files").setInputFiles({name:"example.ts",mimeType:"text/plain",buffer:Buffer.from(text)});
+      await page.click("#analyze");
+      await page.waitForFunction(() => !document.querySelector("#notice").textContent.startsWith("Selection ready"));
+      await page.waitForFunction(() => !document.querySelector("#analyze").disabled);
+    };
+    await upload('const target:string="/api/orders"; fetch(target,{method:chosen})');
+    check(await page.locator("#route-rows").textContent().then(value => value.includes("UNKNOWN")), "Unknown method is visible");
+    check(await page.locator("#detail").textContent().then(value => value.includes("never invented")), "Detail explains unresolved method");
+    check(await page.locator("#notice").textContent().then(value => value.includes("enhanced")), "Engine is visible");
+    const pending = page.waitForEvent("download");
+    await page.click("#export-openapi");
+    const document = JSON.parse(await fs.readFile(await (await pending).path(), "utf8"));
+    check(Object.keys(document.paths).length === 0, "No fabricated GET operation");
+    check(document["x-surface-map-unresolved-operations"][0].method === null, "Unresolved extension retained");
+    await page.click("#baseline");
+    await upload('fetch("/api/users",{method:chosen})');
+    await page.click("#compare");
+    await page.waitForFunction(() => document.querySelector("#diff-summary").textContent.includes("unresolved-method changes"));
+    check(await page.locator("#diff-list").textContent().then(value => value.includes("/api/orders") && value.includes("/api/users")), "Unknown targets compare without a made-up method");
+    await page.selectOption("#analysis-mode", "source");
+    await upload('import("react"); function run(require){require("axios")}');
+    check(await page.locator("#dependency-count").textContent() === "1", "Only real unshadowed import retained");
+    check(await page.locator("#source-inventory").textContent().then(value => value.includes("react") && !value.includes("axios")), "Source inventory uses scope analysis");
+    await page.selectOption("#javascript-engine", "basic");
+    await upload('import react from "react";');
+    check(await page.locator("#notice").textContent().then(value => value.includes("basic")), "Explicit basic mode works");
+    await page.selectOption("#analysis-mode", "web");
+    await page.click("#demo");
+    await page.waitForFunction(() => document.querySelector("#notice").textContent.includes("JavaScript engine: basic"));
+    check(await page.locator("#route-rows tr").count() === 7, "Example respects explicit engine selection");
+    await page.setViewportSize({width:390,height:844});
+    check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "No mobile horizontal overflow");
+    check(errors.length === 0, "No browser script errors");
+    check(external.length === 0, "No external requests");
+    console.log(JSON.stringify({checks,pageErrors:errors,externalRequests:external.length}));
+  } finally {await browser.close();}
+})().catch(error => {console.error(error.message); process.exitCode = 1;});
