@@ -3,6 +3,8 @@
 const $ = selector => document.querySelector(selector);
 const token = $('meta[name="surface-token"]').content;
 let files = [], baselineFiles = [], current = null, diff = null, filter = "all", selected = null, busy = false;
+let sourceCurrent = null, sourceDiff = null;
+const sourceMode = () => $("#analysis-mode").value === "source";
 const node = (tag, className, value) => {
   const element = document.createElement(tag);
   if (className) element.className = className;
@@ -16,14 +18,19 @@ function notice(message, error = false) {
 }
 
 function refresh() {
+  const source = sourceMode(), active = source ? sourceCurrent : current;
+  $("#analysis-mode").disabled = busy;
   $("#files").disabled = busy;
   $("#analyze").disabled = busy || files.length === 0;
   $("#demo").disabled = busy;
   $("#demo-diff").disabled = busy;
-  $("#baseline").disabled = busy || !current || files.length === 0;
-  $("#compare").disabled = busy || !current || files.length === 0 || baselineFiles.length === 0;
+  $("#demo-diff").hidden = source;
+  const rejected = Boolean(source && active && active.sources.some(item => item.status !== "parsed"));
+  $("#baseline").disabled = busy || !active || rejected || files.length === 0;
+  $("#compare").disabled = busy || !active || rejected || files.length === 0 || baselineFiles.length === 0;
   $("#clear").disabled = busy;
-  for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = !current || busy;
+  for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = source || !current || busy;
+  $("#export-source").disabled = !sourceCurrent || busy;
 }
 
 function sourceList(sources) {
@@ -94,7 +101,15 @@ async function request(path, payload) {
 }
 
 function kind(file) {
-  const extension = file.name.split(".").pop().toLowerCase();
+  if (sourceMode()) {
+    const manifests = new Map([["requirements.txt","requirements"], ["pyproject.toml","pyproject"], ["package.json","package"], ["cargo.toml","cargo"]]);
+    const filename = file.name.toLowerCase();
+    const extensions = new Map([["py","python"], ["ts","typescript"], ["tsx","typescript"], ["js","javascript"], ["jsx","javascript"], ["mjs","javascript"], ["cjs","javascript"], ["rs","rust"], ["sh","shell"], ["bash","shell"]]);
+    const dot = filename.lastIndexOf(".");
+    return manifests.get(filename) || (dot > 0 ? extensions.get(filename.slice(dot + 1)) : null) || null;
+  }
+  const dot = file.name.lastIndexOf(".");
+  const extension = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : "";
   return ["har", "json"].includes(extension) ? "har" : ["html", "htm"].includes(extension) ? "html" : ["js", "mjs"].includes(extension) ? "javascript" : null;
 }
 
@@ -103,7 +118,8 @@ async function read(selection) {
   const result = [];
   for (const file of selection) {
     const bytes = await file.arrayBuffer();
-    result.push({kind:kind(file), text:new TextDecoder("utf-8", {fatal:true}).decode(bytes)});
+    const content = new TextDecoder("utf-8", {fatal:true}).decode(bytes);
+    result.push(sourceMode() ? {kind:kind(file), content} : {kind:kind(file), text:content});
   }
   return result;
 }
@@ -112,7 +128,7 @@ async function action(task) {
   if (busy) return;
   busy = true; refresh();
   try { await task(); }
-  catch (error) { notice(error.safeMessage || "Unable to analyze this selection. Use valid UTF-8 HTML, HAR or JavaScript within the displayed limits. No source content is included in errors.", true); }
+  catch (error) { notice(error.safeMessage || "Unable to analyze this selection. Choose supported UTF-8 artifacts or source files within the displayed limits. No source content is included in errors.", true); }
   finally { busy = false; refresh(); }
 }
 
@@ -136,21 +152,106 @@ function download(value, suffix) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function showSource(inventory, example = false) {
+  sourceCurrent = inventory;
+  $("#workspace-mode").textContent = example ? "SYNTHETIC SOURCE EXAMPLE" : "STATIC SOURCE EVIDENCE";
+  $("#language-count").textContent = inventory.languages.length;
+  $("#dependency-count").textContent = inventory.dependencies.length;
+  $("#capability-count").textContent = inventory.capabilities.length;
+  sourceList(inventory.sources);
+  const container = $("#source-inventory"); container.replaceChildren();
+  for (const [key, title] of [["languages","Languages and formats"], ["dependencies","Known dependencies"], ["capabilities","Library capability hints"], ["install_hints","Installer and entry-point hints"]]) {
+    const section = node("section", "source-section");
+    section.append(node("h3", "", title));
+    if (!inventory[key].length) section.append(node("p", "source-empty", "No supported evidence in the selection."));
+    for (const entry of inventory[key]) {
+      const row = node("div", "inventory-row");
+      const name = node("strong", "", entry.name);
+      row.append(name, node("span", "inventory-confidence", entry.confidence || "static"));
+      if (entry.ecosystem) row.append(node("span", "inventory-ecosystem", entry.ecosystem));
+      const evidence = node("p", "", entry.evidence.map(item => `${item.source.replace("_", " ")} · ${item.location}`).join("; "));
+      row.append(evidence); section.append(row);
+    }
+    container.append(section);
+  }
+  if (inventory.warnings.length) {
+    const section = node("section", "source-section"); section.append(node("h3", "", "Unsupported or omitted evidence"));
+    for (const warning of inventory.warnings) section.append(node("p", "source-empty", warning));
+    container.append(section);
+  }
+  const rejected = inventory.sources.filter(item => item.status === "rejected").length;
+  notice(`${example ? "Synthetic example." : "Static inspection complete."} ${inventory.sources.length} logical sources, ${inventory.dependencies.length} known dependency labels. ${rejected ? `${rejected} sources were rejected; inspect the warnings. ` : ""}No code was executed, dependency installed, or service contacted. Declarations and imports do not prove runtime behavior.`);
+  refresh();
+}
+
+function showSourceDiff(value) {
+  sourceDiff = value;
+  $("#source-diff").hidden = false;
+  const list = $("#source-diff-list"); list.replaceChildren();
+  let count = 0;
+  for (const [group, changes] of Object.entries(value.groups)) {
+    for (const [change, entries] of Object.entries(changes)) {
+      for (const entry of entries) {
+        const label = change === "added" ? "Added" : change === "changed" ? "Evidence changed" : "Absent";
+        list.append(node("p", "", `${label} ${group.replace("_", " ")}: ${entry.name}${entry.ecosystem ? ` (${entry.ecosystem})` : ""}`));
+        count++;
+      }
+    }
+  }
+  if (!count) list.append(node("p", "", "No change in the minimized static labels."));
+  list.append(node("p", "source-empty", value.note));
+}
+
+function clearSourceView() {
+  sourceCurrent = null; sourceDiff = null;
+  for (const name of ["language", "dependency", "capability"]) $("#" + name + "-count").textContent = "0";
+  $("#source-inventory").replaceChildren(node("p", "source-empty", "Select manifests or source files, then analyze."));
+  $("#source-diff").hidden = true; $("#source-diff-list").replaceChildren();
+}
+
 $("#files").addEventListener("change", () => {
+  clearSourceView();
   files = Array.from($("#files").files); current = null; selected = null; diff = null; $("#diff-panel").hidden = true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent = "0";
   $("#detail").replaceChildren(node("h3", "", "Selection awaiting analysis."));
   sourceList(files.map((file,index) => ({id:`source_${index + 1}`,kind:kind(file) || "unsupported",bytes:file.size})));
   table(); notice("Selection ready. Analyze artifacts to build a fresh evidence map."); refresh();
 });
-$("#analyze").addEventListener("click", () => action(async () => show(await request("/api/analyze", {artifacts:await read(files)}))));
-$("#demo").addEventListener("click", () => action(async () => { files=[]; $("#files").value=""; show(await request("/api/demo", {}), true); }));
+$("#analyze").addEventListener("click", () => action(async () => {
+  const result = await request(sourceMode() ? "/api/source" : "/api/analyze", {artifacts:await read(files)});
+  if (sourceMode()) showSource(result.inventory); else show(result);
+}));
+$("#demo").addEventListener("click", () => action(async () => {
+  files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value="";
+  clearSourceView(); $("#diff-panel").hidden=true; $("#diff-list").replaceChildren();
+  $("#baseline-status").textContent="No baseline kept. Select and analyze artifacts to compare evidence.";
+  const result = await request(sourceMode() ? "/api/source-demo" : "/api/demo", {});
+  if (sourceMode()) showSource(result.inventory, true); else show(result, true);
+}));
 $("#baseline").addEventListener("click", () => { baselineFiles=files.slice(); $("#baseline-status").textContent=`Baseline kept: ${baselineFiles.length} artifacts in browser memory. Import a second capture, analyze it, then compare.`; refresh(); });
-$("#compare").addEventListener("click", () => action(async () => showDiff((await request("/api/compare", {baseline:await read(baselineFiles),candidate:await read(files)})).diff)));
+$("#compare").addEventListener("click", () => action(async () => {
+  const result = await request(sourceMode() ? "/api/source-compare" : "/api/compare", {baseline:await read(baselineFiles),candidate:await read(files)});
+  if (sourceMode()) showSourceDiff(result.diff); else showDiff(result.diff);
+}));
 $("#demo-diff").addEventListener("click", () => action(async () => showDiff((await request("/api/demo-diff", {})).diff)));
 for (const button of document.querySelectorAll("[data-filter]")) button.addEventListener("click", () => {filter=button.dataset.filter; document.querySelectorAll("[data-filter]").forEach(item => item.classList.toggle("selected", item===button)); table();});
 $("#search").addEventListener("input", table);
 for (const name of ["report","openapi","contract"]) $("#export-"+name).addEventListener("click", () => { if(current) download(current[name], name); });
 $("#export-diff").addEventListener("click", () => { if(diff) download(diff,"diff"); });
+$("#export-source").addEventListener("click", () => { if(sourceCurrent) download(sourceCurrent,"source-inventory"); });
+$("#export-source-diff").addEventListener("click", () => { if(sourceDiff) download(sourceDiff,"source-comparison"); });
 $("#clear").addEventListener("click", () => { files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value=""; $("#source-list").replaceChildren(); $("#diff-panel").hidden=true; for(const id of ["routes","observed","inferred","sources"]) $("#"+id+"-count").textContent="0"; $("#detail").replaceChildren(node("h3","","Session cleared.")); $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace."; table(); refresh(); notice("Session cleared. The server does not retain uploads or reports."); });
+$("#clear").addEventListener("click", () => {clearSourceView(); refresh();});
+$("#analysis-mode").addEventListener("change", () => {
+  $("#clear").click();
+  const source = sourceMode();
+  for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = source;
+  $("#source-panel").hidden = !source;
+  $("#upload-title").textContent = source ? "Add selected source files" : "Add saved artifacts";
+  $("#upload-formats").textContent = source ? "Manifests, Python, JS/TS, Rust or shell" : "HTML, HAR or JavaScript";
+  $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.mjs";
+  $("#workspace-mode").textContent = source ? "STATIC SOURCE INSPECTION" : "WEB ARTIFACT INSPECTION";
+  notice(source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example.");
+  refresh();
+});
 action(async () => show(await request("/api/demo", {}), true));

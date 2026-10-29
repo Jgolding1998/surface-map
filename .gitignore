@@ -12,3 +12,4 @@ captures/
 *.exe
 *.dll
 .pytest_cache/
+work/

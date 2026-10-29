@@ -4,7 +4,9 @@ Surface Map analyzes saved artifacts for one trusted local operating-system acco
 
 ## Data minimization
 
-All three parsers project into a restricted model before returning anything to the browser. Source text, original filenames, hostnames, headers, cookies, query values and scalar body values are excluded. Common route and field vocabulary is retained; unknown names are aliased. Evidence locations contain only generic source IDs and numeric positions. Errors and logs contain no source excerpts.
+Web parsers project into a restricted model before returning anything to the browser. Source text, original filenames, hostnames, headers, cookies, query values and scalar body values are excluded. Common route and field vocabulary is retained; unknown names are aliased. Evidence locations contain only generic source IDs and numeric positions. Errors and logs contain no source excerpts.
+
+Source inspection returns only curated language, dependency, library-capability and installer-hint labels with generic file IDs and bounded locations. Unknown dependency names are counted, never returned. Versions, project metadata, command arguments, source text and imported module paths are omitted. Python uses bounded tokenization and AST parsing, not imports or execution. Rust, JavaScript/TypeScript and POSIX shell use bounded lexical scans. TOML and JSON manifests have byte and structure limits. These are static hints, not a runtime behavior or security assessment.
 
 JSON is bounded and rejects duplicate keys and nonfinite values. Reserved JavaScript prototype keys are not retained as schema property names. The UI uses `textContent`, never imported HTML or source markup. Imported HTML is parsed as text and is never mounted into the page. JavaScript is scanned without an execution engine or subprocess.
 
@@ -25,5 +27,7 @@ The server retains no files or reports. Selected files and a chosen baseline rem
 ## Supported input boundary
 
 Use artifacts you own or are authorized to inspect. Capture authorization and the right to share derived information are installation responsibilities. Archives and application binaries are unsupported; no extraction, decompilation or native process attachment occurs.
+
+The source CLI reads only explicitly selected ordinary UTF-8 files. It checks ancestors before descendants to reject symbolic links and Windows reparse points. On Windows it rejects UNC/device paths and alternate streams before filesystem access, checks the resulting absolute path again, and rejects remote or unknown drive types with the system drive-type API. It never walks a directory or follows requirements includes or package URLs. Other mounted filesystems and concurrent path changes by another local process are outside this boundary. HTTP source inspection accepts content, not filesystem paths or remote URLs. A rejected source contributes no partial evidence, and rejected selections cannot be compared as though their dependencies were absent. Cooperative work limits reduce accidental resource use; this is not a hard process-isolation boundary.
 
 Use a private repository security advisory for a vulnerability report. Do not include real credentials or private captures in a public issue.

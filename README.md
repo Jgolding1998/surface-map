@@ -1,6 +1,6 @@
 # Surface Map
 
-Turn saved web artifacts into a reviewable route inventory, field shapes and an API skeleton. Useful when documenting an app you own, planning an integration, or comparing two authorized captures.
+Inspect saved web artifacts and selected source files without running them. Build a route inventory and API skeleton from web captures, or a minimized language, dependency and library-capability inventory from source. Useful when documenting an app you own or comparing authorized captures.
 
 ![Surface Map workspace](docs/dashboard.png)
 
@@ -16,7 +16,7 @@ Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose 
 
 ## Use
 
-1. Add saved UTF-8 HTML, HAR or JavaScript files you own or have permission to inspect.
+1. Choose **Saved web artifacts** and add UTF-8 HTML, HAR or JavaScript files you own or have permission to inspect.
 2. Analyze the selection. Inspect each route's generic source ID and line or HAR-entry location.
 3. Export the report, an OpenAPI 3.1 skeleton, or the compact contract as JSON.
 4. To compare captures, keep the first analyzed selection as a baseline, import and analyze the second, then compare. Clear the session to release both selections and reports from the page.
@@ -28,6 +28,32 @@ Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose 
 | JavaScript | Literal `fetch` URLs and simple literal methods | Inferred |
 
 No source is executed, no traffic is replayed, and no URL is fetched. Inline scripts inside HTML are ignored. Import a separate JavaScript file to inspect its literal fetch hints.
+
+## Inspect selected source files
+
+Choose **Selected source files** in the workspace. Add saved `requirements.txt`, `pyproject.toml`, `package.json`, `Cargo.toml`, or supported Python, JavaScript/TypeScript, Rust and POSIX shell files. Analyze, inspect each generic source location, and export **Inventory JSON**. A synthetic source example is available in this mode. Keep a source selection as a baseline to compare added, absent, and changed static evidence in another selection.
+
+The source view separates manifest declarations from inferred import hints. It recognizes a curated vocabulary of public libraries and their usual roles, such as HTTP frameworks, audio I/O or desktop frameworks. A dependency declaration, import, or installer hint does not prove that the application uses that library at runtime or implements its associated feature. Unknown dependency names are omitted and counted. Versions, project names, maintainers, source paths, command text and snippets are never exported.
+
+![Static source inventory](docs/source-dashboard.png)
+
+The CLI prints the same minimized inventory without starting a server:
+
+```sh
+python -m surface_map inspect --files requirements.txt example.py
+python -m surface_map inspect --files package.json Cargo.toml > inventory.json
+python -m surface_map inspect --capture selection.source.json > inventory.json
+```
+
+The selected-file CLI reads only the explicit ordinary files supplied. It does not walk a checkout, follow symbolic links or Windows reparse points, access Windows UNC/device paths, mapped network drives or alternate streams, open requirements includes, install dependencies, fetch GitHub URLs, or run an installer. Save the authorized files first. A source capture JSON can supply logical files without retaining their original names:
+
+```json
+{"artifacts":[{"kind":"requirements","content":"fastapi\nuvicorn\n"},{"kind":"python","content":"import sounddevice\n"}]}
+```
+
+Capture kinds correspond to the supported formats: `requirements`, `pyproject`, `package`, `cargo`, `python`, `javascript`, `typescript`, `rust`, and `shell`. The browser accepts individual manifests and source files; capture JSON is a CLI input. Keep a private mapping from source IDs to your selected files if you need to trace an exported line back to the original.
+
+Each source reports `parsed` or `rejected`. Unsupported syntax or structural limits can reject one file while other files still contribute evidence; inspect warnings before using the report. Source comparisons require fully parsed selections, so a parser failure cannot masquerade as a removed dependency. Malformed envelopes, unreadable files and byte-limit failures are controlled errors; CLI failure exits with status 2. No source text or path is included in these errors.
 
 ## Privacy choices
 
@@ -41,6 +67,7 @@ This is deliberately lossy. Different origins or private route names can normali
 
 - Up to 6 artifacts per capture, 512 KiB each and 1 MiB combined; HAR supports up to 300 entries and 20,000 JSON nodes. Header-heavy captures can reach the node limit before the entry limit.
 - Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. JavaScript supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget; unusually dense or complex files can be rejected below 512 KiB.
+- Source manifests have structural limits, source code has parser and work limits, and evidence lists are bounded. The source inventory uses a cooperative five-second work budget. Registry dependencies are recognized only from a curated list; local paths, URLs, editable installs and Cargo workspace inheritance are not resolved. Shell hints are POSIX only. The scanner does not build a call graph, resolve every module or distinguish reachable code from dead code.
 - Export serialization stops at 3 MiB, including amplification from combined response shapes. Smaller captures may be needed. Errors include only predefined reasons and generic source IDs, without source text.
 - Base64 HAR bodies, non-JSON bodies, dynamic JavaScript calls, archives, APKs, native binaries and .NET assemblies are unsupported. JavaScript hints require unescaped string URLs; computed, shorthand, inherited or accessor method definitions are omitted.
 - The JavaScript detector finds lexical hints, not complete program behavior. It may miss calls or find calls in code that never runs.
@@ -56,7 +83,7 @@ This is deliberately lossy. Different origins or private route names can normali
 python -m unittest discover -s tests -v
 ```
 
-The tests cover extraction, browser form and relative URL semantics, evidence labels, body shapes, capture differences, planted-secret redaction across every export, malformed Unicode and JSON, 128/256/500 KiB JavaScript samples, work limits, hostile origins, CSRF, framing, slow header drips, export amplification and processing admission.
+The tests cover extraction, browser form and relative URL semantics, evidence labels, body shapes, capture differences, planted-secret redaction across every export, malformed Unicode and JSON, 128/256/500 KiB JavaScript samples, work limits, hostile origins, CSRF, framing, slow header drips, export amplification and processing admission. Source tests add manifest and import inspection, ignored installer arguments and includes, no execution or network, bounded malformed inputs, explicit file selection, minimized CLI errors, and source evidence comparison.
 
 The optional real-browser check uses Node.js and Playwright:
 
@@ -65,6 +92,7 @@ npm install --no-save playwright
 npx playwright install chromium
 # Keep the app running in another terminal:
 node tests/browser_smoke.cjs
+node tests/source_browser.cjs
 ```
 
 Set `SURFACE_BROWSER_CHANNEL=chrome` to use an installed Chrome. The browser check verifies imports, downloads, filters, capture comparison, clearing, redaction in the page and exported files, and desktop/mobile overflow. It fails on script errors or external requests and refreshes the synthetic screenshots in `docs/`.

@@ -13,6 +13,7 @@ from pathlib import Path
 from .analyze import ArtifactError, analyze, strict_json
 from .export import compare, contract, openapi
 from .samples import artifacts
+from .source_io import compare_sources, inspect_sources, source_examples
 
 STATIC = Path(__file__).parent / "static"
 MAX_REQUEST = 3 * 1024 * 1024
@@ -168,7 +169,7 @@ def make_server(port=8768):
         def do_POST(self):
             if not self.allowed(post=True):
                 return
-            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff"}:
+            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo"}:
                 self.reply(404, {"error": "Not found"})
                 return
             if not processing.acquire(blocking=False):
@@ -186,6 +187,12 @@ def make_server(port=8768):
                     result = bundle(analyze(artifacts()))
                 elif self.path == "/api/demo-diff" and not document:
                     result = {"diff": compare(analyze(artifacts()), analyze(artifacts(2)))}
+                elif self.path == "/api/source" and set(document) == {"artifacts"}:
+                    result = {"inventory": inspect_sources(document["artifacts"])}
+                elif self.path == "/api/source-compare" and set(document) == {"baseline", "candidate"}:
+                    result = {"diff": compare_sources(inspect_sources(document["baseline"]), inspect_sources(document["candidate"]))}
+                elif self.path == "/api/source-demo" and not document:
+                    result = {"inventory": inspect_sources(source_examples())}
                 else:
                     raise ArtifactError("Unsupported request shape")
                 self.reply(200, result)
