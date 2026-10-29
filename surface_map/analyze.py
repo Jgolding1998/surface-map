@@ -257,72 +257,103 @@ def parse_har(text, source, builder):
         builder.add(url, method, "har", source, f"entry {index}", status=status, request=json_body(request.get("postData")), response=json_body(response.get("content")))
 
 
-def js_tokens(text):
-    result, index, line = [], 0, 1
+def _js_tokens(text):
+    # Both views share one conservative lexer so regex/JSX handling cannot drift.
+    from .source import _Rejected, _ts_tokens
+
     deadline = time.monotonic() + JS_WORK_SECONDS
 
-    def emit(kind, value, position):
-        result.append((kind, value, position))
-        if len(result) > MAX_JS_TOKENS:
-            raise ArtifactError("JavaScript token limit exceeded")
-        if len(result) % 1024 == 0 and time.monotonic() > deadline:
-            raise ArtifactError("JavaScript analysis exceeded its work deadline")
-    while index < len(text):
-        char = text[index]
-        if char == "\n":
-            line += 1
-        if text.startswith("//", index):
-            end = text.find("\n", index + 2)
-            index = len(text) if end < 0 else end
-            continue
-        if text.startswith("/*", index):
-            end = text.find("*/", index + 2)
-            end = len(text) if end < 0 else end + 2
-            line += text[index:end].count("\n")
-            index = end
-            continue
-        if char in "\"'`":
-            quote, value, start_line, escaped = char, [], line, False
-            index += 1
-            while index < len(text):
-                current = text[index]
-                if current == "\n":
-                    line += 1
-                if current == quote:
-                    index += 1
-                    break
-                if current == "\\" and index + 1 < len(text):
-                    escaped = True
-                    index += 1
-                    current = text[index]
-                    if current == "\n":
-                        line += 1
-                if len(value) < 4097:
-                    value.append(current)
-                index += 1
-            emit("template" if quote == "`" else "escaped_string" if escaped else "string", "".join(value), start_line)
-            continue
-        if char.isascii() and (char.isalpha() or char in "_$"):
-            end = index + 1
-            while end < len(text) and text[end].isascii() and (text[end].isalnum() or text[end] in "_$"):
-                end += 1
-            emit("identifier", text[index:end], line)
-            index = end
-        else:
-            if not char.isspace():
-                emit("punctuation", char, line)
-            index += 1
-    return result
+    class Budget:
+        def tick(self):
+            if time.monotonic() > deadline:
+                raise ArtifactError("JavaScript analysis exceeded its work deadline")
+
+    budget = Budget()
+    try:
+        tokens = _ts_tokens(text, budget, max_tokens=MAX_JS_TOKENS)
+    except _Rejected:
+        raise ArtifactError("JavaScript token limit exceeded") from None
+    budget.tick()
+    kinds = {"ident": "identifier", "punct": "punctuation", "escaped": "escaped_string"}
+    return [(kinds.get(kind, kind), value, line, claimable) for kind, value, line, claimable in tokens]
+
+
+def js_tokens(text):
+    return [token[:3] for token in _js_tokens(text)]
+
+
+def literal_constants(tokens):
+    """Module-level `const NAME = "literal"` declarations whose name has no other binding or assignment site.
+
+    Only top-level declarations of a single unescaped string are kept. Any `with` statement or direct `eval`
+    disables resolution, because either can redirect a name lexically, and unbalanced brackets do too.
+    """
+    from .source import _Rejected, _binding_counts
+
+    if any(not token[3] or token[:2] in {("punctuation", "@"), ("punctuation", "\\")} or
+           token[0] == "identifier" and token[1] in {"private", "protected", "public", "readonly", "override"} for token in tokens):
+        return {}
+    if any(left[:2] == ("punctuation", "=") and right[:2] == ("punctuation", ">") for left, right in zip(tokens, tokens[1:])):
+        return {}
+    if any(token[0] == "identifier" and token[1] in ("with", "eval") and not (index and tokens[index - 1][1] == ".") for index, token in enumerate(tokens)):
+        return {}
+    candidates, depth, count = {}, 0, len(tokens)
+    for index, token in enumerate(tokens):
+        if token[0] == "punctuation" and token[1] in "([{":
+            depth += 1
+        elif token[0] == "punctuation" and token[1] in ")]}":
+            depth -= 1
+            if depth < 0:
+                return {}
+        elif depth == 0 and token[:2] == ("identifier", "const") and not (index and tokens[index - 1][1] == ".") and index + 3 < count:
+            name, equals, literal = tokens[index + 1:index + 4]
+            after = tokens[index + 4] if index + 4 < count else None
+            ends = after is None or after[:2] in {("punctuation", ";"), ("punctuation", ",")} or after[2] > literal[2] and after[0] == "identifier" and after[1] not in ("in", "instanceof", "as", "satisfies")
+            if name[0] == "identifier" and equals[:2] == ("punctuation", "=") and literal[0] == "string" and ends and all(item[3] for item in tokens[index:index + 4]):
+                candidates[name[1]] = None if name[1] in candidates else literal[1]
+    if depth or not candidates:
+        return {}
+    try:
+        sites = _binding_counts(tokens, tuple(candidates))
+    except _Rejected:
+        raise ArtifactError("JavaScript binding analysis exceeded its work limit") from None
+    return {name: literal for name, literal in candidates.items() if literal is not None and sites[name] == 1}
 
 
 def parse_js(text, source, builder):
-    tokens = js_tokens(text)
+    from .source import _Rejected, _binding_counts
+
+    tokens = _js_tokens(text)
+    try:
+        fetch_bound = _binding_counts(tokens, ("fetch",))["fetch"]
+    except _Rejected:
+        raise ArtifactError("JavaScript binding analysis exceeded its work limit") from None
+    if fetch_bound:
+        builder.warn(source, "A local fetch binding was found; fetch hints were omitted")
+        return
+    constants = literal_constants(tokens)
+    direct, depth = set(), 0
+    for index, token in enumerate(tokens):
+        if token[0] == "punctuation" and token[1] in "([{":
+            depth += 1
+        elif token[0] == "punctuation" and token[1] in ")]}":
+            depth -= 1
+        elif depth == 0 and token[:2] == ("identifier", "fetch"):
+            direct.add(index)
     for index, token in enumerate(tokens):
         if token[:2] != ("identifier", "fetch") or (index and tokens[index - 1][1] == "."):
             continue
+        if not token[3]:
+            builder.warn(source, "Ambiguous JavaScript syntax was omitted")
+            continue
         upcoming = tokens[index + 1:index + 5]
-        if len(upcoming) < 3 or upcoming[0][1] != "(" or upcoming[1][0] != "string" or upcoming[2][1] not in {",", ")"}:
+        target = upcoming[1] if len(upcoming) > 1 else ("", "", 0, False)
+        url = target[1] if target[0] == "string" else constants.get(target[1]) if target[0] == "identifier" and index in direct else None
+        if len(upcoming) < 3 or upcoming[0][1] != "(" or url is None or upcoming[2][1] not in {",", ")"}:
             builder.warn(source, "A dynamic fetch expression was omitted")
+            continue
+        if not all(item[3] for item in upcoming[:3]):
+            builder.warn(source, "Ambiguous JavaScript syntax was omitted")
             continue
         method = "GET"
         if upcoming[2][1] == ",":
@@ -348,7 +379,7 @@ def parse_js(text, source, builder):
                     if level == 0:
                         closed = offset
                         break
-                elif level == 1 and value == ".":
+                elif level == 1 and value == "." and previous == ".":
                     dynamic = True
                 elif level == 1 and value == "method" and offset + 2 < len(tail) and tail[offset + 1][1] == ":":
                     literal = tail[offset + 2]
@@ -356,12 +387,12 @@ def parse_js(text, source, builder):
                         dynamic = True
                     else:
                         methods.append(literal[1].upper())
-            if closed is None or closed + 1 >= len(tail) or tail[closed + 1][1] != ")" or dynamic or len(methods) > 1:
+            if closed is None or closed + 1 >= len(tail) or tail[closed + 1][1] != ")" or dynamic or len(methods) > 1 or not all(item[3] for item in tail[:closed + 2]):
                 builder.warn(source, "Fetch options were dynamic or incomplete; method was not inferred")
                 continue
             if methods:
                 method = methods[0]
-        builder.add(upcoming[1][1], method, "javascript", source, f"line {token[2]}")
+        builder.add(url, method, "javascript", source, f"line {token[2]}")
 
 
 class HTML(HTMLParser):

@@ -23,6 +23,90 @@ def entry(path="/api/orders/123", method="GET", status=200, body=None):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_nested_binding_analysis_has_a_work_limit(self):
+        text = "const " + "[" * 6000 + "fetch," * 2000 + "x" + "]" * 6000 + "=xs;"
+        with self.assertRaises(ArtifactError) as caught:
+            analyze([{"kind": "javascript", "text": text}])
+        self.assertIn("binding analysis exceeded its work limit", str(caught.exception))
+
+    def test_literal_fetch_method_survives_member_expressions_in_other_options(self):
+        for options in ('{method:"POST", body:JSON.stringify(order)}', '{method:"DELETE", signal:controller.signal}', '{method:"POST", headers:headers.value}'):
+            report = analyze([{"kind": "javascript", "text": 'fetch("/api/orders", ' + options + ');'}])
+            expected = "DELETE" if "DELETE" in options else "POST"
+            self.assertEqual([(item["method"], item["path"]) for item in report["routes"]], [(expected, "/api/orders")])
+        self.assertEqual(analyze([{"kind": "javascript", "text": 'fetch("/api/orders", {method:"POST", ...options});'}])["routes"], [])
+
+    def test_regex_lexing_does_not_hide_or_invent_fetch_hints(self):
+        for source in ('const clean=s.replace(/"/g, "");\nfetch("/api/orders");', r'if (/^https?:\/\//.test(url)) fetch("/api/orders");'):
+            report = analyze([{"kind": "javascript", "text": source}])
+            self.assertEqual([item["path"] for item in report["routes"]], ["/api/orders"])
+        for source in ("const re = /'/;\nconst help = 'Call fetch(\"/api/orders\") to reset';", "if (ok) /'/.test(value); 'fetch(\"/api/orders\")'"):
+            self.assertEqual(analyze([{"kind": "javascript", "text": source}])["routes"], [])
+
+    def test_local_fetch_binding_omits_fetch_hints_but_uses_do_not(self):
+        def paths(source):
+            return [item["path"] for item in analyze([{"kind": "javascript", "text": source}])["routes"]]
+        bound = ["function fetch(value){return value;}", "function inspect(fetch){return fetch;}", 'import fetch from "node-fetch";',
+                 'import {request as fetch} from "client";', "const {fetch} = deps;", "let fetch = mock;", "fetch = mock;", "fetch ||= mock;",
+                 "const run = fetch => fetch;", "const run = (fetch) => fetch;", "async function run({fetch}) {}", "function run(...fetch) {}",
+                 "try {} catch (fetch) {}", "class C { constructor(fetch) {} }", "function run(fetch: Fetch) {}"]
+        for prefix in bound:
+            with self.subTest(prefix=prefix):
+                report = analyze([{"kind": "javascript", "text": prefix + ' fetch("/api/orders");'}])
+                self.assertEqual(report["routes"], [])
+                self.assertIn("A local fetch binding was found; fetch hints were omitted", [item["reason"] for item in report["warnings"]])
+        uses = ["const f = fetch;", "wrap(fetch);", "if (fetch) {}", 'typeof fetch === "function";', "const o = {fetch: 1};", "const o = {fetch};",
+                "api.fetch = x;", "class A { fetch() { return 1; } }", "const g = (cb = fetch) => cb;", "const n = x * f(fetch);", "if (fetch == null) {}"]
+        for prefix in uses:
+            with self.subTest(prefix=prefix):
+                self.assertEqual(paths(prefix + ' fetch("/api/orders");'), ["/api/orders"])
+
+    def test_module_literal_constant_url_needs_one_binding_and_no_dynamic_scope(self):
+        def paths(source):
+            return [(item["method"], item["path"]) for item in analyze([{"kind": "javascript", "text": source}])["routes"]]
+        self.assertEqual(paths('const endpoint="/api/orders"; fetch(endpoint);'), [("GET", "/api/orders")])
+        self.assertEqual(paths('export const endpoint = "/api/orders"\nfetch(endpoint, {method: "POST"})'), [("POST", "/api/orders")])
+        for source in ['const endpoint="/api/a"; function f(endpoint){ return fetch(endpoint); }', 'const endpoint="/api/a"; { const endpoint="/api/orders"; fetch(endpoint); }',
+                       'const endpoint="/api/a"; try {} catch (endpoint) { fetch(endpoint); }', 'const endpoint="/api/a"; for (const {endpoint} of xs) fetch(endpoint);',
+                       'import {endpoint} from "./c"; const endpoint="/api/a"; fetch(endpoint);', 'let endpoint="/api/a"; endpoint="/api/orders"; fetch(endpoint);',
+                       'var endpoint="/api/a"; fetch(endpoint);', 'function f(){ const endpoint="/api/a"; return fetch(endpoint); }', 'const endpoint="/api/"+id; fetch(endpoint);',
+                       'const endpoint="/api/a"\n+ suffix; fetch(endpoint);', "const endpoint=`/api/${id}`; fetch(endpoint);", r'const endpoint="\x2fapi"; fetch(endpoint);',
+                       'const endpoint="/api/a"; with (cfg) { fetch(endpoint); }', 'const endpoint="/api/a"; eval(code); fetch(endpoint);',
+                       'const endpoint="/api/a"; const endpoint="/api/b"; fetch(endpoint);', 'const endpoint="/api/a"; class K { endpoint="/b"; go(){ return fetch(endpoint); } }']:
+            with self.subTest(source=source):
+                self.assertEqual(paths(source), [])
+
+    def test_multiline_jsx_child_text_is_not_a_fetch_hint(self):
+        for source in ['const H=()=> (\n<pre>\n fetch("/api/orders")\n</pre>\n);', 'const H=()=> <>\n fetch("/api/orders")\n</>;',
+                       'const H=()=> <a title="a>b">\nfetch("/api/orders")\n</a>;']:
+            with self.subTest(source=source):
+                report = analyze([{"kind": "javascript", "text": source}])
+                self.assertEqual(report["routes"], [])
+                self.assertTrue(report["warnings"])
+        for source in ['const B=()=> (\n  <button onClick={() => fetch("/api/orders")}>\n    Go\n  </button>\n);', 'const L=()=> (\n  <div>\n    {load(fetch("/api/orders"))}\n  </div>\n);',
+                       'const P=()=> <p>\n x \n</p>;\nfetch("/api/orders");', 'const I=()=> <Icon name="x" />;\nfetch("/api/orders");', 'if (a < b && c > d) {}\nfetch("/api/orders");']:
+            with self.subTest(source=source):
+                self.assertEqual([item["path"] for item in analyze([{"kind": "javascript", "text": source}])["routes"]], ["/api/orders"])
+
+    def test_constant_resolution_omits_computed_parameters_and_uncertain_bindings(self):
+        cases = ['const endpoint="/api/orders"; const api = {["load"](endpoint){return fetch(endpoint);}};',
+                 'const endpoint="/api/orders"; const api = {"load"(endpoint){return fetch(endpoint);}};',
+                 'const endpoint="/api/orders"; class C{static [key](endpoint){return fetch(endpoint);}};',
+                 'const endpoint="/api/orders";\nconst L=()=> (<p>Don\'t <button onClick={(endpoint) =>\n fetch(endpoint)}>\n It\'s done</button></p>);',
+                 'const endpoint="/api/orders"; class C{constructor(private endpoint:string){fetch(endpoint);}}',
+                 'const endpoint="/api/orders"; class C{method(@Inject() endpoint){fetch(endpoint);}}',
+                 'const endpoint="/api/orders"; class C{delete(endpoint){fetch(endpoint);}}',
+                 'const endpoint="/api/orders"; const C={"new"(endpoint){fetch(endpoint);}}',
+                 'const endpoint="/api/orders"; function read(){return fetch(endpoint);}',
+                 'const endpoint="/api/orders"; const read=()=>fetch(endpoint);',
+                 r'const endpoint="/api/orders"; for(let \u0065ndpoint of xs) fetch(endpoint);']
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertEqual(analyze([{"kind": "javascript", "text": text}])["routes"], [])
+        for head in ('["load"]', '"load"', '12', 'delete', '"new"'):
+            report = analyze([{"kind": "javascript", "text": f'const api={{{head}(fetch){{return fetch("/api/orders");}}}};'}])
+            self.assertEqual(report["routes"], [])
+
     def test_demo_has_separate_observed_declared_and_inferred_routes(self):
         report = analyze(artifacts())
         self.assertEqual(len(report["routes"]), 7)

@@ -30,6 +30,13 @@ def dependency(report, name):
 
 
 class SourceInventoryTests(unittest.TestCase):
+    def test_nested_require_binding_analysis_is_bounded(self):
+        text = "const " + "[" * 6000 + "require," * 2000 + "x" + "]" * 6000 + "=xs;"
+        report = one("javascript", text)
+        self.assertEqual(report["sources"][0]["status"], "rejected")
+        self.assertEqual(report["dependencies"], [])
+        self.assertIn("binding analysis exceeded its work limit", " ".join(report["warnings"]))
+
     def test_mixed_sources_report_fixed_labels_and_confidence(self):
         report = source_inventory([
             {"kind": "requirements", "content": "numpy>=1.24\nollama\nsounddevice==0.4.6 ; sys_platform != 'win32'\n"},
@@ -54,6 +61,48 @@ class SourceInventoryTests(unittest.TestCase):
         self.assertEqual(dependency(report, "tokio")["ecosystem"], "crates")
         self.assertTrue({"local-llm-client", "speech-recognition-library", "audio-io-library", "desktop-automation-library", "desktop-app-framework", "web-ui-framework", "async-runtime"} <= names(report, "capabilities"))
         self.assertEqual(names(report, "install_hints"), {"python-virtualenv", "pip-install", "npm-install", "cargo-build"})
+
+    def test_jsx_text_cannot_fabricate_a_dependency_from_a_code_example(self):
+        content = "export const Help = () => <p>Here's the client: <code>{'import Client from \"openai\"'}</code></p>;"
+        for kind in ("javascript", "typescript"):
+            report = one(kind, content)
+            self.assertEqual(report["dependencies"], [])
+            self.assertEqual(report["capabilities"], [])
+            self.assertTrue(report["warnings"])
+
+    def test_division_after_expression_parentheses_preserves_literal_imports(self):
+        for content in ('const mid=(lo+hi)/2, client=require("openai");', 'function average(a,b){return(a+b)/2} const client=require("openai");'):
+            self.assertEqual(names(one("javascript", content), "dependencies"), {"openai"})
+        report = one("javascript", "if (ok) /'/.test(value); const text = 'import Client from \"openai\"'")
+        self.assertEqual(report["dependencies"], [])
+        self.assertTrue(report["warnings"])
+
+    def test_locally_bound_require_is_not_claimed(self):
+        for content in ['const require=value=>value; require("openai");', 'function load(require){ return require("openai"); }']:
+            with self.subTest(content=content):
+                report = one("javascript", content)
+                self.assertEqual(report["dependencies"], [])
+                self.assertIn("source_1: a locally bound require was found; require calls were not claimed", report["warnings"])
+        self.assertEqual(names(one("javascript", 'import Client from "openai"; const require=x=>x; require("axios");'), "dependencies"), {"openai"})
+        for content in ['const r = require; const a = require("axios");', 'module.require = x; const a = require("axios");']:
+            self.assertEqual(names(one("javascript", content), "dependencies"), {"axios"})
+
+    def test_multiline_jsx_child_text_cannot_claim_imports(self):
+        for content in ['const H=()=> (\n<pre>\n require("openai")\n</pre>\n);', 'const H=()=> <code>\nimport Client from "openai"\n</code>;']:
+            with self.subTest(content=content):
+                report = one("typescript", content)
+                self.assertEqual(report["dependencies"], [])
+                self.assertTrue(report["warnings"])
+        for content in ['const id = <T>(x: T) => x;\nconst c = require("openai");', 'const n = <number>value;\nimport Client from "openai";',
+                        'const m = new Map<string, number>();\nconst c = require("openai");', 'export const H=()=> <p>\n hi \n</p>;\nconst c = require("openai");']:
+            with self.subTest(content=content):
+                self.assertEqual(names(one("typescript", content), "dependencies"), {"openai"})
+
+    def test_jsx_tag_scanning_stays_within_work_limits(self):
+        for unit in ['(<a {"', "=<a>", "(<a>x</a>);\n"]:
+            with self.subTest(unit=unit):
+                report = one("typescript", unit * (200 * 1024 // len(unit)))
+                self.assertEqual(report["sources"][0]["status"], "parsed")
 
     def test_google_sdk_import_requires_a_complete_module_component(self):
         for module in ("google.generativeai_private", "google.generativeaiclient", "google.generativeai2"):
@@ -392,7 +441,7 @@ class SourceInventoryTests(unittest.TestCase):
     def test_typescript_ambiguous_slash_taints_only_affected_lines(self):
         content = "\n".join(["const v = (a) / 2; import x from 'react'", "import y from 'axios'"])
         report = one("typescript", content)
-        self.assertEqual(names(report, "dependencies"), {"axios"})
+        self.assertEqual(names(report, "dependencies"), {"react", "axios"})
 
 if __name__ == "__main__":
     unittest.main()

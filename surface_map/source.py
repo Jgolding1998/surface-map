@@ -80,6 +80,16 @@ RUST_IDENTS = {name.replace("-", "_"): name for name in CRATES}
 RUST_IDENT_PREFIXES = {prefix.replace("-", "_"): label for prefix, label in CRATE_PREFIXES.items()}
 RUST_ROOT_SKIP = {"crate", "self", "super", "Self", "std", "core", "alloc"}
 TS_REGEX_KEYWORDS = {"return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw", "case", "do", "else", "yield", "await"}
+# A `<` after these characters or words starts an expression, so it may open a JSX element.
+JSX_START_CHARS = set("([{,;=?:!&|>")
+JSX_START_WORDS = {"return", "yield", "await", "default"}
+JSX_NAME = re.compile(r"[A-Za-z_$][\w$.:-]*")
+JSX_TAG_CHARS = 8192
+JSX_CHILD_STOP = re.compile(r"[{<\n]")
+JSX_SPACES = re.compile(r"[^\S\n]+")
+JSX_WORD = re.compile(r"[\w$]+")
+DECLARATION_WORDS = {"function", "class", "const", "let", "var", "enum", "namespace"}
+NOT_PARAMETER_HEADS = {"if", "while", "for", "switch", "with", "return", "typeof", "await", "yield", "new", "delete", "void", "in", "of"}
 _PYTHON_LOCK = threading.Lock()
 PY_IMPORTS = {
     "ollama": "ollama", "openai": "openai", "anthropic": "anthropic", "fastapi": "fastapi", "flask": "flask", "django": "django",
@@ -499,12 +509,13 @@ def _word_char(char):
 class _Lexer:
     """Shared bounded token sink for the TypeScript and Rust lexers."""
 
-    def __init__(self, text, inventory):
+    def __init__(self, text, inventory, *, max_tokens=None):
         self.text, self.inventory, self.tokens, self.line = text, inventory, [], 1
+        self.max_tokens = MAX_LEX_TOKENS if max_tokens is None else max_tokens
 
     def emit(self, kind, value, line, *flags):
         self.tokens.append((kind, value, line, *flags))
-        if len(self.tokens) > MAX_LEX_TOKENS:
+        if len(self.tokens) > self.max_tokens:
             raise _Rejected("document exceeds lexical work limits")
         if len(self.tokens) % 4096 == 0:
             self.inventory.tick()
@@ -514,16 +525,17 @@ class _Lexer:
         self.index = end
 
 
-def _ts_tokens(text, inventory):
+def _ts_tokens(text, inventory, *, max_tokens=None):
     """Lex TypeScript into (kind, value, line, claimable) tokens.
 
     Strings end at an unescaped newline, regex literals are skipped where the grammar allows them, and template
     literals with nested expressions are tracked. Where a slash is ambiguous between division and a regex, the
-    line is tainted, and any string or template that starts on a tainted line taints every line it spans, so a
-    misread can only suppress import claims, never create them.
+    line is tainted, and any string or template that starts on a tainted line taints every line it spans, so
+    these uncertain regions suppress import claims. Lines holding child text of closed JSX elements are tainted
+    too; this is not a JSX parser, so text in an element that never closes can still produce hints.
     """
-    lexer, length = _Lexer(text, inventory), len(text)
-    lexer.index, tainted, templates, previous = 0, set(), [], None
+    lexer, length = _Lexer(text, inventory, max_tokens=max_tokens), len(text)
+    lexer.index, tainted, templates, previous, parens = 0, _jsx_text_lines(text, inventory), [], None, []
 
     def scan_template():
         # Called just after a backtick or a closing template-expression brace. Returns True when "${" opened.
@@ -575,7 +587,10 @@ def _ts_tokens(text, inventory):
                 if index < length and len(value) < 4097:
                     value.append(text[index])
                 index += 1
-            lexer.skip_to(min(length, index + 1) if index < length and text[index] == char else index)
+            closed = index < length and text[index] == char
+            lexer.skip_to(min(length, index + 1) if closed else index)
+            if not closed:
+                tainted.add(start)
             if start in tainted:
                 tainted.update(range(start, lexer.line + 1))
             lexer.emit("escaped" if escaped else "string", "".join(value), start, bool(templates))
@@ -592,9 +607,9 @@ def _ts_tokens(text, inventory):
             continue
         if char == "/":
             kind, value = previous or ("punct", ";")
-            ambiguous = kind == "punct" and value in (")", "}")
-            regex = kind == "punct" and value not in (")", "]", "}") or kind == "ident" and value in TS_REGEX_KEYWORDS
-            if ambiguous:
+            ambiguous = kind == "punct" and value in (")!", "}")
+            regex = kind == "punct" and value not in (")", ")!", "]", "}") or kind == "ident" and value in TS_REGEX_KEYWORDS
+            if ambiguous or (kind, value) == ("punct", "<"):
                 tainted.add(lexer.line)
             if regex:
                 index, in_class = index + 1, False
@@ -639,13 +654,259 @@ def _ts_tokens(text, inventory):
             lexer.index = end
             continue
         lexer.emit("punct", char, lexer.line, bool(templates))
+        if char == "(":
+            parens.append(previous is not None and previous[0] == "ident" and previous[1] in ("if", "while", "for", "with"))
         previous = ("punct", char)
+        if char == ")":
+            previous = ("punct", ")!" if not parens or parens.pop() else ")")
         lexer.index += 1
     return [(kind, value, line, not nested and line not in tainted) for kind, value, line, nested in lexer.tokens]
 
 
+def _jsx_text_lines(text, inventory):
+    """Return the lines holding child text of JSX elements that close again.
+
+    JSX child text is not code, so quotes or code-like words in it must never become import or fetch claims. A `<`
+    opens an element only where an expression may start; children are text until `{`, a nested tag or a closing
+    tag. Text collected for an element that never closes (such as a TypeScript type argument read as a tag) is
+    discarded. Failed tag scans share a linear budget; once it is spent, every remaining line is tainted.
+    """
+    length, index, line, last, steps = len(text), 0, 1, "", 0
+    stack, elements, pending, lines = [0], 0, set(), set()  # ints are code brace depths; None marks children
+    budget = 4 * length + 65536
+
+    def tag_end(start):
+        # text[start] is "<". Returns (end, kind) with kind open/self/close, or None when this is not a tag.
+        nonlocal budget
+        limit, index = min(length, start + JSX_TAG_CHARS), start + 1
+        closing = index < limit and text[index] == "/"
+        index += closing
+        match = JSX_NAME.match(text, index, limit)
+        if match:
+            index = match.end()
+        elif not (index < limit and text[index] == ">"):
+            return None
+        found = None
+        while index < limit:
+            char = text[index]
+            if char.isspace():
+                index += 1
+                continue
+            if char == ">":
+                found = index + 1, "close" if closing else "open"
+                break
+            if closing:
+                break
+            if text.startswith("/>", index):
+                found = index + 2, "self"
+                break
+            match = JSX_NAME.match(text, index, limit) if char != "{" else None
+            if match:
+                index = match.end()
+                while index < limit and text[index].isspace():
+                    index += 1
+                if index >= limit or text[index] != "=":
+                    continue
+                index += 1
+                while index < limit and text[index].isspace():
+                    index += 1
+                if index >= limit:
+                    break
+                char = text[index]
+            if char in "\"'":
+                end = text.find(char, index + 1, limit)
+                if end < 0:
+                    break
+                index = end + 1
+            elif char == "{":
+                depth, quote = 0, None
+                while index < limit:
+                    current = text[index]
+                    if quote:
+                        if current == "\\":
+                            index += 1
+                        elif current == quote:
+                            quote = None
+                    elif current in "\"'`":
+                        quote = current
+                    elif current == "{":
+                        depth += 1
+                    elif current == "}":
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    index += 1
+                if index >= limit:
+                    break
+                index += 1
+            else:
+                break
+        budget -= (found[0] if found else index) - start
+        return found
+
+    while index < length:
+        steps += 1
+        if steps % 65536 == 0:
+            inventory.tick()
+        if budget < 0:
+            lines.update(range(line, line + text.count("\n", index) + 1))
+            return lines
+        char = text[index]
+        if char == "\n":
+            line, index = line + 1, index + 1
+            continue
+        if stack[-1] is None:
+            if char == "{":
+                stack.append(0)
+                last, index = "{", index + 1
+                continue
+            if char == "<":
+                found = tag_end(index)
+                if found:
+                    end, kind = found
+                    line += text.count("\n", index, end)
+                    index = end
+                    if kind == "open":
+                        stack.append(None)
+                        elements += 1
+                    elif kind == "close":
+                        stack.pop()
+                        elements -= 1
+                        if not elements:
+                            lines |= pending
+                            pending, last = set(), ")"
+                    continue
+            stop = JSX_CHILD_STOP.search(text, index + 1)
+            stop = length if stop is None else stop.start()
+            if not text[index:stop].isspace():
+                pending.add(line)
+            index = stop
+            continue
+        if char.isspace():
+            index = JSX_SPACES.match(text, index).end()
+            continue
+        if text.startswith("//", index):
+            end = text.find("\n", index)
+            index = length if end < 0 else end
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            end = length if end < 0 else end + 2
+            line += text.count("\n", index, end)
+            index = end
+            continue
+        if char in "\"'`":
+            end = index + 1
+            while end < length and text[end] != char and (char == "`" or text[end] != "\n"):
+                end += 2 if text[end] == "\\" else 1
+            end = min(length, end + 1) if end < length and text[end] == char else min(length, end)
+            line += text.count("\n", index, end)
+            index, last = end, ")"
+            continue
+        if char == "{":
+            stack[-1] += 1
+        elif char == "}":
+            if stack[-1] == 0 and len(stack) > 1:
+                stack.pop()
+                last, index = "}", index + 1
+                continue
+            stack[-1] = max(0, stack[-1] - 1)
+        elif char == "<" and (last == "" or last in JSX_START_CHARS or last in JSX_START_WORDS):
+            found = tag_end(index)
+            if found and found[1] != "close":
+                end, kind = found
+                line += text.count("\n", index, end)
+                index, last = end, ")"
+                if kind == "open":
+                    stack.append(None)
+                    elements += 1
+                continue
+        if _word_char(char):
+            end = JSX_WORD.match(text, index).end()
+            last, index = text[index:end], end
+            continue
+        last, index = char, index + 1
+    return lines
+
+
+def _binding_counts(tokens, names):
+    """Count sites that may bind or assign each name: declarations, imports, parameters (including destructuring
+    and rest), catch clauses, and plain or compound assignments. Property keys and member names do not count.
+    Scope is ignored, so a site anywhere in the file counts; callers can only become more cautious."""
+    count, ancestor_work = len(tokens), MAX_LEX_TOKENS
+    enclosing, closes, stack = [None] * count, {}, []
+    for position, token in enumerate(tokens):
+        enclosing[position] = stack[-1] if stack else None
+        if token[0] in ("punct", "punctuation"):
+            if token[1] in "([{":
+                stack.append(position)
+            elif token[1] in ")]}" and stack:
+                closes[stack.pop()] = position
+
+    def value(position):
+        return tokens[position][1] if 0 <= position < count else None
+
+    def punct(position, *values):
+        return 0 <= position < count and tokens[position][0] in ("punct", "punctuation") and tokens[position][1] in values
+
+    def ident(position, *values):
+        return 0 <= position < count and tokens[position][0] in ("ident", "identifier") and (not values or tokens[position][1] in values)
+
+    def spread(position):
+        return punct(position - 1, ".") and punct(position - 2, ".") and punct(position - 3, ".")
+
+    def slot(position):
+        # A pattern element starts after an opening bracket, a comma, a renaming colon or a rest/spread.
+        return punct(position - 1, "(", ",", "{", "[", ":") or spread(position)
+
+    def binds(position):
+        nonlocal ancestor_work
+        if ident(position - 1, *DECLARATION_WORDS) or ident(position - 1, "as", "import") or punct(position - 1, "*") and ident(position - 2, "function"):
+            return True
+        after = position + 1
+        while after < min(count, position + 4) and punct(after, "+", "-", "*", "/", "%", "&", "|", "^", "?"):
+            after += 1
+        if punct(after, "=") and not punct(after + 1, "="):
+            return True
+        if not slot(position):
+            return False
+        container = enclosing[position]
+        if container is not None and value(container) == "{" and punct(position + 1, ":"):
+            return False
+        while container is not None and value(container) in ("{", "["):
+            ancestor_work -= 1
+            if ancestor_work < 0:
+                raise _Rejected("binding analysis exceeded its work limit")
+            if ident(container - 1, "const", "let", "var"):
+                return True
+            if ident(container - 1, "import", "type") or punct(container - 1, ",") and ident(container - 3, "import"):
+                return not ident(position + 1, "as")
+            if not slot(container):
+                return False
+            container = enclosing[container]
+        if container is None:
+            return False
+        close, head = closes.get(container), container - 1
+        if close is None:
+            return False
+        if punct(close + 1, "=") and punct(close + 2, ">") or punct(close + 1, ":") or ident(head, "catch", "function"):
+            return True
+        if punct(close + 1, "{") and not ident(head, "if", "while", "for", "switch", "with"):
+            return True
+        if ident(head) and value(head) not in NOT_PARAMETER_HEADS:
+            return ident(head - 1, "function") or punct(head - 1, "*") and ident(head - 2, "function") or punct(close + 1, "{")
+        return False
+
+    result = dict.fromkeys(names, 0)
+    for position, token in enumerate(tokens):
+        if token[0] in ("ident", "identifier") and token[1] in result and (not punct(position - 1, ".") or spread(position)):
+            result[token[1]] += binds(position)
+    return result
+
+
 def _parse_typescript(text, inventory, source):
     tokens = _ts_tokens(text, inventory)
+    require_bound = _binding_counts(tokens, ("require",))["require"] > 0
     count = len(tokens)
 
     def string_at(position):
@@ -655,7 +916,10 @@ def _parse_typescript(text, inventory, source):
         return 0 <= position < count and tokens[position][0] == "punct" and tokens[position][1] == value
 
     for index, (kind, value, line, claimable) in enumerate(tokens):
-        if kind != "ident" or value not in ("import", "export", "require") or punct(index - 1, ".") or not claimable:
+        if kind != "ident" or value not in ("import", "export", "require") or punct(index - 1, "."):
+            continue
+        if value == "require" and require_bound:
+            inventory.warn(source, "a locally bound require was found; require calls were not claimed")
             continue
         specifier, end = None, index
         if value == "require" or value == "import" and punct(index + 1, "("):
@@ -672,7 +936,9 @@ def _parse_typescript(text, inventory, source):
                     if string_at(position + 1):
                         specifier, end = tokens[position + 1][1], position + 1
                     break
-        if specifier is not None and all(token[3] for token in tokens[index : end + 1]):
+        if specifier is not None and not all(token[3] for token in tokens[index : end + 1]):
+            inventory.warn(source, "an import on ambiguous syntax was not claimed")
+        elif specifier is not None:
             name = _npm_package(specifier)
             if name is not None:
                 inventory.dependency(name, "npm", "inferred", source, f"line {line}")
