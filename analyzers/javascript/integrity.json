@@ -3,8 +3,8 @@
   "parser": "8.0.4",
   "files": {
     "parse.mjs": "66798af5d387ca7b911c5751f27870aabad5c07fe320ee94704e8898bbcab5e6",
-    "package.json": "67a9f611bcd02678507a824ee8b04420d5a39674591a89dfa918cb4974fb65c5",
-    "package-lock.json": "c052f9404fb85e8dedf57a198397e4e3129d48f78e5d41aad3da882178b9de0a",
+    "package.json": "997b2b5e9ff61464c55e34e2b8cac544c02b39a7ce6dd07f4d011ea39bb46ff4",
+    "package-lock.json": "ca9eff65cb6d00c99eeb683b6d5a789465544fe151e680fec08d45e84a1de9ec",
     "node_modules/@babel/parser/lib/index.js": "43d95824b43928626ccf99136e95ab90260c18406f22f8acf57f239483127f66",
     "node_modules/@babel/parser/package.json": "e57d9cbf87f99beba86d045636107bfc2d48553070ee725a617a0639e5e9a204"
   },
