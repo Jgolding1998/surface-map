@@ -32,4 +32,8 @@ Use artifacts you own or are authorized to inspect. Capture authorization and th
 
 The source CLI reads only explicitly selected ordinary UTF-8 files. It checks ancestors before descendants to reject symbolic links and Windows reparse points. On Windows it rejects UNC/device paths and alternate streams before filesystem access, checks the resulting absolute path again, and rejects remote or unknown drive types with the system drive-type API. It never walks a directory or follows requirements includes or package URLs. Other mounted filesystems and concurrent path changes by another local process are outside this boundary. HTTP source inspection accepts content, not filesystem paths or remote URLs. A rejected source contributes no partial evidence, and rejected selections cannot be compared as though their dependencies were absent. Cooperative work limits reduce accidental resource use; this is not a hard process-isolation boundary.
 
-Use a private repository security advisory for a vulnerability report. Do not include real credentials or private captures in a public issue.
+## Reporting a vulnerability
+
+Use [Security > Report a vulnerability](https://github.com/Jgolding1998/surface-map/security/advisories/new) to send a private report. Do not submit vulnerability details through the public feedback form.
+
+Include the affected version, platform, expected behavior and a synthetic reproduction. Leave out credentials, personal information and private files.
