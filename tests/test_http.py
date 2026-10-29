@@ -1,0 +1,162 @@
+import http.client
+import json
+import re
+import socket
+import threading
+import time
+import unittest
+from unittest.mock import patch
+
+from surface_map.server import MAX_REQUEST, make_server
+from test_analysis import CANARY, EMAIL, entry, har
+
+
+class HTTPTests(unittest.TestCase):
+    def setUp(self):
+        self.server = make_server(0)
+        self.port = self.server.server_address[1]
+        self.origin = f"http://127.0.0.1:{self.port}"
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.token = re.search(rb'name="surface-token" content="([a-f0-9]+)"', self.request("/")[2]).group(1).decode()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=3)
+
+    def request(self, path, method="GET", value=None, headers=None, raw=None):
+        client = http.client.HTTPConnection("127.0.0.1", self.port, timeout=4)
+        body = raw if raw is not None else json.dumps(value).encode() if value is not None else None
+        config = {"Origin": self.origin, "X-Surface-Token": self.token if hasattr(self, "token") else "", "Content-Type": "application/json"}
+        config.update(headers or {})
+        client.request(method, path, body, config)
+        response = client.getresponse()
+        result = response.status, dict(response.getheaders()), response.read()
+        client.close()
+        return result
+
+    def test_demo_and_fixed_routes(self):
+        result = self.request("/api/demo", "POST", {})
+        self.assertEqual(result[0], 200)
+        self.assertEqual(len(json.loads(result[2])["report"]["routes"]), 7)
+        for path in ["/app.js", "/styles.css", "/health"]:
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 200)
+        for path in ["/../server.py", "/%2e%2e/server.py", "/server.py", "/?private=value", "/api/demo"]:
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 404)
+
+    def test_public_analyze_response_and_exports_never_include_planted_values(self):
+        capture = entry(f"https://{CANARY}.invalid/api/customers/{EMAIL}?token={CANARY}", body={"token": CANARY, "email": EMAIL})
+        capture["request"]["headers"] = [{"name": "Authorization", "value": CANARY}]
+        status, _, body = self.request("/api/analyze", "POST", {"artifacts": [har([capture])]})
+        self.assertEqual(status, 200)
+        self.assertNotIn(CANARY, body.decode())
+        self.assertNotIn(EMAIL, body.decode())
+        self.assertEqual(set(json.loads(body)), {"report", "contract", "openapi"})
+
+    def test_error_response_does_not_echo_bad_source_or_filenames(self):
+        for payload in [{"artifacts": [{"kind": "har", "text": '{"private":"' + CANARY + '"'}]}, {"artifacts": [{"kind": "zip", "text": CANARY, "filename": EMAIL}]}, {"artifacts": [har([entry(method=[])])]}]:
+            status, _, body = self.request("/api/analyze", "POST", payload)
+            self.assertEqual(status, 422)
+            self.assertNotIn(CANARY, body.decode())
+            self.assertNotIn(EMAIL, body.decode())
+
+    def test_security_headers_and_no_cors(self):
+        _, headers, _ = self.request("/")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        self.assertNotIn("Server", headers)
+
+    def test_total_header_deadline_covers_request_line_and_header_drip(self):
+        for prefix in [b"GET /", f"GET /health HTTP/1.0\r\nHost: 127.0.0.1:{self.port}\r\nX-Pad: ".encode()]:
+            with self.subTest(prefix=prefix), patch("surface_map.server.HEADER_TIMEOUT", .2):
+                with socket.create_connection(("127.0.0.1", self.port), timeout=1) as client:
+                    started = time.monotonic()
+                    client.sendall(prefix)
+                    for _ in range(15):
+                        try:
+                            client.sendall(b"x")
+                        except OSError:
+                            break
+                        time.sleep(.03)
+                    try:
+                        response = client.recv(4096)
+                    except ConnectionError:
+                        response = b""
+                    self.assertEqual(response, b"")
+                    self.assertLess(time.monotonic() - started, 1)
+        self.assertEqual(self.request("/health")[0], 200)
+
+    def test_export_amplification_is_rejected_before_response_write(self):
+        captures = [entry(status=status, body={"id": 42, "name": CANARY}) for status in range(200, 300)]
+        with patch("surface_map.server.MAX_RESPONSE", 8192):
+            status, _, body = self.request("/api/analyze", "POST", {"artifacts": [har(captures)]})
+        self.assertEqual(status, 413)
+        self.assertLess(len(body), 200)
+        self.assertNotIn(CANARY, body.decode())
+
+    def test_host_origin_and_csrf_are_required(self):
+        for headers in [{"Host": "attacker.invalid"}, {"Origin": "https://attacker.invalid"}, {"Origin": "null"}, {"X-Surface-Token": ""}, {"X-Surface-Token": chr(233)}, {"Sec-Fetch-Site": "cross-site"}]:
+            with self.subTest(headers=headers):
+                self.assertEqual(self.request("/api/demo", "POST", {}, headers)[0], 403)
+
+    def test_malformed_duplicate_host_header(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        connection.putrequest("GET", "/health", skip_host=True)
+        connection.putheader("Host", f"127.0.0.1:{self.port}")
+        connection.putheader("Host", f"127.0.0.1:{self.port}")
+        connection.endheaders()
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        connection.close()
+
+    def test_framing_content_type_and_unicode(self):
+        for config in [{"Content-Length": str(MAX_REQUEST + 1)}, {"Content-Length": "-1"}, {"Transfer-Encoding": "chunked"}, {"Content-Type": "text/plain"}]:
+            with self.subTest(config=config):
+                self.assertEqual(self.request("/api/demo", "POST", {}, config)[0], 422)
+        self.assertEqual(self.request("/api/analyze", "POST", raw=b"\xff")[0], 422)
+
+    def test_comparison_has_real_added_and_absent_evidence(self):
+        from surface_map.samples import artifacts
+        status, _, body = self.request("/api/compare", "POST", {"baseline": artifacts(), "candidate": artifacts(2)})
+        self.assertEqual(status, 200)
+        diff = json.loads(body)["diff"]
+        self.assertEqual(len(diff["added"]), 1)
+        self.assertEqual(len(diff["removed"]), 1)
+        self.assertEqual(len(diff["changed"]), 1)
+
+    def test_bad_http_request_does_not_echo_path(self):
+        with socket.create_connection(("127.0.0.1", self.port), timeout=3) as client:
+            client.sendall(f"INVALID BAD /{CANARY} HTTP/1.1\r\n\r\n".encode())
+            response = b""
+            while True:
+                block = client.recv(4096)
+                if not block:
+                    break
+                response += block
+        self.assertNotIn(CANARY.encode(), response)
+        self.assertIn(b"Invalid HTTP request", response)
+
+    def test_busy_analysis_rejects_before_reading_another_body(self):
+        held = []
+        try:
+            for _ in range(2):
+                client = socket.create_connection(("127.0.0.1", self.port), timeout=3)
+                held.append(client)
+                headers = f"POST /api/analyze HTTP/1.0\r\nHost: 127.0.0.1:{self.port}\r\nOrigin: {self.origin}\r\nX-Surface-Token: {self.token}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{"
+                client.sendall(headers.encode())
+            time.sleep(.1)
+            started = time.monotonic()
+            self.assertEqual(self.request("/api/demo", "POST", {})[0], 503)
+            self.assertLess(time.monotonic() - started, 1)
+        finally:
+            for client in held:
+                client.close()
+
+
+if __name__ == "__main__":
+    unittest.main()
