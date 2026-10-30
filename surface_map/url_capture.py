@@ -18,7 +18,7 @@ import threading
 import time
 from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
-from .analyze import MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_HTML_TAGS, MAX_TOTAL_BYTES
+from .analyze import HTML_FOREIGN_BREAKOUT, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_HTML_TAGS, MAX_TOTAL_BYTES
 
 MAX_URL_LENGTH = 2048
 MAX_SCRIPTS = 5
@@ -30,7 +30,7 @@ SOCKET_SECONDS = 5.0
 MAX_DNS_ANSWERS = 32
 MAX_HEADER_BYTES = 32768
 _DNS_SLOT = threading.BoundedSemaphore(1)
-_HTML_TYPES = {"text/html", "application/xhtml+xml"}
+_HTML_TYPES = {"text/html"}
 _JS_TYPES = {"text/javascript", "application/javascript", "application/ecmascript", "text/ecmascript", "application/x-javascript"}
 _REDIRECTS = {301, 302, 303, 307, 308}
 _HTML_WHITESPACE = "\t\n\f\r "
@@ -56,6 +56,7 @@ _MESSAGES = {
     "text_encoding": "Only UTF-8 text and UTF-8 encoding declarations are supported.",
     "too_large": "The response exceeded the remaining capture byte limit.",
     "html_limit": "HTML script discovery exceeded its structural limit.",
+    "html_unsupported": "The fetched HTML could not be parsed for supported script discovery.",
     "tls_error": "The verified TLS connection failed during certificate verification, handshake or transfer. Check the server and local trust configuration; verification remains enabled.",
     "network": "The HTTPS request failed; no target or response details are returned.",
 }
@@ -67,6 +68,7 @@ _WARNINGS = {
     "script_failed": "Some selected external scripts could not be captured within the public HTTPS, content or byte limits.",
     "deadline": "Script capture stopped at the shared time or network request limit.",
     "base": "An unsupported base URL prevented relative script resolution.",
+    "foreign": "SVG and MathML content was omitted from script discovery; foreign-content coverage is incomplete.",
 }
 
 
@@ -391,18 +393,42 @@ class _Scripts(HTMLParser):
         self.inline = 0
         self._raw_text = None
         self._templates = 0
+        self._foreign = []
+        self.foreign_seen = False
 
-    def handle_starttag(self, tag, attrs):
+    def set_cdata_mode(self, *args, **kwargs):
+        if not getattr(self, "_foreign", None):
+            return super().set_cdata_mode(*args, **kwargs)
+
+    def _tag(self):
         self.budget.remaining()
         self.tags += 1
         if self.tags > MAX_HTML_TAGS:
             raise CaptureError("html_limit")
+
+    def _foreign_breakout(self, tag, attrs):
+        return tag in HTML_FOREIGN_BREAKOUT or (tag == "font" and any(
+            key in {"color", "face", "size"} for key, _ in attrs))
+
+    def handle_starttag(self, tag, attrs):
+        self._tag()
         if self._raw_text is not None:
+            return
+        if self._templates:
+            if tag == "template":
+                self._templates += 1
+            return
+        if self._foreign and self._foreign_breakout(tag, attrs):
+            self._foreign.clear()
+        if self._foreign or tag in {"svg", "math"}:
+            if tag in {"svg", "math"}:
+                if len(self._foreign) >= 64:
+                    raise CaptureError("html_limit")
+                self._foreign.append(tag)
+                self.foreign_seen = True
             return
         if tag == "template":
             self._templates += 1
-            return
-        if self._templates:
             return
         if tag in {"title", "textarea", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"}:
             self._raw_text = tag
@@ -428,6 +454,12 @@ class _Scripts(HTMLParser):
 
     def handle_endtag(self, tag):
         self.budget.remaining()
+        if self._foreign:
+            found = next((index for index in range(len(self._foreign) - 1, -1, -1)
+                          if self._foreign[index] == tag), None)
+            if found is not None:
+                del self._foreign[found:]
+            return
         if self._raw_text is not None:
             if self._raw_text == tag and tag != "plaintext":
                 self._raw_text = None
@@ -435,10 +467,18 @@ class _Scripts(HTMLParser):
             self._templates -= 1
 
     def handle_startendtag(self, tag, attrs):
+        ignored = self._raw_text is not None or bool(self._templates)
+        if not ignored and self._foreign and self._foreign_breakout(tag, attrs):
+            self.handle_starttag(tag, attrs)
+            return
+        if not ignored and (self._foreign or tag in {"svg", "math"}):
+            self._tag()
+            if tag in {"svg", "math"}:
+                self.foreign_seen = True
+            return
         # In HTML, a slash does not close non-void raw-text/template elements.
         # Treat their following text conservatively instead of fetching an
         # example that HTMLParser would otherwise expose as a real script.
-        ignored = self._raw_text is not None or bool(self._templates)
         self.handle_starttag(tag, attrs)
         if not ignored and tag in {"script", "style"}:
             self._raw_text = tag
@@ -463,13 +503,20 @@ def capture_public_url(url, include_scripts=True):
         budget = _Budget()
         text, document = _fetch(_target(url), "html", budget, min(MAX_HTML_BYTES, MAX_TOTAL_BYTES))
         parser = _Scripts(budget)
-        parser.feed(text)
-        parser.close()
+        try:
+            parser.feed(text)
+            parser.close()
+        except CaptureError:
+            raise
+        except Exception:
+            raise CaptureError("html_unsupported") from None
         budget.remaining()
         artifacts = [{"kind": "html", "text": text}]
         total = len(text.encode("utf-8"))
         sources = [{"id": "source_1", "kind": "html", "bytes": total}]
         warnings = [_WARNINGS["scope"]]
+        if parser.foreign_seen:
+            warnings.append(_WARNINGS["foreign"])
         if parser.inline:
             warnings.append(_WARNINGS["inline"])
         base, bad_base = document.url, False

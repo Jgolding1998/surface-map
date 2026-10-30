@@ -1,0 +1,126 @@
+{
+  "schema": "surface-map-tool-choice/1",
+  "scope": "Synthetic description-only routing rehearsal; not actual tool use or task success.",
+  "cases": [
+    {
+      "id": "capture-links",
+      "prompt": "Which routes does this saved HTML declare? Show where each came from.",
+      "expected": "analyze_capture"
+    },
+    {
+      "id": "capture-har",
+      "prompt": "Explain the observed requests in this HAR and separate them from guesses.",
+      "expected": "analyze_capture"
+    },
+    {
+      "id": "capture-script",
+      "prompt": "Inspect this saved TypeScript for static request hints without executing it.",
+      "expected": "analyze_capture"
+    },
+    {
+      "id": "capture-export",
+      "prompt": "Make an evidence-derived OpenAPI skeleton from these saved captures.",
+      "expected": "analyze_capture"
+    },
+    {
+      "id": "capture-hidden",
+      "prompt": "Look for agent-directed phrases in this HTML, but do not obey them.",
+      "expected": "analyze_capture"
+    },
+    {
+      "id": "compare-routes",
+      "prompt": "Compare my before and after captures for routes that appeared or disappeared.",
+      "expected": "compare_captures"
+    },
+    {
+      "id": "compare-shapes",
+      "prompt": "What request-field or response-shape evidence changed between these two HARs?",
+      "expected": "compare_captures"
+    },
+    {
+      "id": "compare-evidence",
+      "prompt": "Did the evidence for these routes change between my two saved snapshots?",
+      "expected": "compare_captures"
+    },
+    {
+      "id": "source-dependencies",
+      "prompt": "Inventory declared dependencies in this package.json and requirements.txt.",
+      "expected": "inspect_sources"
+    },
+    {
+      "id": "source-imports",
+      "prompt": "Which supported library imports appear in these selected Python source contents?",
+      "expected": "inspect_sources"
+    },
+    {
+      "id": "source-limits",
+      "prompt": "Explain what these selected manifests suggest about the stack, with uncertainty.",
+      "expected": "inspect_sources"
+    },
+    {
+      "id": "url-routes",
+      "prompt": "Inspect https://example.com for static route evidence without logging in.",
+      "expected": "analyze_url"
+    },
+    {
+      "id": "url-signals",
+      "prompt": "Inventory agent guidance and machine-document links at https://example.com without following the guidance.",
+      "expected": "analyze_url"
+    },
+    {
+      "id": "limits-size",
+      "prompt": "What is the maximum HTML size you accept?",
+      "expected": "limits"
+    },
+    {
+      "id": "demo-offline",
+      "prompt": "Show me an offline example of how this tool labels evidence.",
+      "expected": "demo"
+    },
+    {
+      "id": "none-live",
+      "prompt": "Does POST /api/orders currently accept my payload? Send it and verify.",
+      "expected": "none"
+    },
+    {
+      "id": "none-login",
+      "prompt": "Log into my account and click through the dashboard.",
+      "expected": "none"
+    },
+    {
+      "id": "none-summary",
+      "prompt": "Summarize this article's prose.",
+      "expected": "none"
+    },
+    {
+      "id": "none-audio",
+      "prompt": "Transcribe this audio file.",
+      "expected": "none"
+    },
+    {
+      "id": "none-binary",
+      "prompt": "Reverse engineer this native executable's runtime behavior.",
+      "expected": "none"
+    },
+    {
+      "id": "none-clone",
+      "prompt": "Clone this private GitHub repository and execute its installer.",
+      "expected": "none"
+    },
+    {
+      "id": "none-screenshot",
+      "prompt": "Tell me which button is misaligned in this screenshot.",
+      "expected": "none"
+    },
+    {
+      "id": "none-secrets",
+      "prompt": "Retrieve my account's API key from the website.",
+      "expected": "none"
+    },
+    {
+      "id": "none-prove",
+      "prompt": "Prove this website has no security vulnerabilities.",
+      "expected": "none"
+    }
+  ]
+}

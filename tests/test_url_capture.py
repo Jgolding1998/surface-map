@@ -175,6 +175,40 @@ class PublicCaptureTests(unittest.TestCase):
         self.assertEqual(result["capture"]["external_scripts_seen"], 1)
         self.assertEqual([url for url, _ in self.calls], ["https://example.com/", "https://example.com/real.js"])
 
+    def test_foreign_script_style_and_title_do_not_hide_later_html_scripts(self):
+        for root in ("svg", "math"):
+            for tag in ("script", "style", "title"):
+                for element in (f"<{tag}/>", f"<{tag}>text</{tag}>"):
+                    with self.subTest(root=root, element=element):
+                        self.calls.clear()
+                        self.page(f'<{root}>{element}<base href="/wrong/"/><script src="/fake.js"/></{root}>'
+                                  '<base href="/assets/"><script src="real.js"></script>')
+                        self.responses["https://example.com/assets/real.js"] = Response("// real", content_type="text/javascript")
+                        result = capture.capture_public_url("https://example.com/")
+                        self.assertEqual([url for url, _ in self.calls],
+                                         ["https://example.com/", "https://example.com/assets/real.js"])
+                        self.assertEqual(result["capture"]["external_scripts_seen"], 1)
+                        self.assertIn(capture._WARNINGS["foreign"], result["warnings"])
+
+    def test_self_closing_foreign_roots_and_html_breakout_restore_script_discovery(self):
+        for prefix in ('<svg/>', '<math/>', '<svg><g/><svg/></svg>',
+                       '<svg><p>HTML again</p>', '<math><font color="red">HTML again</font>'):
+            with self.subTest(prefix=prefix):
+                self.calls.clear()
+                self.page(prefix + '<script src="/real.js"></script>')
+                self.responses["https://example.com/real.js"] = Response("// real", content_type="text/javascript")
+                result = capture.capture_public_url("https://example.com/")
+                self.assertEqual([url for url, _ in self.calls], ["https://example.com/", "https://example.com/real.js"])
+                self.assertEqual(result["capture"]["external_scripts_seen"], 1)
+                self.assertIn(capture._WARNINGS["foreign"], result["warnings"])
+
+    def test_foreign_script_discovery_still_enforces_nesting_and_tag_limits(self):
+        self.page("<svg>" * 65)
+        self.assert_rejected("https://example.com/", "html_limit")
+        self.page('<svg><g/><g/></svg>')
+        with patch.object(capture, "MAX_HTML_TAGS", 2):
+            self.assert_rejected("https://example.com/", "html_limit")
+
     def test_partial_script_failure_returns_fixed_warnings_and_generic_metadata(self):
         url = "https://example.com/?secret=" + CANARY
         self.page('<script src="/good.js"></script><script src="/bad.js"></script>', url)
@@ -216,6 +250,13 @@ class PublicCaptureTests(unittest.TestCase):
         self.assertEqual(result["capture"]["scripts_fetched"], 1)
         self.assertIn(capture._WARNINGS["script_failed"], result["warnings"])
 
+    def test_xhtml_is_rejected_instead_of_interpreted_with_html_semantics(self):
+        self.responses["https://example.com/"] = Response(
+            '<html xmlns="http://www.w3.org/1999/xhtml"><script src="/app.js"/></html>',
+            content_type="application/xhtml+xml")
+        self.assert_rejected("https://example.com/", "content_type")
+        self.assertEqual([url for url, _ in self.calls], ["https://example.com/"])
+
     def test_script_and_redirect_request_budgets_are_finite(self):
         self.page("".join(f'<script src="/{n}.js"></script>' for n in range(8)))
         for number in range(8):
@@ -236,6 +277,14 @@ class PublicCaptureTests(unittest.TestCase):
         self.assertEqual(result["capture"]["scripts_skipped"], 1)
         self.responses["https://example.com/"] = OSError(CANARY)
         self.assert_rejected("https://example.com/", "network")
+
+    def test_script_discovery_parser_errors_are_distinct_from_network_errors(self):
+        self.page("<html></html>")
+        for failure in (AssertionError(CANARY), ValueError(CANARY)):
+            with patch.object(capture._Scripts, "feed", side_effect=failure):
+                self.assert_rejected("https://example.com/", "html_unsupported")
+        with patch.object(capture._Scripts, "feed", side_effect=capture.CaptureError("html_limit")):
+            self.assert_rejected("https://example.com/", "html_limit")
 
     def test_cooperative_deadline_checked_between_body_reads(self):
         class SlowResponse(Response):

@@ -68,6 +68,22 @@ def contract(report):
 
 
 def compare(before, after):
+    def evidence_kinds(route):
+        return {entry["kind"] for entry in route["evidence"]}
+
+    def changed_fields(a, b, keys):
+        fields = []
+        for key in keys:
+            left, right = a[key], b[key]
+            if isinstance(left, list):
+                left = sorted(json.dumps(item, sort_keys=True) for item in left)
+                right = sorted(json.dumps(item, sort_keys=True) for item in right)
+            if left != right:
+                fields.append(key)
+        if evidence_kinds(a) != evidence_kinds(b):
+            fields.append("evidence_kinds")
+        return fields
+
     def keyed(report):
         return {(route["method"], route["path"]): route for route in report["routes"]}
     old, new = keyed(before), keyed(after)
@@ -76,20 +92,21 @@ def compare(before, after):
     changed = []
     for method, path in sorted(old.keys() & new.keys()):
         a, b = old[(method, path)], new[(method, path)]
-        fields = []
-        for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "confidence"):
-            left, right = a[key], b[key]
-            if isinstance(left, list):
-                left = sorted(json.dumps(item, sort_keys=True) for item in left)
-                right = sorted(json.dumps(item, sort_keys=True) for item in right)
-            if left != right:
-                fields.append(key)
+        fields = changed_fields(a, b, ("statuses", "query_fields", "request_shapes", "response_shapes", "confidence"))
         if fields:
-            changed.append({"method": method, "path": path, "changed_fields": fields, "evidence": b["evidence"]})
+            changed.append({"method": method, "path": path, "changed_fields": fields,
+                            "before_evidence": a["evidence"], "evidence": b["evidence"]})
     result = {"added": added, "removed": removed, "changed": changed, "note": "Differences are between supplied, normalized evidence. Missing from a capture does not prove a route was removed from a service."}
     old_targets = {row["path"]: row for row in before.get("unresolved_operations", [])}
     new_targets = {row["path"]: row for row in after.get("unresolved_operations", [])}
     if old_targets or new_targets:
         result["unresolved_added"] = [new_targets[path] for path in sorted(new_targets.keys() - old_targets.keys())]
         result["unresolved_removed"] = [old_targets[path] for path in sorted(old_targets.keys() - new_targets.keys())]
+        result["unresolved_changed"] = []
+        for path in sorted(old_targets.keys() & new_targets.keys()):
+            a, b = old_targets[path], new_targets[path]
+            fields = changed_fields(a, b, ("query_fields",))
+            if fields:
+                result["unresolved_changed"].append({"method": None, "path": path, "changed_fields": fields,
+                                                     "before_evidence": a["evidence"], "evidence": b["evidence"]})
     return result

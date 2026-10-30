@@ -1,0 +1,16 @@
+```json
+{"results":[
+{"id":"navigation-lines","routes":[["GET","/dashboard","declared",[["source_1","line 2","link"]]],["GET","/settings","declared",[["source_1","line 3","link"]]]],"unresolved":[]},
+{"id":"duplicate-navigation","routes":[["GET","/docs","declared",[["source_1","line 1","link"],["source_1","line 2","link"]]]],"unresolved":[]},
+{"id":"numeric-private-path","routes":[["GET","/users/{integer_2}","declared",[["source_1","line 1","link"]]]],"unresolved":[]},
+{"id":"unicode-private-path","routes":[["GET","/users/{segment_2}","declared",[["source_1","line 1","link"]]]],"unresolved":[]},
+{"id":"fragment-and-mail","routes":[],"unresolved":[]},
+{"id":"html-comment-noise","routes":[],"unresolved":[]},
+{"id":"query-key-inventory","routes":[["GET","/search","declared",[["source_1","line 1","link"]]]],"unresolved":[]},
+{"id":"post-form-fields","routes":[["POST","/api/orders","declared",[["source_1","line 1","form"]]]],"unresolved":[]},
+{"id":"get-form-query","routes":[["GET","/search","declared",[["source_1","line 1","form"]]]],"unresolved":[]},
+{"id":"form-invalid-method","routes":[["GET","/api/items","declared",[["source_1","line 1","form"]]]],"unresolved":[]},
+{"id":"dialog-form","routes":[],"unresolved":[]},
+{"id":"actionless-without-url","routes":[],"unresolved":[]}
+]}
+```

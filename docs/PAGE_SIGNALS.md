@@ -21,6 +21,13 @@ The result has three findings: text referring to AI agents, an authentication-do
 
 The agent can explain what these categories establish without treating the page's prose as its instructions. It cannot reconstruct the exact wording from this minimized report. For wording, inspect the identified source separately. It also cannot conclude that a service works simply because the page names it.
 
+When the containing document URL is known, machine-document findings also report
+`origin_relation`: `same_origin`, `cross_origin`, or `unknown`. This preserves the
+distinction between a site's own guide and a third-party reference without exposing
+either hostname. The relationship includes scheme and port, and uses the resolved
+base URL. Missing or unsupported origin information remains `unknown`; this label
+does not establish whether a resource is trusted or safe.
+
 ## What motivated it
 
 On October 30, 2026, we inspected [Firecrawl's public careers page](https://www.firecrawl.dev/careers). It linked a visible agent setup page and also contained a text block addressed to AI agents with inline opacity set to zero and `aria-hidden=true`. The block referred to an [authentication guide](https://www.firecrawl.dev/auth.md) and an [onboarding skill](https://www.firecrawl.dev/agent-onboarding/SKILL.md) as bare text URLs.
@@ -40,8 +47,8 @@ Firecrawl produced the four findings above. PostHog declared an `llms.txt` link 
 - Findings are fixed English lexical categories, not a security judgment or proof of an instruction. Ordinary marketing copy about AI agents can match. Paraphrases, other languages and encoded guidance can be missed.
 - The parser records source declarations, not browser-computed visibility. External styles, CSS classes, same-color text, media queries and runtime changes are not evaluated. Malformed HTML may have a different browser DOM.
 - `aria-hidden=true` alone is not visual hiding. Comments and templates are marked as inert contexts when inventoried.
-- Script, style and raw-text containers (including title, textarea and noscript), arbitrary attribute prose, embedded documents and foreign SVG/MathML content are outside this inventory. The exact inline properties recognized are `display:none`, `visibility:hidden` and common zero values for `opacity`; other styles and obfuscated CSS are not detected. Resource paths are recognized naming conventions, not validated OpenAPI documents or working MCP servers.
-- Each HTML input allows at most 64 findings, an 8,192-character text window and nesting up to 256 elements, within the existing tag, byte and HTML time limits. Finding/text truncation is reported with reasons. If the optional inventory hits a parsing or work limit, its status is incomplete and the existing route evidence is retained. Overall request deadlines still apply.
+- Script, style and raw-text containers (including title, textarea and noscript), arbitrary attribute prose, embedded documents and foreign SVG/MathML content are outside this inventory. Encountered skipped container types appear in `omitted_contexts`. This includes `noscript`, whose contents can matter to clients that do not run JavaScript. The exact inline properties recognized are `display:none`, `visibility:hidden` and common zero values for `opacity`; other styles and obfuscated CSS are not detected. Resource paths are recognized naming conventions, not validated OpenAPI documents or working MCP servers.
+- Each HTML input allows at most 64 findings, an 8,192-character text window and nesting up to 256 elements, within the existing tag, byte and HTML time limits. Every result has `status: complete` or `status: incomplete`. Finding/text truncation and parsing/work limits produce fixed reasons and preserve findings already emitted. Unscanned content remains unknown. A complete pass still excludes the contexts listed above. Existing route evidence is retained if this optional inventory is incomplete; overall request deadlines still apply.
 - Repeated equivalent findings on one source line can be combined. A normalized relative path has a leading slash even when its `resolution` label says the original reference was unresolved; this is not a verified absolute URL.
 - Raw source prose, commands, origins, arbitrary attribute values and query values stay out of the inventory. The host agent already sees any saved content it supplies; its own logging is outside this tool's control.
 - Enabling the option adds no network requests. It never installs software, authenticates, connects to discovered servers or executes page instructions.

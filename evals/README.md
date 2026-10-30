@@ -1,5 +1,8 @@
 # Static route regression check
 
+For HTML/HAR evidence, comparisons and page signals, see the [64-task suite](diverse/README.md).
+It also contains a recorded, reproducible comparison with Claude on 45 route/evidence tasks.
+
 This is a curated, versioned set of 16 synthetic cases for known static client patterns and negative controls. It is a regression test, not an unseen benchmark, a peer comparison, or evidence that a request is valid or reachable. Fixture source is passed as text to the public analyzer and never executed. No HAR or observed-network evidence is mixed into this task.
 
 From the repository root:

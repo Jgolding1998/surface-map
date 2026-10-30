@@ -33,9 +33,9 @@ _FOREIGN_BREAKOUT = set("b big blockquote body br center code dd div dl dt em em
 _BLOCK = set("address article aside blockquote body caption dd details dialog div dl dt fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr html li main nav ol p pre section table tbody td tfoot th thead tr ul".split())
 _RAW = set("script style title textarea xmp iframe noembed noframes noscript plaintext".split())
 _AGENT_MARKER = re.compile(
-    r"\b(?:if\s+you\s+are\s+(?:(?:an?|the)\s+)?(?:ai\s+agent|llm|automated\s+system)\b"
-    r"|(?:for|attention|dear)\s+(?:all\s+)?(?:ai\s+agents?|llms?|automated\s+systems?)\b"
-    r"|(?:ai\s+agents?|llms?|automated\s+systems?)\s*[:,])", re.I
+    r"\b(?:if\s+(?:you\s+are|you['\u2019]re)\s+(?:(?:an?|the)\s+)?(?:ai\s+(?:agent|assistant)|llm|language\s+model|automated\s+system)\b"
+    r"|(?:for|attention|dear|to)\s+(?:(?:all|any)\s+)?(?:ai\s+(?:agents?|assistants?)|llms?|language\s+models?|automated\s+systems?)\b"
+    r"|(?:ai\s+(?:agents?|assistants?)|llms?|automated\s+systems?)(?:\s*[:,]|\s+should\b))", re.I
 )
 _BARE_URL = re.compile(r"https?://[^\s<>\"']+", re.I)
 _STYLE_RULE = re.compile(r"^\s*([a-z-]+)\s*:\s*([^;]+)\s*$", re.I)
@@ -45,6 +45,27 @@ _RESOURCE_NAMES = {
     "openapi.json": "openapi_spec", "openapi.yaml": "openapi_spec", "openapi.yml": "openapi_spec",
     "swagger.json": "swagger_spec", "swagger.yaml": "swagger_spec", "swagger.yml": "swagger_spec",
 }
+
+
+class _InventoryLimit(Exception):
+    def __init__(self, reason):
+        self.reason = reason
+
+
+def _origin(value):
+    if not isinstance(value, str) or "\\" in value or any(ord(c) <= 32 or ord(c) == 127 for c in value):
+        return None
+    try:
+        parts = urlsplit(value)
+        if parts.scheme not in {"http", "https"} or not parts.hostname or "@" in parts.netloc or "%" in parts.netloc:
+            return None
+        # Non-ASCII host normalization differs between browser URL parsers.
+        # Do not invent an origin relationship when that is uncertain.
+        parts.hostname.encode("ascii")
+        port = parts.port
+        return parts.scheme, parts.hostname, port if port is not None else (443 if parts.scheme == "https" else 80)
+    except (ValueError, UnicodeError):
+        return None
 
 
 @dataclass
@@ -105,9 +126,8 @@ class _Signals(HTMLParser):
         self.text_context = ((), (), ())
 
     def _check(self):
-        from .analyze import ArtifactError
         if time.monotonic() >= self.deadline:
-            raise ArtifactError("HTML signals exceeded their work deadline")
+            raise _InventoryLimit("work_deadline")
 
     def set_cdata_mode(self, *args, **kwargs):
         # HTMLParser otherwise treats a foreign <style> or <title> as HTML
@@ -187,8 +207,12 @@ class _Signals(HTMLParser):
                 return
         except (ValueError, UnicodeError):
             return
+        containing_origin, target_origin = _origin(self.document_url), _origin(resolved)
+        relation = "unknown" if containing_origin is None or target_origin is None else (
+            "same_origin" if containing_origin == target_origin else "cross_origin")
         self._emit("machine_resource", line, via, context, resource_kind=resource,
-                   path=normalized[0], resolution=resolution, evidence_basis="path_pattern")
+                   path=normalized[0], resolution=resolution, evidence_basis="path_pattern",
+                   origin_relation=relation)
 
     def _scan_text(self, text, line, via, context, line_at=None):
         if line_at is None:
@@ -246,18 +270,17 @@ class _Signals(HTMLParser):
             self._close_in_scope({"tbody", "thead", "tfoot"}, {"table", "template"})
 
     def _tag(self):
-        from .analyze import ArtifactError, MAX_HTML_TAGS
+        from .analyze import MAX_HTML_TAGS
         self._check()
         self.tags += 1
         if self.tags > MAX_HTML_TAGS:
-            raise ArtifactError("HTML signals exceeded the tag limit")
+            raise _InventoryLimit("tag_limit")
 
     def _foreign_breakout(self, tag, attributes):
         return tag in _FOREIGN_BREAKOUT or (tag == "font" and any(
             key in {"color", "face", "size"} for key, _ in attributes))
 
     def handle_starttag(self, tag, attributes):
-        from .analyze import ArtifactError
         self._check()
         if self.raw:
             return
@@ -269,7 +292,7 @@ class _Signals(HTMLParser):
         if self.foreign:
             if tag in {"svg", "math"}:
                 if len(self.foreign) >= MAX_DEPTH:
-                    raise ArtifactError("HTML signals exceeded the nesting limit")
+                    raise _InventoryLimit("nesting_limit")
                 self.foreign.append(tag)
                 self.omitted_contexts.add(tag)
             return
@@ -291,9 +314,10 @@ class _Signals(HTMLParser):
                            raw_attribute=self.get_starttag_text())
         if tag not in _VOID:
             if len(self.frames) >= MAX_DEPTH:
-                raise ArtifactError("HTML signals exceeded the nesting limit")
+                raise _InventoryLimit("nesting_limit")
             self.frames.append(_Frame(tag, *context))
         if tag in _RAW:
+            self.omitted_contexts.add(tag)
             self.raw = tag
             self.set_cdata_mode(tag)
         elif tag in {"br", "wbr"}:
@@ -389,8 +413,11 @@ def inspect_html_signals(text, source, *, document_url=None, base_url=None, dead
         parser.close()
         parser._flush()
         parser._check()
+    except _InventoryLimit as exc:
+        parser._truncate(exc.reason)
     except AssertionError:
-        raise ArtifactError("Malformed HTML signals input") from None
+        parser._truncate("malformed_input")
     return {"source": source, "findings": parser.findings, "truncated": parser.truncated,
+            "status": "incomplete" if parser.truncated else "complete",
             "truncation_reasons": sorted(parser.truncation_reasons),
             "omitted_contexts": sorted(parser.omitted_contexts), "scope": SCOPE}

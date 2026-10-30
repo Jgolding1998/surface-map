@@ -1,0 +1,658 @@
+{
+  "results": [
+    {
+      "id": "navigation-lines",
+      "routes": [
+        [
+          "GET",
+          "/dashboard",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 2",
+              "link"
+            ]
+          ]
+        ],
+        [
+          "GET",
+          "/settings",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 3",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "duplicate-navigation",
+      "routes": [
+        [
+          "GET",
+          "/docs",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ],
+            [
+              "source_1",
+              "line 2",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "numeric-private-path",
+      "routes": [
+        [
+          "GET",
+          "/users/{integer_2}",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "unicode-private-path",
+      "routes": [
+        [
+          "GET",
+          "/users/{segment_2}",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "fragment-and-mail",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "html-comment-noise",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "query-key-inventory",
+      "routes": [
+        [
+          "GET",
+          "/search",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "post-form-fields",
+      "routes": [
+        [
+          "POST",
+          "/api/orders",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "form"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "get-form-query",
+      "routes": [
+        [
+          "GET",
+          "/search",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "form"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "form-invalid-method",
+      "routes": [
+        [
+          "GET",
+          "/api/items",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "form"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "dialog-form",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "actionless-without-url",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "actionless-with-url",
+      "routes": [
+        [
+          "POST",
+          "/orders",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "form"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "relative-without-url",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "relative-with-url",
+      "routes": [
+        [
+          "GET",
+          "/api/orders",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "first-base-wins",
+      "routes": [
+        [
+          "GET",
+          "/api/v2/users",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "asset-not-api",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "inline-script-omission",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "frame-omission",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "client-rendered-shell",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "har-status",
+      "routes": [
+        [
+          "GET",
+          "/api/items",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-json-shapes",
+      "routes": [
+        [
+          "POST",
+          "/api/orders",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-error-is-evidence",
+      "routes": [
+        [
+          "DELETE",
+          "/api/users/{integer_3}",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-options",
+      "routes": [
+        [
+          "OPTIONS",
+          "/api/items",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-repeated-statuses",
+      "routes": [
+        [
+          "GET",
+          "/api/orders",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ],
+            [
+              "source_1",
+              "entry 2",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-origin-collision",
+      "routes": [
+        [
+          "GET",
+          "/api/items",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ],
+            [
+              "source_1",
+              "entry 2",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "har-no-entries",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "har-credentials-discarded",
+      "routes": [
+        [
+          "GET",
+          "/api/users",
+          "observed",
+          [
+            [
+              "source_1",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "fetch-multiline",
+      "routes": [
+        [
+          "PUT",
+          "/api/items",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 2",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "fetch-constant",
+      "routes": [
+        [
+          "GET",
+          "/api/users",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "fetch-alias-options",
+      "routes": [
+        [
+          "PATCH",
+          "/api/orders",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "typed-fetch",
+      "routes": [
+        [
+          "DELETE",
+          "/api/items",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "axios-post",
+      "routes": [
+        [
+          "POST",
+          "/api/orders",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "xhr-open",
+      "routes": [
+        [
+          "HEAD",
+          "/api/health",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "constant-template",
+      "routes": [
+        [
+          "GET",
+          "/api/search",
+          "inferred",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "unknown-method",
+      "routes": [],
+      "unresolved": [
+        [
+          "/api/items",
+          [
+            [
+              "source_1",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "dynamic-target",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "shadowed-fetch",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "mutated-binding",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "string-comment-noise",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "unrelated-method",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "typescript-type-noise",
+      "routes": [],
+      "unresolved": []
+    },
+    {
+      "id": "observed-over-declared-inferred",
+      "routes": [
+        [
+          "GET",
+          "/api/items",
+          "observed",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ],
+            [
+              "source_2",
+              "line 1",
+              "javascript"
+            ],
+            [
+              "source_3",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "declared-over-inferred",
+      "routes": [
+        [
+          "POST",
+          "/api/orders",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "form"
+            ],
+            [
+              "source_2",
+              "line 1",
+              "javascript"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    },
+    {
+      "id": "method-keeps-routes-distinct",
+      "routes": [
+        [
+          "GET",
+          "/api/items",
+          "declared",
+          [
+            [
+              "source_1",
+              "line 1",
+              "link"
+            ]
+          ]
+        ],
+        [
+          "POST",
+          "/api/items",
+          "observed",
+          [
+            [
+              "source_2",
+              "entry 1",
+              "har"
+            ]
+          ]
+        ]
+      ],
+      "unresolved": []
+    }
+  ]
+}

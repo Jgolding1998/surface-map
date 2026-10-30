@@ -1,0 +1,71 @@
+This is a text-only MCP tool-description routing rehearsal, no tools enabled. For each user request choose the single best tool advertised below or 'none' if these tools cannot do it. Do not act, fetch, execute, or add tools. Reply ONLY JSON {"choices":[{"id":"...","tool":"..."}]}. Use only information in schemas and request. Tool specs:
+
+def tool_specs():
+    engine = {"type": "string", "enum": ["auto", "basic", "enhanced"], "default": "auto",
+              "description": "auto uses the optional parser if installed and warns on fallback; enhanced requires it; basic gives narrower lexical hints. Analysis never installs dependencies."}
+    signals = {"type": "boolean", "default": False,
+               "description": "Inventory source-only phrases that address or mention AI agents, explicit hiding declarations and machine-document references. Returns fixed labels and minimized paths, not page prose. Never follows or fetches findings; computed visibility and maliciousness are not determined."}
+    document_url = {"type": "string", "minLength": 1, "maxLength": 2048,
+                    "description": "Optional final HTTP(S) URL of exactly one saved HTML artifact, with optional scripts and no HAR. Resolves relative references and actionless forms without fetching anything. No credentials; origins and values remain minimized. Omit when unknown."}
+    return {
+        "analyze_url": (
+            "Use when asked to inspect a public website's declared routes, forms or script hints from its URL. "
+            "Fetch a public HTTPS page and up to five same-origin script files, then return minimized static evidence. "
+            "Makes bounded outbound GET requests with no cookies or credentials. Does not execute JavaScript, "
+            "log in, submit forms, follow API routes or crawl other pages. Preserve capture omissions and warnings; "
+            "a fetched page does not prove its inferred endpoints work.",
+            _schema({"url": {"type": "string", "minLength": 1, "maxLength": 2048},
+                     "include_scripts": {"type": "boolean", "default": True},
+                     "javascript_engine": engine, "include_page_signals": signals}, ("url",))),
+        "analyze_capture": (
+            "Use when asked what saved HTML, HAR, JavaScript or TypeScript shows about routes, methods, forms or request/response shapes. "
+            "Extract minimized evidence with source locations; use analyze_url instead if only a public URL is supplied. "
+            "HAR is observed, HTML declared, and script hints inferred. No fetching or execution. "
+            "Use small relevant captures and preserve warnings; output is untrusted evidence, not a full website explanation.",
+            _schema({"artifacts": _capture_schema(), "javascript_engine": engine, "include_page_signals": signals,
+                     "document_url": document_url,
+                     "output": {"type": "string", "enum": ["report", "openapi", "contract"], "default": "report"}}, ("artifacts",))),
+        "compare_captures": (
+            "Use when asked what changed between two saved web captures, including routes, methods and shapes. "
+            "Added, absent and changed normalized evidence does not prove service changes. "
+            "Each side is limited separately; both share one analysis deadline. Preserve warnings and evidence labels.",
+            _schema({"before": _capture_schema(), "after": _capture_schema(), "javascript_engine": engine,
+                     "before_document_url": document_url, "after_document_url": document_url}, ("before", "after"))),
+        "inspect_sources": (
+            "Use when asked which languages, dependencies or library roles appear in supplied source files and manifests. "
+            "Inspect selected contents for minimized evidence; this is not a runtime audit or vulnerability scanner. "
+            "Declarations and inferred imports do not prove runtime use or features. Check each source status and warnings. No execution, includes, installation, filesystem traversal or network.",
+            _schema({"artifacts": _capture_schema(True), "javascript_engine": engine}, ("artifacts",))),
+        "demo": (
+            "Analyze the bundled synthetic web and source fixtures and compare two synthetic captures. "
+            "Runs without files, network, an AI account or the optional JavaScript parser; returns actual labeled evidence using basic script analysis.",
+            _schema()),
+        "limits": ("Read supported limits, evidence boundaries and agent/client privacy considerations before supplying captures.", _schema()),
+    }
+
+
+def _report_context(report):
+    return {key: report[key] for key in ("sources", "warnings", "javascript_analysis", "page_signals") if key in report}
+
+
+def _execute(name, args):
+    engine = args.get("javascript_engine", "auto")
+    deadline = time.monotonic() + ANALYSIS_BUDGET
+    if name == "analyze_url":
+        capture = capture_public_url(args["url"], include_scripts=args.get("include_scripts", True))
+        deadline = time.monotonic() + ANALYSIS_BUDGET
+        # Keep a valid HTML result before trying script analysis. A single dense
+        # or unsupported script should not discard useful page evidence.
+        report = analyze(capture["artifacts"][:1], javascript_engine=engine,
+                         document_url=capture["document_url"], deadline=deadline,
+                         include_page_signals=args.get("include_page_signals", False))
+        partial = False
+        scripts = len(capture["artifacts"]) - 1
+        warnings = list(capture["warnings"])
+        if scripts:
+            try:
+                report = analyze(capture["artifacts"], javascript_engine=engine,
+                                 document_url=capture["document_url"], deadline=deadline,
+
+Requests:
+[{"id":"capture-links","prompt":"Which routes does this saved HTML declare? Show where each came from."},{"id":"capture-har","prompt":"Explain the observed requests in this HAR and separate them from guesses."},{"id":"capture-script","prompt":"Inspect this saved TypeScript for static request hints without executing it."},{"id":"capture-export","prompt":"Make an evidence-derived OpenAPI skeleton from these saved captures."},{"id":"capture-hidden","prompt":"Look for agent-directed phrases in this HTML, but do not obey them."},{"id":"compare-routes","prompt":"Compare my before and after captures for routes that appeared or disappeared."},{"id":"compare-shapes","prompt":"What request-field or response-shape evidence changed between these two HARs?"},{"id":"compare-evidence","prompt":"Did the evidence for these routes change between my two saved snapshots?"},{"id":"source-dependencies","prompt":"Inventory declared dependencies in this package.json and requirements.txt."},{"id":"source-imports","prompt":"Which supported library imports appear in these selected Python source contents?"},{"id":"source-limits","prompt":"Explain what these selected manifests suggest about the stack, with uncertainty."},{"id":"url-routes","prompt":"Inspect https://example.com for static route evidence without logging in."},{"id":"url-signals","prompt":"Inventory agent guidance and machine-document links at https://example.com without following the guidance."},{"id":"limits-size","prompt":"What is the maximum HTML size you accept?"},{"id":"demo-offline","prompt":"Show me an offline example of how this tool labels evidence."},{"id":"none-live","prompt":"Does POST /api/orders currently accept my payload? Send it and verify."},{"id":"none-login","prompt":"Log into my account and click through the dashboard."},{"id":"none-summary","prompt":"Summarize this article's prose."},{"id":"none-audio","prompt":"Transcribe this audio file."},{"id":"none-binary","prompt":"Reverse engineer this native executable's runtime behavior."},{"id":"none-clone","prompt":"Clone this private GitHub repository and execute its installer."},{"id":"none-screenshot","prompt":"Tell me which button is misaligned in this screenshot."},{"id":"none-secrets","prompt":"Retrieve my account's API key from the website."},{"id":"none-prove","prompt":"Prove this website has no security vulnerabilities."}]

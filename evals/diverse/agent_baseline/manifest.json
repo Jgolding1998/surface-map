@@ -1,0 +1,189 @@
+{
+  "schema": "surface-map-agent-baseline/1",
+  "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+  "run_date": "2026-10-30",
+  "model": "claude-opus-5-5",
+  "conditions": {
+    "trials": 3,
+    "fresh_sessions_per_trial": 4,
+    "tools": "none (text-only)",
+    "expected_answers_given": false,
+    "analyzer_source_given": false,
+    "normalization_rules_given": true,
+    "batches_have_shared_context": false,
+    "tool_engine": "enhanced",
+    "tool_repeats": 3,
+    "tool_stable_cases": 64,
+    "scope": "Synthetic route/evidence projection only; exclusions are comparison, page-signal and rejection tasks. No runtime, explanation, warning, field-shape, speed, cost or MCP-selection score."
+  },
+  "batches": [
+    [
+      "navigation-lines",
+      "duplicate-navigation",
+      "numeric-private-path",
+      "unicode-private-path",
+      "fragment-and-mail",
+      "html-comment-noise",
+      "query-key-inventory",
+      "post-form-fields",
+      "get-form-query",
+      "form-invalid-method",
+      "dialog-form",
+      "actionless-without-url"
+    ],
+    [
+      "actionless-with-url",
+      "relative-without-url",
+      "relative-with-url",
+      "first-base-wins",
+      "asset-not-api",
+      "inline-script-omission",
+      "frame-omission",
+      "client-rendered-shell",
+      "har-status",
+      "har-json-shapes",
+      "har-error-is-evidence",
+      "har-options"
+    ],
+    [
+      "har-repeated-statuses",
+      "har-origin-collision",
+      "har-no-entries",
+      "har-credentials-discarded",
+      "fetch-multiline",
+      "fetch-constant",
+      "fetch-alias-options",
+      "typed-fetch",
+      "axios-post",
+      "xhr-open",
+      "constant-template",
+      "unknown-method"
+    ],
+    [
+      "dynamic-target",
+      "shadowed-fetch",
+      "mutated-binding",
+      "string-comment-noise",
+      "unrelated-method",
+      "typescript-type-noise",
+      "observed-over-declared-inferred",
+      "declared-over-inferred",
+      "method-keeps-routes-distinct"
+    ]
+  ],
+  "batch_receipts": [
+    {
+      "trial": 1,
+      "batch": 1,
+      "started_at": "2026-10-30T23:14:43.762Z",
+      "finished_at": "2026-10-30T23:14:53.415Z",
+      "raw_response_file": "claude-trial-1-batch-1.txt",
+      "raw_response_sha256": "ec244d780d823cb62dc08f0276970914f106de77aa171798baf9297499a7be3d"
+    },
+    {
+      "trial": 1,
+      "batch": 2,
+      "started_at": "2026-10-30T23:14:43.810Z",
+      "finished_at": "2026-10-30T23:14:55.454Z",
+      "raw_response_file": "claude-trial-1-batch-2.txt",
+      "raw_response_sha256": "511aebf2a9f10c25b9d00288bad1a3001031e16144db69e98faa41c9f9723d4a"
+    },
+    {
+      "trial": 1,
+      "batch": 3,
+      "started_at": "2026-10-30T23:15:36.493Z",
+      "finished_at": "2026-10-30T23:15:45.936Z",
+      "raw_response_file": "claude-trial-1-batch-3.txt",
+      "raw_response_sha256": "2f7f48b317c4ec87c0ec882f49bbd50595b5545c4a0b915bc2685144e63d28fd"
+    },
+    {
+      "trial": 1,
+      "batch": 4,
+      "started_at": "2026-10-30T23:15:36.555Z",
+      "finished_at": "2026-10-30T23:15:44.509Z",
+      "raw_response_file": "claude-trial-1-batch-4.txt",
+      "raw_response_sha256": "fb3a7922a4f213154e8a63223bbd88ec2389c496748a9175976b6bfcf79c7873"
+    },
+    {
+      "trial": 2,
+      "batch": 1,
+      "started_at": "2026-10-30T23:16:32.445Z",
+      "finished_at": "2026-10-30T23:16:43.632Z",
+      "raw_response_file": "claude-trial-2-batch-1.txt",
+      "raw_response_sha256": "ec244d780d823cb62dc08f0276970914f106de77aa171798baf9297499a7be3d"
+    },
+    {
+      "trial": 2,
+      "batch": 2,
+      "started_at": "2026-10-30T23:16:32.526Z",
+      "finished_at": "2026-10-30T23:16:46.209Z",
+      "raw_response_file": "claude-trial-2-batch-2.txt",
+      "raw_response_sha256": "511aebf2a9f10c25b9d00288bad1a3001031e16144db69e98faa41c9f9723d4a"
+    },
+    {
+      "trial": 2,
+      "batch": 3,
+      "started_at": "2026-10-30T23:16:32.609Z",
+      "finished_at": "2026-10-30T23:16:44.586Z",
+      "raw_response_file": "claude-trial-2-batch-3.txt",
+      "raw_response_sha256": "2f7f48b317c4ec87c0ec882f49bbd50595b5545c4a0b915bc2685144e63d28fd"
+    },
+    {
+      "trial": 2,
+      "batch": 4,
+      "started_at": "2026-10-30T23:16:32.687Z",
+      "finished_at": "2026-10-30T23:16:43.003Z",
+      "raw_response_file": "claude-trial-2-batch-4.txt",
+      "raw_response_sha256": "fb3a7922a4f213154e8a63223bbd88ec2389c496748a9175976b6bfcf79c7873"
+    },
+    {
+      "trial": 3,
+      "batch": 1,
+      "started_at": "2026-10-30T23:16:37.127Z",
+      "finished_at": "2026-10-30T23:16:48.782Z",
+      "raw_response_file": "claude-trial-3-batch-1.txt",
+      "raw_response_sha256": "2bb2dabfe62d8d634015411918b6a6496d7884f52a6dcba4271d2f82fbc8bbbe"
+    },
+    {
+      "trial": 3,
+      "batch": 2,
+      "started_at": "2026-10-30T23:16:37.188Z",
+      "finished_at": "2026-10-30T23:16:50.720Z",
+      "raw_response_file": "claude-trial-3-batch-2.txt",
+      "raw_response_sha256": "4bc99bb68858a09afc2445004052dabd5fd6901a8426547c991607b8c843a14e"
+    },
+    {
+      "trial": 3,
+      "batch": 3,
+      "started_at": "2026-10-30T23:16:37.271Z",
+      "finished_at": "2026-10-30T23:16:49.648Z",
+      "raw_response_file": "claude-trial-3-batch-3.txt",
+      "raw_response_sha256": "0534754d40d51cd5342b943363d10112d400397913b5340206c89c0f72d96c80"
+    },
+    {
+      "trial": 3,
+      "batch": 4,
+      "started_at": "2026-10-30T23:16:37.361Z",
+      "finished_at": "2026-10-30T23:16:48.216Z",
+      "raw_response_file": "claude-trial-3-batch-4.txt",
+      "raw_response_sha256": "b61177a4deb4a278f59d908ab42100ddbb7a6c5b19e8b7b38747e4caf6f1acc4"
+    }
+  ],
+  "receipt_scope": "Local Claude Code bridge timestamps and exact UTF-8 result-text hashes. Self-recorded provenance, not an external attestation.",
+  "files": {
+    "claude-trial-1-batch-1.txt": "ec244d780d823cb62dc08f0276970914f106de77aa171798baf9297499a7be3d",
+    "claude-trial-1-batch-2.txt": "511aebf2a9f10c25b9d00288bad1a3001031e16144db69e98faa41c9f9723d4a",
+    "claude-trial-1-batch-3.txt": "2f7f48b317c4ec87c0ec882f49bbd50595b5545c4a0b915bc2685144e63d28fd",
+    "claude-trial-1-batch-4.txt": "fb3a7922a4f213154e8a63223bbd88ec2389c496748a9175976b6bfcf79c7873",
+    "claude-trial-2-batch-1.txt": "ec244d780d823cb62dc08f0276970914f106de77aa171798baf9297499a7be3d",
+    "claude-trial-2-batch-2.txt": "511aebf2a9f10c25b9d00288bad1a3001031e16144db69e98faa41c9f9723d4a",
+    "claude-trial-2-batch-3.txt": "2f7f48b317c4ec87c0ec882f49bbd50595b5545c4a0b915bc2685144e63d28fd",
+    "claude-trial-2-batch-4.txt": "fb3a7922a4f213154e8a63223bbd88ec2389c496748a9175976b6bfcf79c7873",
+    "claude-trial-3-batch-1.txt": "2bb2dabfe62d8d634015411918b6a6496d7884f52a6dcba4271d2f82fbc8bbbe",
+    "claude-trial-3-batch-2.txt": "4bc99bb68858a09afc2445004052dabd5fd6901a8426547c991607b8c843a14e",
+    "claude-trial-3-batch-3.txt": "0534754d40d51cd5342b943363d10112d400397913b5340206c89c0f72d96c80",
+    "claude-trial-3-batch-4.txt": "b61177a4deb4a278f59d908ab42100ddbb7a6c5b19e8b7b38747e4caf6f1acc4",
+    "prompt-policy.txt": "a3234a18a23469565f9b7c818cbd62551c92a37c5a7c6414a3c8dd1132531bd8",
+    "surface-map-routes.json": "7f47fd8610e12ad7090aca15ea7d374179a73e0e616ff15585b6b14dfca3f302"
+  }
+}

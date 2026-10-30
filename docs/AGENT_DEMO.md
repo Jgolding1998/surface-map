@@ -1,5 +1,9 @@
 # An agent using Surface Map
 
+These runs record the initial MCP integration. The later [64-task evaluation and
+45-task Claude comparison](../evals/diverse/README.md) provide broader synthetic
+checks, with saved inputs, predictions and scoring code.
+
 This is a small reproducible example of the MCP interface. On October 30, 2026,
 Claude Code started the local server and called three tools: `limits`, `demo`,
 and `analyze_capture`. All three returned successfully. The session used only

@@ -1,0 +1,327 @@
+{
+  "scope": "Description-only text routing rehearsal. No MCP invocations; not an automatic-use rate.",
+  "date": "2026-10-30",
+  "trials": [
+    {
+      "trial": 1,
+      "model": [
+        "claude-opus-5-5"
+      ],
+      "cases": 24,
+      "passed": 24,
+      "failed_ids": [],
+      "choices": [
+        {
+          "id": "capture-links",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-har",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-script",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-export",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-hidden",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "compare-routes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-shapes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-evidence",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "source-dependencies",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-imports",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-limits",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "url-routes",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "url-signals",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "limits-size",
+          "tool": "limits"
+        },
+        {
+          "id": "demo-offline",
+          "tool": "demo"
+        },
+        {
+          "id": "none-live",
+          "tool": "none"
+        },
+        {
+          "id": "none-login",
+          "tool": "none"
+        },
+        {
+          "id": "none-summary",
+          "tool": "none"
+        },
+        {
+          "id": "none-audio",
+          "tool": "none"
+        },
+        {
+          "id": "none-binary",
+          "tool": "none"
+        },
+        {
+          "id": "none-clone",
+          "tool": "none"
+        },
+        {
+          "id": "none-screenshot",
+          "tool": "none"
+        },
+        {
+          "id": "none-secrets",
+          "tool": "none"
+        },
+        {
+          "id": "none-prove",
+          "tool": "none"
+        }
+      ]
+    },
+    {
+      "trial": 2,
+      "model": [
+        "claude-opus-5-5"
+      ],
+      "cases": 24,
+      "passed": 24,
+      "failed_ids": [],
+      "choices": [
+        {
+          "id": "capture-links",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-har",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-script",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-export",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-hidden",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "compare-routes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-shapes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-evidence",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "source-dependencies",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-imports",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-limits",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "url-routes",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "url-signals",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "limits-size",
+          "tool": "limits"
+        },
+        {
+          "id": "demo-offline",
+          "tool": "demo"
+        },
+        {
+          "id": "none-live",
+          "tool": "none"
+        },
+        {
+          "id": "none-login",
+          "tool": "none"
+        },
+        {
+          "id": "none-summary",
+          "tool": "none"
+        },
+        {
+          "id": "none-audio",
+          "tool": "none"
+        },
+        {
+          "id": "none-binary",
+          "tool": "none"
+        },
+        {
+          "id": "none-clone",
+          "tool": "none"
+        },
+        {
+          "id": "none-screenshot",
+          "tool": "none"
+        },
+        {
+          "id": "none-secrets",
+          "tool": "none"
+        },
+        {
+          "id": "none-prove",
+          "tool": "none"
+        }
+      ]
+    },
+    {
+      "trial": 3,
+      "model": [
+        "claude-opus-5-5"
+      ],
+      "cases": 24,
+      "passed": 24,
+      "failed_ids": [],
+      "choices": [
+        {
+          "id": "capture-links",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-har",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-script",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-export",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "capture-hidden",
+          "tool": "analyze_capture"
+        },
+        {
+          "id": "compare-routes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-shapes",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "compare-evidence",
+          "tool": "compare_captures"
+        },
+        {
+          "id": "source-dependencies",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-imports",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "source-limits",
+          "tool": "inspect_sources"
+        },
+        {
+          "id": "url-routes",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "url-signals",
+          "tool": "analyze_url"
+        },
+        {
+          "id": "limits-size",
+          "tool": "limits"
+        },
+        {
+          "id": "demo-offline",
+          "tool": "demo"
+        },
+        {
+          "id": "none-live",
+          "tool": "none"
+        },
+        {
+          "id": "none-login",
+          "tool": "none"
+        },
+        {
+          "id": "none-summary",
+          "tool": "none"
+        },
+        {
+          "id": "none-audio",
+          "tool": "none"
+        },
+        {
+          "id": "none-binary",
+          "tool": "none"
+        },
+        {
+          "id": "none-clone",
+          "tool": "none"
+        },
+        {
+          "id": "none-screenshot",
+          "tool": "none"
+        },
+        {
+          "id": "none-secrets",
+          "tool": "none"
+        },
+        {
+          "id": "none-prove",
+          "tool": "none"
+        }
+      ]
+    }
+  ]
+}

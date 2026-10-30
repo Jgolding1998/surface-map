@@ -1,0 +1,16 @@
+```json
+{"results":[
+{"id":"actionless-with-url","routes":[["POST","/orders","declared",[["source_1","line 1","form"]]]],"unresolved":[]},
+{"id":"relative-without-url","routes":[],"unresolved":[]},
+{"id":"relative-with-url","routes":[["GET","/api/orders","declared",[["source_1","line 1","link"]]]],"unresolved":[]},
+{"id":"first-base-wins","routes":[["GET","/api/v2/users","declared",[["source_1","line 1","link"]]]],"unresolved":[]},
+{"id":"asset-not-api","routes":[],"unresolved":[]},
+{"id":"inline-script-omission","routes":[],"unresolved":[]},
+{"id":"frame-omission","routes":[],"unresolved":[]},
+{"id":"client-rendered-shell","routes":[],"unresolved":[]},
+{"id":"har-status","routes":[["GET","/api/items","observed",[["source_1","entry 1","har"]]]],"unresolved":[]},
+{"id":"har-json-shapes","routes":[["POST","/api/orders","observed",[["source_1","entry 1","har"]]]],"unresolved":[]},
+{"id":"har-error-is-evidence","routes":[["DELETE","/api/users/{integer_3}","observed",[["source_1","entry 1","har"]]]],"unresolved":[]},
+{"id":"har-options","routes":[["OPTIONS","/api/items","observed",[["source_1","entry 1","har"]]]],"unresolved":[]}
+]}
+```

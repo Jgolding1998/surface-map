@@ -17,6 +17,7 @@ MAX_HTML_BYTES = 4 * 1024 * 1024
 MAX_TOTAL_BYTES = 4 * 1024 * 1024
 MAX_HTML_TAGS = 10000
 HTML_WORK_SECONDS = 3.0
+HTML_FOREIGN_BREAKOUT = frozenset("b big blockquote body br center code dd div dl dt em embed h1 h2 h3 h4 h5 h6 head hr i img li listing menu meta nobr ol p pre ruby s small span strike strong sub sup table tt u ul var".split())
 MAX_ROUTES = 400
 MAX_JS_TOKENS = 300000
 JS_WORK_SECONDS = 3.0
@@ -127,7 +128,15 @@ class _BaseFinder(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.deadline, self.tags, self.template = deadline, 0, 0
         self.text_container = None
+        self.foreign = []
         self.found, self.href, self.ambiguous = False, None, False
+
+    def set_cdata_mode(self, *args, **kwargs):
+        if not getattr(self, "foreign", None):
+            super().set_cdata_mode(*args, **kwargs)
+
+    def _foreign_breakout(self, tag, attributes):
+        return tag in HTML_FOREIGN_BREAKOUT or (tag == "font" and any(key in {"color", "face", "size"} for key, _ in attributes))
 
     def _check_time(self):
         if time.monotonic() > self.deadline:
@@ -139,6 +148,12 @@ class _BaseFinder(HTMLParser):
         if self.tags > MAX_HTML_TAGS:
             raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
         if self.text_container is not None:
+            return
+        if self.foreign and self._foreign_breakout(tag, attributes):
+            self.foreign.clear()
+        if self.foreign or tag in {"svg", "math"}:
+            if tag in {"svg", "math"}:
+                self.foreign.append(tag)
             return
         if tag in {"title", "textarea", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"}:
             self.text_container = tag
@@ -159,6 +174,11 @@ class _BaseFinder(HTMLParser):
 
     def handle_endtag(self, tag):
         self._check_time()
+        if self.foreign:
+            found = next((i for i in range(len(self.foreign) - 1, -1, -1) if self.foreign[i] == tag), None)
+            if found is not None:
+                del self.foreign[found:]
+            return
         if self.text_container is not None:
             if tag == self.text_container and tag != "plaintext":
                 self.text_container = None
@@ -170,6 +190,15 @@ class _BaseFinder(HTMLParser):
         self._check_time()
 
     def handle_startendtag(self, tag, attributes):
+        if self.foreign and self._foreign_breakout(tag, attributes):
+            self.handle_starttag(tag, attributes)
+            return
+        if self.foreign or tag in {"svg", "math"}:
+            self._check_time()
+            self.tags += 1
+            if self.tags > MAX_HTML_TAGS:
+                raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
+            return
         # HTML does not self-close raw-text elements or templates with '/>'.
         self.handle_starttag(tag, attributes)
         if tag in {"script", "style"}:
@@ -686,6 +715,18 @@ class HTML(HTMLParser):
         if deadline is not None:
             self.deadline = min(self.deadline, deadline)
         self.inline_warning = False
+        self.raw = None
+        self.foreign = []
+
+    def set_cdata_mode(self, *args, **kwargs):
+        if not getattr(self, "foreign", None):
+            super().set_cdata_mode(*args, **kwargs)
+
+    def _foreign_breakout(self, tag, attributes):
+        return tag in HTML_FOREIGN_BREAKOUT or (tag == "font" and any(key in {"color", "face", "size"} for key, _ in attributes))
+
+    def _foreign_warning(self):
+        self.builder.warn(self.source, "SVG and MathML content is not inspected for routes; foreign-content coverage is incomplete.")
 
     def _check_time(self):
         if time.monotonic() > self.deadline:
@@ -693,9 +734,18 @@ class HTML(HTMLParser):
 
     def handle_starttag(self, tag, attributes):
         self._check_time()
+        if self.raw is not None:
+            return
         self.tags += 1
         if self.tags > MAX_HTML_TAGS:
             raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
+        if self.foreign and self._foreign_breakout(tag, attributes):
+            self.foreign.clear()
+        if self.foreign or tag in {"svg", "math"}:
+            if tag in {"svg", "math"}:
+                self.foreign.append(tag)
+                self._foreign_warning()
+            return
         attrs = {}
         for key, value in attributes:
             attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
@@ -738,10 +788,28 @@ class HTML(HTMLParser):
                 self.form = {"url": action, "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
         elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
             fields, names = self.form["fields"], self.form["names"]
-            if len(fields) >= 32 or attrs["name"] in names:
-                return
-            names.add(attrs["name"])
-            fields[safe_field(attrs["name"], len(fields) + 1, set(fields))] = {"type": "string"}
+            if len(fields) < 32 and attrs["name"] not in names:
+                names.add(attrs["name"])
+                fields[safe_field(attrs["name"], len(fields) + 1, set(fields))] = {"type": "string"}
+        if tag in {"script", "style", "title", "textarea", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"}:
+            if tag == "noscript":
+                self.builder.warn(self.source, "Conditional noscript content is omitted because the browser scripting state is unknown.")
+            self.raw = tag
+            self.set_cdata_mode(tag)
+
+    def handle_startendtag(self, tag, attributes):
+        if self.foreign and self._foreign_breakout(tag, attributes):
+            self.handle_starttag(tag, attributes)
+            return
+        if self.foreign or tag in {"svg", "math"}:
+            self._check_time()
+            self.tags += 1
+            if self.tags > MAX_HTML_TAGS:
+                raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
+            self._foreign_warning()
+            return
+        # HTML's '/>' does not close non-void elements, including scripts/forms.
+        self.handle_starttag(tag, attributes)
 
     def _finish_form(self):
         if self.form:
@@ -750,6 +818,15 @@ class HTML(HTMLParser):
 
     def handle_endtag(self, tag):
         self._check_time()
+        if self.foreign:
+            found = next((i for i in range(len(self.foreign) - 1, -1, -1) if self.foreign[i] == tag), None)
+            if found is not None:
+                del self.foreign[found:]
+            return
+        if self.raw is not None:
+            if tag == self.raw and tag != "plaintext":
+                self.raw = None
+            return
         if tag == "form":
             self._finish_form()
 
@@ -759,8 +836,14 @@ class HTML(HTMLParser):
     def handle_comment(self, data):
         self._check_time()
 
+    def close(self):
+        super().close()
+        if self.raw is not None:
+            self.builder.warn(self.source, "A text container extends to the end of the capture; its contents were not inspected for routes.")
 
-def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=None, include_page_signals=False):
+
+def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=None, include_page_signals=False,
+            tolerate_script_errors=False):
     """Analyze artifacts offline.
 
     document_url is the final URL of the single HTML artifact. When supplied,
@@ -778,6 +861,8 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
     check_deadline()
     if type(include_page_signals) is not bool:
         raise ArtifactError("include_page_signals must be a boolean")
+    if type(tolerate_script_errors) is not bool:
+        raise ArtifactError("tolerate_script_errors must be a boolean")
     if type(javascript_engine) is not str or javascript_engine not in {"auto", "basic", "enhanced"}:
         raise ArtifactError("Choose auto, basic or enhanced JavaScript analysis")
     if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= MAX_ARTIFACTS:
@@ -785,10 +870,11 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
     if document_url is not None:
         document_url = validate_document_url(document_url)
     builder, html_deadline = Builder(javascript_engine), deadline
-    page_signals = []
+    page_signals, script_omissions = [], []
     items = _read_artifacts(artifacts, builder, check_deadline)
-    if document_url is not None:
+    if document_url is not None or tolerate_script_errors:
         items = list(items)
+    if document_url is not None:
         kinds = [kind for _, kind, _ in items]
         if kinds.count("html") != 1 or "har" in kinds:
             raise ArtifactError("A document URL applies to exactly one HTML artifact and its JavaScript")
@@ -811,7 +897,27 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
             if kind == "har":
                 parse_har(text, source, builder)
             elif kind in {"javascript", "typescript"}:
-                parse_js(text, source, builder, kind=kind)
+                if tolerate_script_errors:
+                    from copy import deepcopy
+                    previous = deepcopy(builder)
+                    try:
+                        check_deadline()
+                        parse_js(text, source, builder, kind=kind)
+                        check_deadline()
+                    except Exception:
+                        builder = previous
+                        code = "analysis_deadline" if deadline is not None and time.monotonic() >= deadline else "unsupported_or_limit"
+                        script_omissions.append({"source": source, "code": code})
+                        builder.warn(source, "Fetched script analysis was omitted; other supported evidence was retained.")
+                        for item in builder.sources:
+                            if item["id"] == source:
+                                item.update(status="omitted", omission_code=code)
+                    else:
+                        for item in builder.sources:
+                            if item["id"] == source:
+                                item["status"] = "analyzed"
+                else:
+                    parse_js(text, source, builder, kind=kind)
             else:
                 parser = HTML(source, builder, deadline=html_deadline)
                 try:
@@ -836,11 +942,13 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
                         # This optional inventory must not discard routes when
                         # it cannot finish inside the shared HTML budget.
                         page_signals.append({"source": source, "findings": [],
+                            "omitted_contexts": [],
                             "status": "incomplete", "truncated": True,
                             "truncation_reasons": ["analysis_limit"],
                             "reason": "Page-signal inventory could not complete within supported parsing or work limits. Existing route evidence is retained.",
                             "scope": SCOPE})
-            check_deadline()
+            if not (tolerate_script_errors and kind in {"javascript", "typescript"}):
+                check_deadline()
         except ArtifactError as error:
             raise ArtifactError(f"{source}: {error}") from None
         except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):
@@ -848,6 +956,8 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
     report = builder.finish()
     if include_page_signals:
         report["page_signals"] = page_signals
+    if tolerate_script_errors:
+        report["script_omissions"] = script_omissions
     return report
 
 
