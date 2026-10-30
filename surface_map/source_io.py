@@ -6,7 +6,8 @@ import os
 import stat
 from pathlib import Path
 
-from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_TOTAL_BYTES, strict_json
+from .analyze import ArtifactError, strict_json
+from .source import MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_TOTAL_BYTES
 
 
 def inspect_sources(artifacts, *, javascript_engine="auto"):

@@ -10,15 +10,19 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .analyze import ArtifactError, analyze, strict_json
+from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_TOTAL_BYTES, analyze, strict_json
 from .export import compare, contract, openapi
 from .samples import artifacts
 from .source_io import compare_sources, inspect_sources, source_examples
+from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES
 
 STATIC = Path(__file__).parent / "static"
-MAX_REQUEST = 3 * 1024 * 1024
+MAX_REQUEST = 16 * 1024 * 1024 + 64 * 1024
+MAX_SOURCE_REQUEST = 3 * 1024 * 1024
 MAX_RESPONSE = 3 * 1024 * 1024
 HEADER_TIMEOUT = 10.0
+ANALYSIS_BUDGET = 10.0
+CLIENT_TIMEOUT_MS = 35000
 
 
 class OutputTooLarge(ValueError):
@@ -142,6 +146,14 @@ def make_server(port=8768):
                 self.reply(200, (STATIC / name).read_bytes(), mime)
             elif self.path == "/health":
                 self.reply(200, {"ok": True})
+            elif self.path == "/api/limits":
+                self.reply(200, {"web": {"max_artifacts": MAX_ARTIFACTS, "html_bytes": MAX_HTML_BYTES,
+                                        "other_file_bytes": MAX_FILE_BYTES, "total_bytes": MAX_TOTAL_BYTES},
+                                 "source": {"max_artifacts": MAX_ARTIFACTS, "file_bytes": SOURCE_FILE_BYTES,
+                                            "total_bytes": SOURCE_TOTAL_BYTES},
+                                 "request_bytes": MAX_REQUEST, "source_request_bytes": MAX_SOURCE_REQUEST,
+                                 "response_bytes": MAX_RESPONSE, "analysis_seconds": ANALYSIS_BUDGET,
+                                 "request_timeout_ms": CLIENT_TIMEOUT_MS})
             else:
                 self.reply(404, {"error": "Not found"})
 
@@ -149,8 +161,9 @@ def make_server(port=8768):
             if self.headers.get("Transfer-Encoding") is not None:
                 raise ArtifactError("Transfer encoding is unsupported")
             length = self.headers.get("Content-Length", "")
-            if not re.fullmatch(r"[0-9]{1,7}", length) or not 1 <= int(length) <= MAX_REQUEST:
-                raise ArtifactError("Request byte limit exceeded or Content-Length missing")
+            limit = MAX_REQUEST if self.path in {"/api/analyze", "/api/compare"} else MAX_SOURCE_REQUEST
+            if not re.fullmatch(r"[0-9]{1,10}", length) or not 1 <= int(length) <= limit:
+                raise ArtifactError(f"Request must include Content-Length and fit within {limit:,} encoded JSON bytes. Use a smaller capture or comparison.")
             if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
                 raise ArtifactError("Expected application/json")
             remaining, chunks, deadline = int(length), [], time.monotonic() + 8
@@ -164,7 +177,7 @@ def make_server(port=8768):
                     raise ArtifactError("Incomplete HTTP body")
                 chunks.append(block)
                 remaining -= len(block)
-            return strict_json(b"".join(chunks).decode("utf-8"), depth=6, nodes=100)
+            return strict_json(b"".join(chunks).decode("utf-8"), depth=6, nodes=100, prescan=False)
 
         def do_POST(self):
             if not self.allowed(post=True):
@@ -177,6 +190,7 @@ def make_server(port=8768):
                 return
             try:
                 document = self.body()
+                deadline = time.monotonic() + ANALYSIS_BUDGET
                 if not isinstance(document, dict):
                     raise ArtifactError("Request must be a JSON object")
                 engine = document.get("javascript_engine", "auto")
@@ -184,9 +198,9 @@ def make_server(port=8768):
                     raise ArtifactError("Unsupported JavaScript analysis engine")
                 keys = set(document) - {"javascript_engine"}
                 if self.path == "/api/analyze" and keys == {"artifacts"}:
-                    result = bundle(analyze(document["artifacts"], javascript_engine=engine))
+                    result = bundle(analyze(document["artifacts"], javascript_engine=engine, deadline=deadline))
                 elif self.path == "/api/compare" and keys == {"baseline", "candidate"}:
-                    result = {"diff": compare(analyze(document["baseline"], javascript_engine=engine), analyze(document["candidate"], javascript_engine=engine))}
+                    result = {"diff": compare(analyze(document["baseline"], javascript_engine=engine, deadline=deadline), analyze(document["candidate"], javascript_engine=engine, deadline=deadline))}
                 elif self.path == "/api/demo" and not keys:
                     result = bundle(analyze(artifacts(), javascript_engine=engine))
                 elif self.path == "/api/demo-diff" and not keys:

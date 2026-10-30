@@ -4,7 +4,15 @@ const $ = selector => document.querySelector(selector);
 const token = $('meta[name="surface-token"]').content;
 let files = [], baselineFiles = [], current = null, diff = null, filter = "all", selected = null, busy = false;
 let sourceCurrent = null, sourceDiff = null;
+let limits = null;
 const sourceMode = () => $("#analysis-mode").value === "source";
+const byteLabel = value => value >= 1024 * 1024 ? `${value / (1024 * 1024)} MiB` : `${value / 1024} KiB`;
+function base64Text(content) {
+  const bytes = new TextEncoder().encode(content);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 32768) binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  return btoa(binary);
+}
 const node = (tag, className, value) => {
   const element = document.createElement(tag);
   if (className) element.className = className;
@@ -19,12 +27,13 @@ function notice(message, error = false) {
 
 function refresh() {
   const source = sourceMode(), active = source ? sourceCurrent : current;
-  $("#analysis-mode").disabled = busy;
-  $("#javascript-engine").disabled = busy;
-  $("#files").disabled = busy;
-  $("#analyze").disabled = busy || files.length === 0;
-  $("#demo").disabled = busy;
-  $("#demo-diff").disabled = busy;
+  const blocked = busy || !limits;
+  $("#analysis-mode").disabled = blocked;
+  $("#javascript-engine").disabled = blocked;
+  $("#files").disabled = blocked;
+  $("#analyze").disabled = blocked || files.length === 0;
+  $("#demo").disabled = blocked;
+  $("#demo-diff").disabled = blocked;
   $("#demo-diff").hidden = source;
   const rejected = Boolean(source && active && active.sources.some(item => item.status !== "parsed"));
   $("#baseline").disabled = busy || !active || rejected || files.length === 0;
@@ -32,6 +41,11 @@ function refresh() {
   $("#clear").disabled = busy;
   for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = source || !current || busy;
   $("#export-source").disabled = !sourceCurrent || busy;
+  if (limits) {
+    $("#upload-limits").textContent = source
+      ? `Up to ${limits.source.max_artifacts} sources; ${byteLabel(limits.source.file_bytes)} each, ${byteLabel(limits.source.total_bytes)} combined`
+      : `HTML up to ${byteLabel(limits.web.html_bytes)}; HAR/JS/TS up to ${byteLabel(limits.web.other_file_bytes)} each. Up to ${limits.web.max_artifacts} sources, ${byteLabel(limits.web.total_bytes)} combined; work limits apply.`;
+  }
 }
 
 function sourceList(sources) {
@@ -99,8 +113,30 @@ function show(result, example = false) {
 
 async function request(path, payload) {
   payload = {...payload, javascript_engine:$("#javascript-engine").value};
-  const response = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json", "X-Surface-Token":token}, body:JSON.stringify(payload), signal:AbortSignal.timeout(20000)});
-  const result = await response.json();
+  const body = JSON.stringify(payload), size = new TextEncoder().encode(body).length;
+  const limit = ["/api/analyze", "/api/compare"].includes(path) ? limits.request_bytes : limits.source_request_bytes;
+  if (size > limit) {
+    const error = new Error("Request too large");
+    error.safeMessage = `This capture needs ${size.toLocaleString()} encoded JSON bytes; the request limit is ${limit.toLocaleString()}. Analyze fewer files or a smaller comparison.`;
+    throw error;
+  }
+  let response;
+  try {
+    response = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json", "X-Surface-Token":token}, body, signal:AbortSignal.timeout(limits.request_timeout_ms)});
+  } catch (failure) {
+    const error = new Error("Local request unavailable");
+    error.safeMessage = failure.name === "TimeoutError" || failure.name === "AbortError"
+      ? `The request timed out after ${limits.request_timeout_ms / 1000} seconds. Try a smaller capture or check the local server.`
+      : "The local server could not be reached. Check that it is running and retry.";
+    throw error;
+  }
+  let result;
+  try { result = await response.json(); }
+  catch (_) {
+    const error = new Error("Response unavailable");
+    error.safeMessage = response.status === 503 ? "Analysis is busy; wait for the current request to finish, then try again." : "The local server response could not be read. Retry after checking the server.";
+    throw error;
+  }
   if (!response.ok) {
     const error = new Error("Request rejected");
     error.safeMessage = typeof result.error === "string" ? result.error : "Request rejected";
@@ -123,12 +159,23 @@ function kind(file) {
 }
 
 async function read(selection) {
-  if (!selection.length || selection.length > 6 || selection.some(file => file.size > 512 * 1024 || !kind(file)) || selection.reduce((sum,file) => sum + file.size, 0) > 1024 * 1024) throw new Error("Unsupported selection");
+  const policy = sourceMode() ? limits.source : limits.web;
+  const reject = message => { const error = new Error("Unsupported selection"); error.safeMessage = message; throw error; };
+  if (!selection.length || selection.length > policy.max_artifacts) reject(`Choose between 1 and ${policy.max_artifacts} files.`);
+  let total = 0;
+  for (const file of selection) {
+    const format = kind(file);
+    if (!format) reject("Choose supported UTF-8 artifacts for the selected analysis mode.");
+    const cap = sourceMode() ? policy.file_bytes : format === "html" ? policy.html_bytes : policy.other_file_bytes;
+    if (file.size > cap) reject(`${format.toUpperCase()} input is ${file.size.toLocaleString()} bytes; its limit is ${cap.toLocaleString()} bytes. Use a smaller artifact.`);
+    total += file.size;
+  }
+  if (total > policy.total_bytes) reject(`Selection contains ${total.toLocaleString()} bytes; the combined limit is ${policy.total_bytes.toLocaleString()} bytes. Analyze fewer files at a time.`);
   const result = [];
   for (const file of selection) {
     const bytes = await file.arrayBuffer();
     const content = new TextDecoder("utf-8", {fatal:true}).decode(bytes);
-    result.push(sourceMode() ? {kind:kind(file), content} : {kind:kind(file), text:content});
+    result.push(sourceMode() ? {kind:kind(file), content} : {kind:kind(file), text_b64:base64Text(content)});
   }
   return result;
 }
@@ -271,4 +318,15 @@ $("#analysis-mode").addEventListener("change", () => {
   notice(source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example.");
   refresh();
 });
-action(async () => show(await request("/api/demo", {}), true));
+action(async () => {
+  try {
+    const response = await fetch("/api/limits");
+    if (!response.ok) throw new Error("Input limits unavailable");
+    limits = await response.json();
+  } catch (_) {
+    const error = new Error("Input limits unavailable");
+    error.safeMessage = "Input limits could not load. Check the local server and reload this page.";
+    throw error;
+  }
+  show(await request("/api/demo", {}), true);
+});

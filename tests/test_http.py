@@ -1,4 +1,5 @@
 import http.client
+import base64
 import json
 import re
 import socket
@@ -13,6 +14,21 @@ from test_analysis import CANARY, EMAIL, entry, har
 
 
 class HTTPTests(unittest.TestCase):
+    def test_limits_and_large_encoded_html_roundtrip_and_comparison(self):
+        from test_large_html import marketing_page
+        response = self.request('/api/limits')
+        self.assertEqual(response[0], 200)
+        limits = json.loads(response[2])
+        self.assertEqual(limits['web']['html_bytes'], 4 * 1024 * 1024)
+        self.assertEqual(limits['source']['file_bytes'], 512 * 1024)
+        artifact = {'kind': 'html', 'text_b64': base64.b64encode(marketing_page().encode()).decode()}
+        response = self.request('/api/analyze', 'POST', {'artifacts': [artifact], 'javascript_engine': 'basic'})
+        self.assertEqual(response[0], 200)
+        self.assertEqual(len(json.loads(response[2])['report']['routes']), 2)
+        response = self.request('/api/compare', 'POST', {'baseline': [artifact], 'candidate': [artifact], 'javascript_engine': 'basic'})
+        self.assertEqual(response[0], 200)
+        self.assertEqual(json.loads(response[2])['diff']['added'], [])
+
     def test_engine_selection_is_validated_before_analysis(self):
         for engine in (None, [], "unexpected"):
             response = self.request("/api/analyze", "POST", {"artifacts": [], "javascript_engine": engine})

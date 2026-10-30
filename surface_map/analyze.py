@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import math
 import re
@@ -11,7 +13,10 @@ from urllib.parse import parse_qsl, unquote, urlsplit
 
 MAX_ARTIFACTS = 6
 MAX_FILE_BYTES = 512 * 1024
-MAX_TOTAL_BYTES = 1024 * 1024
+MAX_HTML_BYTES = 4 * 1024 * 1024
+MAX_TOTAL_BYTES = 4 * 1024 * 1024
+MAX_HTML_TAGS = 10000
+HTML_WORK_SECONDS = 3.0
 MAX_ROUTES = 400
 MAX_JS_TOKENS = 300000
 JS_WORK_SECONDS = 3.0
@@ -82,9 +87,37 @@ def page_relative(raw):
     return isinstance(raw, str) and not raw.startswith("/") and re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", raw) is None
 
 
-def strict_json(text: str, *, depth=20, nodes=20000):
+_ENVELOPE_TOKEN = re.compile(r'["{}\[\],:]|[^\s"{}\[\],:]+')
+
+
+def _envelope_guard(text, depth, nodes):
+    position, level, tokens = 0, 0, 0
+    while match := _ENVELOPE_TOKEN.search(text, position):
+        tokens += 1
+        if tokens > 4 * nodes + 16:
+            raise ArtifactError("JSON structure exceeds the supported limit")
+        token, position = text[match.start()], match.end()
+        if token == '"':
+            try:
+                decoded, position = json.decoder.scanstring(text, position, True)
+                del decoded
+            except (ValueError, UnicodeError):
+                raise ArtifactError("Invalid or unsupported JSON document") from None
+        elif token in ("[", "{"):
+            level += 1
+            if level > depth:
+                raise ArtifactError("JSON nesting exceeds the supported limit")
+        elif token in ("]", "}"):
+            level -= 1
+
+
+def strict_json(text: str, *, depth=20, nodes=20000, prescan=True):
+    # Large HTTP strings are skipped by the C scanner; wide containers stop
+    # before json.loads can allocate millions of objects from a small body.
+    if not prescan:
+        _envelope_guard(text, depth, nodes)
     level, quoted, escaped = 0, False, False
-    for character in text:
+    for character in text if prescan else ():
         if quoted:
             if escaped:
                 escaped = False
@@ -247,7 +280,7 @@ class Builder:
         key = (method, path)
         if key not in self.routes:
             if len(self.routes) + len(self.unresolved) >= MAX_ROUTES:
-                raise ArtifactError("Too many normalized routes")
+                raise ArtifactError(f"Capture exceeds the {MAX_ROUTES}-route limit; narrow the capture scope")
             self.routes[key] = {"method": method, "path": path, "kinds": [], "statuses": [], "query_fields": [], "request_shapes": [], "response_shapes": [], "evidence": []}
         route = self.routes[key]
         for field, values in [("kinds", [kind]), ("query_fields", query_fields), ("statuses", [status] if status is not None else []), ("request_shapes", [request] if request else []), ("response_shapes", [response] if response else [])]:
@@ -273,7 +306,7 @@ class Builder:
         path, fields = sanitized
         if path not in self.unresolved:
             if len(self.routes) + len(self.unresolved) >= MAX_ROUTES:
-                raise ArtifactError("Too many normalized routes")
+                raise ArtifactError(f"Capture exceeds the {MAX_ROUTES}-route limit; narrow the capture scope")
             self.unresolved[path] = {"method": None, "path": path, "confidence": "inferred", "query_fields": [], "evidence": []}
         target = self.unresolved[path]
         for name in fields:
@@ -293,7 +326,7 @@ class Builder:
         path, _ = sanitized
         key = (kind, path)
         if len(self.assets) >= 200 and key not in self.assets:
-            raise ArtifactError("Too many normalized assets")
+            raise ArtifactError("Capture exceeds the 200-asset limit; narrow the capture scope")
         item = self.assets.setdefault(key, {"path": path, "kind": kind, "evidence": []})
         if len(item["evidence"]) < 16:
             item["evidence"].append({"source": source, "location": location})
@@ -515,19 +548,31 @@ def parse_js(text, source, builder, *, kind="javascript"):
 
 
 class HTML(HTMLParser):
-    def __init__(self, source, builder):
+    def __init__(self, source, builder, deadline=None):
         super().__init__(convert_charrefs=True)
         self.source, self.builder, self.form = source, builder, None
         self.tags = 0
+        self.deadline = time.monotonic() + HTML_WORK_SECONDS
+        if deadline is not None:
+            self.deadline = min(self.deadline, deadline)
+        self.inline_warning = False
+
+    def _check_time(self):
+        if time.monotonic() > self.deadline:
+            raise ArtifactError("HTML analysis exceeded its work deadline")
 
     def handle_starttag(self, tag, attributes):
+        self._check_time()
         self.tags += 1
-        if self.tags > 5000:
-            raise ArtifactError("HTML tag limit exceeded")
+        if self.tags > MAX_HTML_TAGS:
+            raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
         attrs = {}
         for key, value in attributes:
             attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
         location = f"line {self.getpos()[0]}"
+        if tag == "script" and not attrs.get("src") and not self.inline_warning:
+            self.inline_warning = True
+            self.builder.warn(self.source, "HTML analysis reads links, forms and asset references. Inline scripts and embedded JSON are not analyzed; add JavaScript or HAR evidence for those.")
         if tag == "a" and attrs.get("href"):
             _guard_html_url(self.get_starttag_text(), "href", attrs["href"])
             self.builder.add(attrs["href"], "GET", "link", self.source, location)
@@ -535,6 +580,11 @@ class HTML(HTMLParser):
             self.builder.asset(attrs["src"], "script", self.source, location)
         elif tag == "link" and attrs.get("href"):
             self.builder.asset(attrs["href"], "stylesheet" if "stylesheet" in (attrs.get("rel") or "").lower().split() else "link", self.source, location)
+        elif tag in {"iframe", "embed"}:
+            if attrs.get("src"):
+                _guard_html_url(self.get_starttag_text(), "src", attrs["src"])
+                self.builder.asset(attrs["src"], "embedded-document", self.source, location)
+            self.builder.warn(self.source, "Embedded document content is not inspected; add a separate authorized capture to analyze it.")
         elif tag == "form":
             self._finish_form()
             method = (attrs.get("method") or "").lower()
@@ -556,28 +606,67 @@ class HTML(HTMLParser):
             self.builder.add(form["url"], form["method"], "form", self.source, form["location"], fields=form["fields"])
 
     def handle_endtag(self, tag):
+        self._check_time()
         if tag == "form":
             self._finish_form()
 
+    def handle_data(self, data):
+        self._check_time()
 
-def analyze(artifacts, *, javascript_engine="auto"):
+    def handle_comment(self, data):
+        self._check_time()
+
+
+def analyze(artifacts, *, javascript_engine="auto", deadline=None):
+    def check_deadline():
+        if deadline is not None and time.monotonic() >= deadline:
+            raise ArtifactError("Analysis exceeded the shared request deadline; use fewer artifacts")
+
+    check_deadline()
     if type(javascript_engine) is not str or javascript_engine not in {"auto", "basic", "enhanced"}:
         raise ArtifactError("Choose auto, basic or enhanced JavaScript analysis")
     if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= MAX_ARTIFACTS:
         raise ArtifactError("Choose 1 to 6 HTML, HAR or JavaScript artifacts")
     builder, total = Builder(javascript_engine), 0
     for index, artifact in enumerate(artifacts, 1):
+        check_deadline()
         source = f"source_{index}"
-        if not isinstance(artifact, dict) or set(artifact) - {"kind", "text"} or not isinstance(artifact.get("kind"), str) or artifact.get("kind") not in {"har", "html", "javascript", "typescript"} or not isinstance(artifact.get("text"), str):
+        if (not isinstance(artifact, dict) or set(artifact) - {"kind", "text", "text_b64"}
+                or not isinstance(artifact.get("kind"), str)
+                or artifact.get("kind") not in {"har", "html", "javascript", "typescript"}
+                or ("text" in artifact) == ("text_b64" in artifact)):
             raise ArtifactError(f"{source}: unsupported artifact format")
-        text, kind = artifact["text"], artifact["kind"]
+        kind = artifact["kind"]
+        limit = MAX_HTML_BYTES if kind == "html" else MAX_FILE_BYTES
+        if "text_b64" in artifact:
+            encoded = artifact["text_b64"]
+            if not isinstance(encoded, str):
+                raise ArtifactError(f"{source}: expected base64-encoded UTF-8 text")
+            if len(encoded) > 4 * ((limit + 2) // 3):
+                raise ArtifactError(f"{source}: encoded {kind.upper()} exceeds its {limit:,}-byte decoded limit")
+            try:
+                raw = base64.b64decode(encoded, validate=True)
+            except (binascii.Error, ValueError, UnicodeError):
+                raise ArtifactError(f"{source}: expected strict base64 containing valid UTF-8 text") from None
+            if len(raw) > limit:
+                raise ArtifactError(f"{source}: {kind.upper()} exceeds its {limit:,}-byte decoded limit")
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeError:
+                raise ArtifactError(f"{source}: expected strict base64 containing valid UTF-8 text") from None
+        else:
+            text = artifact["text"]
+            if not isinstance(text, str):
+                raise ArtifactError(f"{source}: expected UTF-8 text")
         try:
             size = len(text.encode("utf-8"))
         except UnicodeError:
             raise ArtifactError(f"{source}: invalid Unicode text") from None
         total += size
-        if size > MAX_FILE_BYTES or total > MAX_TOTAL_BYTES:
-            raise ArtifactError("Artifact byte limit exceeded")
+        if size > limit:
+            raise ArtifactError(f"{source}: {kind.upper()} input is {size:,} UTF-8 bytes; the limit is {limit:,} bytes. Use a smaller artifact.")
+        if total > MAX_TOTAL_BYTES:
+            raise ArtifactError(f"Capture contains {total:,} UTF-8 bytes; the combined limit is {MAX_TOTAL_BYTES:,} bytes. Analyze fewer artifacts at a time.")
         builder.sources.append({"id": source, "kind": kind, "bytes": size})
         try:
             if kind == "har":
@@ -585,10 +674,15 @@ def analyze(artifacts, *, javascript_engine="auto"):
             elif kind in {"javascript", "typescript"}:
                 parse_js(text, source, builder, kind=kind)
             else:
-                parser = HTML(source, builder)
-                parser.feed(text)
-                parser.close()
+                parser = HTML(source, builder, deadline=deadline)
+                try:
+                    parser.feed(text)
+                    parser.close()
+                except AssertionError:
+                    raise ArtifactError("Malformed or unsupported HTML markup") from None
+                parser._check_time()
                 parser._finish_form()
+            check_deadline()
         except ArtifactError as error:
             raise ArtifactError(f"{source}: {error}") from None
         except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):

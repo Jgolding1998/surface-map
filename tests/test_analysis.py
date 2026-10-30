@@ -4,7 +4,7 @@ import re
 import unittest
 from unittest.mock import patch
 
-from surface_map.analyze import ArtifactError, MAX_FILE_BYTES, analyze as analyze_capture, js_tokens, safe_path, strict_json
+from surface_map.analyze import ArtifactError, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_HTML_TAGS, analyze as analyze_capture, js_tokens, safe_path, strict_json
 from surface_map.export import compare, contract, openapi
 from surface_map.samples import artifacts
 
@@ -345,7 +345,8 @@ class LimitTests(unittest.TestCase):
             self.assertNotIn(EMAIL, str(error.exception))
 
     def test_artifact_count_and_bytes(self):
-        for value in [[{"kind": "html", "text": ""}] * 7, [{"kind": "html", "text": "a" * (MAX_FILE_BYTES + 1)}], [{"kind": "html", "text": "a" * MAX_FILE_BYTES}] * 3]:
+        for value in [[{"kind": "html", "text": ""}] * 7, [{"kind": "html", "text": "a" * (MAX_HTML_BYTES + 1)}], [{"kind": "html", "text": "a" * MAX_HTML_BYTES}] * 2,
+                      [{"kind": "javascript", "text": "a" * (MAX_FILE_BYTES + 1)}]]:
             with self.assertRaises(ArtifactError):
                 analyze(value)
 
@@ -369,7 +370,7 @@ class LimitTests(unittest.TestCase):
         with self.assertRaises(ArtifactError):
             analyze([{"kind": "javascript", "text": "a;" * 160000}])
         with self.assertRaises(ArtifactError):
-            analyze([{"kind": "html", "text": "<b>" * 5001}])
+            analyze([{"kind": "html", "text": "<b>" * (MAX_HTML_TAGS + 1)}])
 
     def test_typical_large_literal_fetch_bundles_are_accepted(self):
         unit = "fetch('/api/orders');\n"
