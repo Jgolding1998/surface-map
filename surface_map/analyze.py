@@ -760,13 +760,15 @@ class HTML(HTMLParser):
         self._check_time()
 
 
-def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=None):
+def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=None, include_page_signals=False):
     """Analyze artifacts offline.
 
     document_url is the final URL of the single HTML artifact. When supplied,
     page-relative references in that HTML and its JavaScript are resolved
     against the document base URL (the first <base href>, else document_url)
-    and actionless forms against document_url. Nothing is requested, and
+    and actionless forms against document_url. include_page_signals adds a
+    bounded source-only inventory of phrases that address or mention AI agents and machine-resource
+    references, without emitting page prose or following instructions. Nothing is requested, and
     resolved URLs are normalized like any other path; origins are discarded.
     """
     def check_deadline():
@@ -774,6 +776,8 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
             raise ArtifactError("Analysis exceeded the shared request deadline; use fewer artifacts")
 
     check_deadline()
+    if type(include_page_signals) is not bool:
+        raise ArtifactError("include_page_signals must be a boolean")
     if type(javascript_engine) is not str or javascript_engine not in {"auto", "basic", "enhanced"}:
         raise ArtifactError("Choose auto, basic or enhanced JavaScript analysis")
     if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= MAX_ARTIFACTS:
@@ -781,6 +785,7 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
     if document_url is not None:
         document_url = validate_document_url(document_url)
     builder, html_deadline = Builder(javascript_engine), deadline
+    page_signals = []
     items = _read_artifacts(artifacts, builder, check_deadline)
     if document_url is not None:
         items = list(items)
@@ -816,12 +821,34 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
                     raise ArtifactError("Malformed or unsupported HTML markup") from None
                 parser._check_time()
                 parser._finish_form()
+                if include_page_signals:
+                    from .page_signals import SCOPE, inspect_html_signals
+                    try:
+                        signal_deadline = parser.deadline
+                        if deadline is not None:
+                            # Leave time for the caller to retain the report
+                            # when this optional pass exhausts its budget.
+                            signal_deadline = min(signal_deadline, deadline - 0.05)
+                        page_signals.append(inspect_html_signals(
+                            text, source, document_url=builder.document_url,
+                            base_url=builder.base_url, deadline=signal_deadline))
+                    except ArtifactError:
+                        # This optional inventory must not discard routes when
+                        # it cannot finish inside the shared HTML budget.
+                        page_signals.append({"source": source, "findings": [],
+                            "status": "incomplete", "truncated": True,
+                            "truncation_reasons": ["analysis_limit"],
+                            "reason": "Page-signal inventory could not complete within supported parsing or work limits. Existing route evidence is retained.",
+                            "scope": SCOPE})
             check_deadline()
         except ArtifactError as error:
             raise ArtifactError(f"{source}: {error}") from None
         except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):
             raise ArtifactError(f"{source}: malformed or unsupported artifact") from None
-    return builder.finish()
+    report = builder.finish()
+    if include_page_signals:
+        report["page_signals"] = page_signals
+    return report
 
 
 def _read_artifacts(artifacts, builder, check_deadline):

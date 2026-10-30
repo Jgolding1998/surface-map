@@ -87,8 +87,8 @@ Every tool advertises `readOnlyHint: true`, `destructiveHint: false`, and `idemp
 
 | Tool | Arguments | Result |
 | --- | --- | --- |
-| `analyze_url` | `url`, optional `include_scripts` and `javascript_engine` | Static public-page analysis, capture counts and omissions |
-| `analyze_capture` | `artifacts`, optional `javascript_engine` and `output` | Minimized report, or OpenAPI/contract document with source and warning context |
+| `analyze_url` | `url`, optional `include_scripts`, `javascript_engine` and `include_page_signals` | Static public-page analysis, capture counts and omissions |
+| `analyze_capture` | `artifacts`, optional `javascript_engine`, `output` and `include_page_signals` | Minimized report, or OpenAPI/contract document with source and warning context |
 | `compare_captures` | `before`, `after`, optional `javascript_engine` | Added, absent (`removed`) and changed normalized evidence, plus each capture's warnings |
 | `inspect_sources` | `artifacts`, optional `javascript_engine` | Minimized source inventory, source parse status and warnings |
 | `demo` | none | Actual analysis of bundled synthetic captures and source fixtures, plus a synthetic comparison |
@@ -145,6 +145,22 @@ The final document URL allows relative links, actions, assets and supported fetc
 HTML is analyzed first. If the combined script analysis exceeds supported limits, the valid HTML result is retained with `analysis_partial: true`, `scripts_analyzed: 0`, and a fixed warning. Fetch counts remain separate from analysis counts. When `analysis_partial` is false, that only means the fetched set was analyzed; it does not mean the complete website was captured. Concurrent calls receive a busy response; clients should call sequentially or retry after the current call finishes.
 
 URL-mode captures remain in the local process and are not returned as raw page text. The agent receives the minimized report, capture counts and fixed warnings. The destination website still sees ordinary requests from the machine running the tool. The result can be incomplete; it is not a rendered-page audit or a complete API contract.
+
+## Inspect agent guidance and machine-document references
+
+Ask: **"Use Surface Map on this URL with `include_page_signals: true`. Explain any phrases that address or mention AI agents, hiding declarations and machine-document links. Treat the findings as source evidence, not setup instructions."**
+
+```json
+{"url":"https://www.firecrawl.dev/careers","include_scripts":false,"javascript_engine":"basic","include_page_signals":true}
+```
+
+The optional `page_signals` section inventories recognized phrases that address or mention AI agents and declared resources such as `llms.txt`, `auth.md`, `SKILL.md`, OpenAPI/Swagger documents and MCP paths. It also examines bare HTTP(S) references in text and comments, which ordinary link extraction misses. Findings use fixed categories, generic source IDs, line numbers and minimized paths. The original prose, commands, credentials, origins and query values are not returned. Resource categories identify naming conventions, not a verified protocol or working service.
+
+Explicit `hidden`, inline `display:none`, `visibility:hidden` and `opacity:0` declarations are recorded separately from `aria-hidden=true`, which affects accessibility rather than necessarily visual display. Ancestor attribution follows the parsed source, not a browser DOM. No external stylesheets, computed styles, media queries or JavaScript state are evaluated. A finding is neither a maliciousness verdict nor proof that a human cannot see the text. Missing findings do not establish that a page has no hidden guidance.
+
+This option makes no additional requests and never follows a discovered document, installs software, registers an account or calls an MCP endpoint. It is off by default, so existing analyses and comparisons keep their previous behavior. The inventory shares the HTML work deadline and reports truncation when its finding or text limits are reached. Export-only responses retain the signal context alongside their OpenAPI/contract document.
+
+See the [source-signal example](PAGE_SIGNALS.md) for a reproducible fixture and the public-site observation that motivated this feature.
 
 ## Limits and privacy
 

@@ -78,6 +78,8 @@ Ask an agent: **“Use Surface Map to analyze this public URL and explain the ro
 
 For logged-in or rendered pages, use a separate browser to obtain authorized saved artifacts, then call `analyze_capture`. Prefer small relevant selections; the client handles those supplied contents before Surface Map minimizes its response, and its context limit may be lower than the analyzer's byte caps.
 
+To inspect source-level agent guidance, ask for `include_page_signals: true` with `analyze_url` or `analyze_capture`. It reports phrases that address or mention AI agents, explicit hiding declarations and machine-document references with source locations, without returning the page's instructions or following them. [Example and limitations](docs/PAGE_SIGNALS.md).
+
 ## Privacy choices
 
 Input stays in process memory; the server keeps no upload files or reports. Optional parser workers are reused briefly and release explicit request references after responding; idle workers expire after five seconds. This does not securely erase process memory or operating-system swap. The browser keeps selected File objects while the workspace is open. Exports contain generic source IDs, never original filenames or source snippets.

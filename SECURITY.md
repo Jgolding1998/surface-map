@@ -14,6 +14,8 @@ Parser and worker files are checked against a pinned integrity manifest. Node re
 
 Minimization trades fidelity for disclosure reduction. A normalized path, field name, count, type or status can still reveal information about an application. Review exports before sharing. The tool does not certify that an artifact or export is public or free of sensitive facts.
 
+Opt-in page-signal analysis returns fixed content categories, source positions, source hiding declarations and minimized machine-resource paths. It does not return page prose, instruction bodies, commands, arbitrary attributes, URLs or digests of private text. These additional labels can still reveal facts about supplied content. Source declarations are not computed visibility or a prompt-injection verdict. Detected guidance is never followed and discovered resources are never fetched by this option. The bounded inventory shares the HTML analysis deadline; malformed nesting, unsupported styles and text/finding truncation limit coverage.
+
 ## MCP and public URL capture
 
 The optional MCP interface uses stdio, with no network listener. Five tools analyze supplied or bundled contents. Only `analyze_url` makes outbound requests: public HTTPS on port 443, without cookies, credentials or environment proxies. DNS answers and redirects are checked, private and special-purpose addresses are rejected, and connections use a vetted numeric IP while verifying TLS for the requested hostname. TLS verification is never disabled.
