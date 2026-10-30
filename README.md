@@ -2,6 +2,8 @@
 
 Inspect saved web artifacts and selected source files without running them. Build a route inventory and API skeleton from web captures, or a minimized language, dependency and library-capability inventory from source. Useful when documenting an app you own or comparing authorized captures.
 
+For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). The optional interface can also inspect a public HTTPS URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
+
 ![Surface Map workspace](docs/dashboard.png)
 
 ## Run
@@ -37,7 +39,7 @@ The **JavaScript analysis** selector offers automatic, required syntax analysis,
 | HTML | Links, form actions and control names, script and stylesheet asset paths | Declared |
 | JavaScript/TypeScript | Syntax and scope analysis of Fetch, XMLHttpRequest and supported Axios calls, aliases, constant expressions and options | Inferred |
 
-No source is executed, no traffic is replayed, and no URL is fetched. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension.
+Saved-artifact analysis executes no source, replays no traffic, and fetches no URL. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension. The optional MCP URL tool below can fetch a public page and selected external scripts before analysis.
 
 ## Inspect selected source files
 
@@ -66,6 +68,16 @@ Capture kinds correspond to the supported formats: `requirements`, `pyproject`, 
 
 Each source reports `parsed` or `rejected`. Unsupported syntax or structural limits can reject one file while other files still contribute evidence; inspect warnings before using the report. Source comparisons require fully parsed selections, so a parser failure cannot masquerade as a removed dependency. Malformed envelopes, unreadable files and byte-limit failures are controlled errors; CLI failure exits with status 2. No source text or path is included in these errors.
 
+## Use from an agent with MCP
+
+The optional [MCP stdio interface](docs/MCP.md) exposes `analyze_url`, `analyze_capture`, `compare_captures`, `inspect_sources`, `demo`, and `limits` through the official Python MCP SDK. Install `requirements-mcp.txt` in a virtual environment, then configure Claude or Codex using the linked guide. The default CLI and browser app still need no third-party Python packages.
+
+See the [verified Claude agent demonstration](docs/AGENT_DEMO.md) for real tool calls and the resulting explanation.
+
+Ask an agent: **“Use Surface Map to analyze this public URL and explain the routes and coverage limits.”** `analyze_url` fetches one public HTTPS page and up to five same-origin external scripts. It does not run JavaScript, log in, submit forms, test discovered APIs, or crawl linked pages. Captures are analyzed locally; the tool returns minimized evidence and explicit omissions. Use `demo` for an offline example.
+
+For logged-in or rendered pages, use a separate browser to obtain authorized saved artifacts, then call `analyze_capture`. Prefer small relevant selections; the client handles those supplied contents before Surface Map minimizes its response, and its context limit may be lower than the analyzer's byte caps.
+
 ## Privacy choices
 
 Input stays in process memory; the server keeps no upload files or reports. Optional parser workers are reused briefly and release explicit request references after responding; idle workers expire after five seconds. This does not securely erase process memory or operating-system swap. The browser keeps selected File objects while the workspace is open. Exports contain generic source IDs, never original filenames or source snippets.
@@ -88,7 +100,7 @@ This is deliberately lossy. Different origins or private route names can normali
 - Parser workers are reused, with at most two active workers and two waiting callers. Saturation returns a fixed `busy` reason. The three-second parser deadline excludes bounded process cleanup, which can add about 3.6 seconds per worker on exceptional termination. Python interpretation has its own cooperative three-second deadline; these are work safeguards, not a total HTTP latency guarantee.
 - A HAR observation describes that capture. It does not prove a route still works, is safe to call, or represents a complete service contract.
 - OpenAPI exports omit servers. Equivalent redacted path templates merge with combined evidence; a parameter observed as both numeric and text uses a string schema. Body shapes are combined observations, form encoding is unverified, and redaction placeholders are inferred. Supply your own server and validate the contract before using it.
-- The saved page URL is unknown, so relative links, form actions, asset paths and fetch URLs are omitted, as are forms without an action. Absolute and root-relative URLs are kept; in-page `#` links are ignored.
+- Saved captures have no page URL, so page-relative references and forms without an action are omitted. URL mode knows the final document URL and resolves those references, including the first supported `<base href>`. This remains static HTML interpretation; script-driven navigation, submit-button overrides and CSP are not simulated. In-page `#` links are ignored.
 - Form methods follow browser submission: `post` is POST, `dialog` is ignored and anything else is GET. GET form controls become query fields. Duplicate HTML attributes use their first value, matching browser handling.
 - On Python parsers that change ambiguous attribute references, link and form URLs such as `?page=1&currency=USD` produce a controlled error. Update Python or write `&amp;` in HTML attributes. The guard checks used URL attributes; an unfamiliar attribute tokenizer conservatively rejects ambiguous tags. Asset queries are discarded.
 - Comparison reports added, absent and changed normalized evidence. Absence from a capture does not prove removal from a service.

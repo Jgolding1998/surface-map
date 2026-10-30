@@ -1,0 +1,3 @@
+# Optional local MCP interface; the CLI and HTTP app remain dependency-free.
+# Official SDK: https://pypi.org/project/mcp/2.3.0/
+mcp==2.3.0

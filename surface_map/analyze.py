@@ -9,7 +9,7 @@ import time
 from html.entities import html5
 from html.parser import HTMLParser
 import html.parser as html_parser
-from urllib.parse import parse_qsl, unquote, urlsplit
+from urllib.parse import parse_qsl, unquote, urldefrag, urljoin, urlsplit
 
 MAX_ARTIFACTS = 6
 MAX_FILE_BYTES = 512 * 1024
@@ -85,6 +85,120 @@ def _guard_html_url(raw, attribute, decoded=None):
 
 def page_relative(raw):
     return isinstance(raw, str) and not raw.startswith("/") and re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", raw) is None
+
+
+def _http_url(value):
+    """Return value without its fragment when it is a plain absolute HTTP(S) URL.
+
+    Browsers normalize backslashes, embedded whitespace and similar input
+    differently from urllib, so such values are refused rather than resolved
+    into a route the page would not request.
+    """
+    if not isinstance(value, str) or not value or len(value) > 4096 or "\\" in value:
+        return None
+    if any(ord(c) <= 32 or ord(c) == 127 for c in value):
+        return None
+    try:
+        parts = urlsplit(value)
+        parts.port
+    except ValueError:
+        return None
+    if (parts.scheme.lower() not in {"http", "https"} or not parts.hostname or "@" in parts.netloc
+            or not value[len(parts.scheme) + 1:].startswith("//")):
+        return None
+    return urldefrag(value).url
+
+
+def validate_document_url(value):
+    url = _http_url(value)
+    if url is None:
+        raise ArtifactError("The document URL must be an absolute http(s) URL without credentials")
+    return url
+
+
+class _BaseFound(Exception):
+    pass
+
+
+class _BaseFinder(HTMLParser):
+    """Bounded pre-pass for the first <base href>, which applies to the whole document."""
+
+    def __init__(self, deadline):
+        super().__init__(convert_charrefs=True)
+        self.deadline, self.tags, self.template = deadline, 0, 0
+        self.text_container = None
+        self.found, self.href, self.ambiguous = False, None, False
+
+    def _check_time(self):
+        if time.monotonic() > self.deadline:
+            raise ArtifactError("HTML analysis exceeded its work deadline")
+
+    def handle_starttag(self, tag, attributes):
+        self._check_time()
+        self.tags += 1
+        if self.tags > MAX_HTML_TAGS:
+            raise ArtifactError(f"HTML exceeds the {MAX_HTML_TAGS:,}-tag limit; use a smaller page capture")
+        if self.text_container is not None:
+            return
+        if tag in {"title", "textarea", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"}:
+            self.text_container = tag
+            return
+        if tag == "template":
+            self.template += 1
+        elif tag == "base" and not self.template:
+            for key, value in attributes:
+                if key == "href":
+                    # HTML uses the first base element with an href attribute,
+                    # even an empty one, and the first duplicate attribute.
+                    self.found, self.href = True, value or ""
+                    try:
+                        _guard_html_url(self.get_starttag_text(), "href")
+                    except ArtifactError:
+                        self.ambiguous = True
+                    raise _BaseFound
+
+    def handle_endtag(self, tag):
+        self._check_time()
+        if self.text_container is not None:
+            if tag == self.text_container and tag != "plaintext":
+                self.text_container = None
+            return
+        if tag == "template" and self.template:
+            self.template -= 1
+
+    def handle_data(self, data):
+        self._check_time()
+
+    def handle_startendtag(self, tag, attributes):
+        # HTML does not self-close raw-text elements or templates with '/>'.
+        self.handle_starttag(tag, attributes)
+        if tag in {"script", "style"}:
+            self.set_cdata_mode(tag)
+
+    def handle_comment(self, data):
+        self._check_time()
+
+
+def document_base(text, document_url, deadline):
+    """Return the resolved document base URL, or None when a present base is unsupported."""
+    finder = _BaseFinder(deadline)
+    try:
+        finder.feed(text)
+        finder.close()
+    except _BaseFound:
+        pass
+    except AssertionError:
+        raise ArtifactError("Malformed or unsupported HTML markup") from None
+    finder._check_time()
+    if not finder.found:
+        return document_url
+    href = finder.href.strip("\t\n\f\r ")
+    if finder.ambiguous or "\\" in href or any(ord(c) < 32 or ord(c) == 127 for c in href):
+        return None
+    try:
+        return _http_url(urljoin(document_url, href))
+    except ValueError:
+        return None
 
 
 _ENVELOPE_TOKEN = re.compile(r'["{}\[\],:]|[^\s"{}\[\],:]+')
@@ -264,11 +378,25 @@ class Builder:
         self.routes, self.assets, self.sources, self.warnings = {}, {}, [], []
         self.unresolved, self.javascript = {}, []
         self.javascript_engine = javascript_engine
+        # Set only when the caller supplies the final document URL.
+        self.document_url = self.base_url = None
+        self.relative_reason = "A relative URL was omitted because the page URL is unknown"
+
+    def resolve(self, raw, kind):
+        """Resolve a page-relative reference against the document base when one is known."""
+        if self.base_url is None or not page_relative(raw) or (kind == "link" and raw.startswith("#")):
+            return raw
+        try:
+            return urljoin(self.base_url, raw)
+        except ValueError:
+            return None
 
     def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None):
+        if kind != "har":
+            raw = self.resolve(raw, kind)
         if kind != "har" and page_relative(raw):
             if not raw.startswith("#"):
-                self.warn(source, "A relative URL was omitted because the page URL is unknown")
+                self.warn(source, self.relative_reason)
             return
         sanitized = safe_path(raw)
         if sanitized is None or not isinstance(method, str) or method not in METHODS:
@@ -297,8 +425,9 @@ class Builder:
             route["evidence"].append(evidence)
 
     def unresolved_operation(self, raw, source, location):
+        raw = self.resolve(raw, "javascript")
         if page_relative(raw):
-            self.warn(source, "A relative URL was omitted because the page URL is unknown")
+            self.warn(source, self.relative_reason)
             return
         sanitized = safe_path(raw)
         if sanitized is None:
@@ -317,8 +446,9 @@ class Builder:
             target["evidence"].append(evidence)
 
     def asset(self, raw, kind, source, location):
+        raw = self.resolve(raw, "asset")
         if page_relative(raw):
-            self.warn(source, "A relative URL was omitted because the page URL is unknown")
+            self.warn(source, self.relative_reason)
             return
         sanitized = safe_path(raw)
         if sanitized is None:
@@ -569,13 +699,15 @@ class HTML(HTMLParser):
         attrs = {}
         for key, value in attributes:
             attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
+        raw_action = next((value for key, value in attributes if key == "action"), None)
         location = f"line {self.getpos()[0]}"
         if tag == "script" and not attrs.get("src") and not self.inline_warning:
             self.inline_warning = True
             self.builder.warn(self.source, "HTML analysis reads links, forms and asset references. Inline scripts and embedded JSON are not analyzed; add JavaScript or HAR evidence for those.")
         if tag == "a" and attrs.get("href"):
-            _guard_html_url(self.get_starttag_text(), "href", attrs["href"])
-            self.builder.add(attrs["href"], "GET", "link", self.source, location)
+            href = self.builder.resolve(attrs["href"], "link")
+            _guard_html_url(self.get_starttag_text(), "href", href)
+            self.builder.add(href, "GET", "link", self.source, location)
         elif tag == "script" and attrs.get("src"):
             self.builder.asset(attrs["src"], "script", self.source, location)
         elif tag == "link" and attrs.get("href"):
@@ -588,11 +720,22 @@ class HTML(HTMLParser):
         elif tag == "form":
             self._finish_form()
             method = (attrs.get("method") or "").lower()
-            if not attrs.get("action"):
-                self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
+            action = attrs.get("action")
+            if not raw_action and self.builder.document_url is not None:
+                # A missing or empty action submits to the document URL, not the base URL.
+                action = self.builder.document_url
+            elif raw_action and not action and self.builder.base_url is not None:
+                # A whitespace-only action is parsed as "" against the base URL.
+                action = self.builder.base_url
+            if not action:
+                if self.builder.document_url is None:
+                    self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
+                else:
+                    self.builder.warn(self.source, self.builder.relative_reason)
             elif method != "dialog":
-                _guard_html_url(self.get_starttag_text(), "action", attrs["action"])
-                self.form = {"url": attrs["action"], "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
+                action = self.builder.resolve(action, "form")
+                _guard_html_url(self.get_starttag_text(), "action", action)
+                self.form = {"url": action, "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
         elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
             fields, names = self.form["fields"], self.form["names"]
             if len(fields) >= 32 or attrs["name"] in names:
@@ -617,7 +760,15 @@ class HTML(HTMLParser):
         self._check_time()
 
 
-def analyze(artifacts, *, javascript_engine="auto", deadline=None):
+def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=None):
+    """Analyze artifacts offline.
+
+    document_url is the final URL of the single HTML artifact. When supplied,
+    page-relative references in that HTML and its JavaScript are resolved
+    against the document base URL (the first <base href>, else document_url)
+    and actionless forms against document_url. Nothing is requested, and
+    resolved URLs are normalized like any other path; origins are discarded.
+    """
     def check_deadline():
         if deadline is not None and time.monotonic() >= deadline:
             raise ArtifactError("Analysis exceeded the shared request deadline; use fewer artifacts")
@@ -627,7 +778,54 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None):
         raise ArtifactError("Choose auto, basic or enhanced JavaScript analysis")
     if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= MAX_ARTIFACTS:
         raise ArtifactError("Choose 1 to 6 HTML, HAR or JavaScript artifacts")
-    builder, total = Builder(javascript_engine), 0
+    if document_url is not None:
+        document_url = validate_document_url(document_url)
+    builder, html_deadline = Builder(javascript_engine), deadline
+    items = _read_artifacts(artifacts, builder, check_deadline)
+    if document_url is not None:
+        items = list(items)
+        kinds = [kind for _, kind, _ in items]
+        if kinds.count("html") != 1 or "har" in kinds:
+            raise ArtifactError("A document URL applies to exactly one HTML artifact and its JavaScript")
+        source, _, text = next(item for item in items if item[1] == "html")
+        html_deadline = time.monotonic() + HTML_WORK_SECONDS
+        if deadline is not None:
+            html_deadline = min(html_deadline, deadline)
+        try:
+            base_url = document_base(text, document_url, html_deadline)
+        except ArtifactError as error:
+            raise ArtifactError(f"{source}: {error}") from None
+        except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):
+            raise ArtifactError(f"{source}: malformed or unsupported artifact") from None
+        builder.document_url, builder.base_url = document_url, base_url
+        if base_url is None:
+            builder.relative_reason = "A relative URL was omitted because the document base URL is unsupported"
+            builder.warn(source, "The document base URL is unsupported; relative URLs were omitted")
+    for source, kind, text in items:
+        try:
+            if kind == "har":
+                parse_har(text, source, builder)
+            elif kind in {"javascript", "typescript"}:
+                parse_js(text, source, builder, kind=kind)
+            else:
+                parser = HTML(source, builder, deadline=html_deadline)
+                try:
+                    parser.feed(text)
+                    parser.close()
+                except AssertionError:
+                    raise ArtifactError("Malformed or unsupported HTML markup") from None
+                parser._check_time()
+                parser._finish_form()
+            check_deadline()
+        except ArtifactError as error:
+            raise ArtifactError(f"{source}: {error}") from None
+        except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):
+            raise ArtifactError(f"{source}: malformed or unsupported artifact") from None
+    return builder.finish()
+
+
+def _read_artifacts(artifacts, builder, check_deadline):
+    total = 0
     for index, artifact in enumerate(artifacts, 1):
         check_deadline()
         source = f"source_{index}"
@@ -668,23 +866,4 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None):
         if total > MAX_TOTAL_BYTES:
             raise ArtifactError(f"Capture contains {total:,} UTF-8 bytes; the combined limit is {MAX_TOTAL_BYTES:,} bytes. Analyze fewer artifacts at a time.")
         builder.sources.append({"id": source, "kind": kind, "bytes": size})
-        try:
-            if kind == "har":
-                parse_har(text, source, builder)
-            elif kind in {"javascript", "typescript"}:
-                parse_js(text, source, builder, kind=kind)
-            else:
-                parser = HTML(source, builder, deadline=deadline)
-                try:
-                    parser.feed(text)
-                    parser.close()
-                except AssertionError:
-                    raise ArtifactError("Malformed or unsupported HTML markup") from None
-                parser._check_time()
-                parser._finish_form()
-            check_deadline()
-        except ArtifactError as error:
-            raise ArtifactError(f"{source}: {error}") from None
-        except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError):
-            raise ArtifactError(f"{source}: malformed or unsupported artifact") from None
-    return builder.finish()
+        yield source, kind, text

@@ -1,6 +1,6 @@
 # Security
 
-Surface Map analyzes saved artifacts for one trusted local operating-system account. It does not capture live sessions, access installed apps, recover credentials, bypass authentication, execute imported code, replay traffic, or retrieve remote URLs.
+Surface Map analyzes artifacts for one trusted local operating-system account. Saved-input tools do not access the network. The optional MCP `analyze_url` tool retrieves a public HTTPS page and selected scripts under the limits below. Neither mode captures authenticated browser sessions, accesses installed apps, recovers credentials, bypasses authentication, executes imported code, or replays discovered API traffic.
 
 ## Data minimization
 
@@ -10,11 +10,21 @@ Source inspection returns only curated language, dependency, library-capability 
 
 JSON is bounded and rejects duplicate keys and nonfinite values. HTTP envelopes have an early token and depth check before object decoding, followed by a 100-node structural check; large quoted captures do not bypass limits on wide containers. Reserved JavaScript prototype keys are not retained as schema property names. The UI uses `textContent`, never imported HTML or source markup. Imported HTML is parsed as text and is never mounted into the page. Optional Node workers run only the reviewed parser, never the imported JavaScript. Target strings are not evaluated, imported, rendered, or treated as instructions.
 
-Parser and worker files are checked against a pinned integrity manifest. Node receives a minimal environment without API keys or Node injection options, bounded input/output, a per-request deadline and a heap cap. Its filesystem permissions and module allowlist are defense in depth, not an operating-system sandbox: Node 24 permissions do not block network access and do not fully constrain every native or process-internal interface. Trust in the pinned parser remains necessary. Local executable replacement, same-account races, compromised dependencies and arbitrary native exploits are outside this boundary. Package setup is an explicit operation; request handling never runs npm or downloads code.
+Parser and worker files are checked against a pinned integrity manifest. Node receives a minimal environment without API keys or Node injection options, bounded input/output, a per-request deadline and a heap cap. Its filesystem permissions and module allowlist are defense in depth, not an operating-system sandbox: Node 24 permissions do not block network access and do not fully constrain every native or process-internal interface. Trust in the pinned parser remains necessary. Local executable replacement, same-account races, compromised dependencies and arbitrary native exploits are outside this boundary. Package setup is an explicit operation; request handling never runs npm, installs dependencies, or executes downloaded source. URL mode downloads selected scripts only as untrusted text for analysis.
 
 Minimization trades fidelity for disclosure reduction. A normalized path, field name, count, type or status can still reveal information about an application. Review exports before sharing. The tool does not certify that an artifact or export is public or free of sensitive facts.
 
-## Local server
+## MCP and public URL capture
+
+The optional MCP interface uses stdio, with no network listener. Five tools analyze supplied or bundled contents. Only `analyze_url` makes outbound requests: public HTTPS on port 443, without cookies, credentials or environment proxies. DNS answers and redirects are checked, private and special-purpose addresses are rejected, and connections use a vetted numeric IP while verifying TLS for the requested hostname. TLS verification is never disabled.
+
+Capture allows one HTML document and up to five same-origin external scripts, at most nine requests and three redirects, within a shared 20-second network deadline and per-file/combined byte caps. Inline scripts, cross-origin scripts, dynamic imports, browser rendering, API replay and form submission are unsupported. A pending operating-system DNS lookup can outlive its timeout; a single retained slot bounds outstanding lookups. The standard library bounds HTTP header parsing before the module applies its smaller accepted-header cap.
+
+The final URL is used internally to resolve relative references. Raw fetched content is not returned to the agent; minimized evidence, counts and fixed warnings are. Websites still receive normal requests from the tool's host. Supplied-content tools receive data already handled by the agent/client, whose retention and logging are outside this tool's control. Captures and results are untrusted data, not instructions. A successful fetch may contain a consent or challenge page rather than the intended application.
+
+Analysis is serialized, with bounded MCP input and output and fixed busy/error messages. If script analysis fails within supported limits, valid HTML evidence is retained with an explicit partial-analysis warning. Missing evidence never proves an API is absent. See [MCP setup and limits](docs/MCP.md) for exact schemas and operational boundaries.
+
+## Local HTTP server
 
 - IPv4 loopback bind with exact Host and same-origin checks; no CORS permissions. Windows listeners reserve the port with `SO_EXCLUSIVEADDRUSE` so another reuse-enabled listener cannot share it.
 - Per-process random request token, checked before processing POST bodies.

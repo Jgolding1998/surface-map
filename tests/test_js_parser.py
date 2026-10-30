@@ -360,40 +360,44 @@ class ProcessTests(unittest.TestCase):
         api = ctypes.WinDLL("kernel32", use_last_error=True)
         api.OpenProcess.restype = wintypes.HANDLE
         api.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-        api.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        api.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        api.WaitForSingleObject.restype = wintypes.DWORD
         api.CloseHandle.argtypes = [wintypes.HANDLE]
-        def alive(pid):
-            handle = api.OpenProcess(0x1000, False, pid)
-            if not handle:
-                return False
-            try:
-                code = wintypes.DWORD()
-                return bool(api.GetExitCodeProcess(handle, ctypes.byref(code))) and code.value == 259
-            finally:
-                api.CloseHandle(handle)
         python = getattr(sys, "_base_executable", sys.executable)
         with tempfile.TemporaryDirectory() as temporary:
             pidfile = Path(temporary) / "owned.pid"
-            child = "import os,time;from pathlib import Path;Path(" + repr(str(pidfile)) + ").write_text(str(os.getpid()));time.sleep(20)"
+            child = ("import os,time;from pathlib import Path;p=Path(" + repr(str(pidfile)) + ");"
+                     "ready=p.with_suffix('.ready');ready.write_text(str(os.getpid())+' '+str(os.getppid()));"
+                     "ready.replace(p);time.sleep(20)")
             code = "import sys;from pathlib import Path;sys.path.insert(0," + repr(str(bridge.ANALYZER.parents[1])) + ");from surface_map import js_parser as p;p._run(" + repr([python, "-I", "-S", "-c", child]) + ",cwd=" + repr(temporary) + ",env=p._environment(Path(" + repr(python) + "),Path(" + repr(temporary) + ")),timeout=15)"
             parent = subprocess.Popen([python, "-I", "-S", "-c", code], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                       creationflags=subprocess.CREATE_NO_WINDOW)
+            owned_handles = []
             try:
                 deadline = time.monotonic() + 5
                 while not pidfile.exists() and parent.poll() is None and time.monotonic() < deadline:
                     time.sleep(.02)
                 self.assertTrue(pidfile.exists())
-                pid = int(pidfile.read_text())
-                self.assertTrue(alive(pid))
+                # Both the PID gate and its child use the temporary cwd. Pin their
+                # identities before terminating the owner; exit-code polling for
+                # only the child does not synchronize the gate's resource release.
+                for pid in map(int, pidfile.read_text().split()):
+                    handle = api.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+                    self.assertTrue(handle)
+                    owned_handles.append(handle)
+                    self.assertEqual(api.WaitForSingleObject(handle, 0), 0x102)  # WAIT_TIMEOUT
+                self.assertEqual(len(owned_handles), 2)
                 parent.kill(); parent.communicate(timeout=5)
                 deadline = time.monotonic() + 3
-                while alive(pid) and time.monotonic() < deadline:
-                    time.sleep(.02)
-                self.assertFalse(alive(pid))
+                for handle in owned_handles:
+                    remaining_ms = max(0, int((deadline - time.monotonic()) * 1000))
+                    self.assertEqual(api.WaitForSingleObject(handle, remaining_ms), 0)  # WAIT_OBJECT_0
             finally:
                 if parent.poll() is None:
                     parent.kill()
                 parent.communicate(timeout=5)
+                for handle in owned_handles:
+                    api.CloseHandle(handle)
 
 
 class IntegrityTests(unittest.TestCase):

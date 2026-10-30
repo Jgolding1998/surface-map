@@ -14,9 +14,10 @@ class Parser(argparse.ArgumentParser):
 
 
 def main(argv=None):
-    parser = Parser(prog="surface-map", description="Explore authorized saved web artifacts or selected source files. No network retrieval or execution.")
+    parser = Parser(prog="surface-map", description="Explore saved web artifacts and selected source files. The optional MCP interface also supports bounded public HTTPS capture. Captured source is never executed.")
     parser.add_argument("--port", type=int, default=8768)
     commands = parser.add_subparsers(dest="command")
+    commands.add_parser("mcp", help="Run the optional MCP stdio interface for saved contents and public HTTPS pages")
     commands.add_parser("setup-js", help="Explicitly install the pinned optional JavaScript parser with lifecycle scripts disabled")
     inspect = commands.add_parser("inspect", help="Print a minimized static source inventory as JSON")
     inspect.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
@@ -24,6 +25,9 @@ def main(argv=None):
     inputs.add_argument("--capture", type=Path, help="Source capture JSON with an artifacts array")
     inputs.add_argument("--files", nargs="+", type=Path, help="1 to 6 explicit local manifests or supported source files")
     args = parser.parse_args(argv)
+    if args.command == "mcp":
+        from .mcp_server import main as mcp_main
+        return mcp_main()
     if args.command == "setup-js":
         from .js_parser import setup
         return setup()
