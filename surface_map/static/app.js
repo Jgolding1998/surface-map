@@ -190,7 +190,7 @@ async function action(task) {
 
 function showDiff(value) {
   diff = value; $("#diff-panel").hidden = false;
-  const unresolved = (value.unresolved_added || []).length + (value.unresolved_removed || []).length;
+  const unresolved = (value.unresolved_added || []).length + (value.unresolved_removed || []).length + (value.unresolved_changed || []).length;
   $("#diff-summary").textContent = `${value.added.length} added · ${value.removed.length} absent · ${value.changed.length} changed${unresolved ? ` · ${unresolved} unresolved-method changes` : ""}`;
   const list = $("#diff-list"); list.replaceChildren();
   for (const [key, label] of [["added", "Added"], ["removed", "Absent"], ["changed", "Changed"]]) {
@@ -200,10 +200,12 @@ function showDiff(value) {
       list.append(row);
     }
   }
-  for (const [key, label] of [["unresolved_added", "Added unknown method"], ["unresolved_removed", "Absent unknown method"]]) {
+  for (const [key, label] of [["unresolved_added", "Added unknown method"], ["unresolved_removed", "Absent unknown method"], ["unresolved_changed", "Changed unknown method"]]) {
     for (const route of value[key] || []) {
       const row = node("div", "diff-row");
-      row.append(node("strong", "", label), node("code", "", route.path)); list.append(row);
+      row.append(node("strong", "", label), node("code", "", route.path));
+      if (route.changed_fields) row.append(node("span", "", route.changed_fields.join(", ")));
+      list.append(row);
     }
   }
   if (!list.children.length) list.append(node("div", "diff-row", "No changes in the normalized evidence."));
