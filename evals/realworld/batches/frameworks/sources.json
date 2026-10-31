@@ -1,0 +1,112 @@
+{
+  "schema": "surface-map-realworld-sources/1",
+  "note": "Whole files retain exact upstream bytes. The one JS fragment is upstream lines 76-96 inclusive joined with LF and one trailing LF. All cases are exposed development data; these are documentation/starter selections, not production captures.",
+  "projects": [
+    {
+      "project": "angular",
+      "license_file": "licenses/angular.txt",
+      "license_url": "https://github.com/angular/angular/blob/74961c662420ea02a5872bfa1a0ee3284526b887/LICENSE",
+      "license_sha256": "15e77c4692114f87c2020353626c868472c23954a4ed37ecc4c1522d14be1eb7",
+      "artifacts": [
+        {
+          "path": "artifacts/angular/profile-editor.component.html",
+          "upstream_path": "adev/src/content/examples/reactive-forms/src/app/profile-editor/profile-editor.component.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "b86f99a2c28bf71cc4e991497dcc7e488939f33464cf5d960c8beb1a80240c05",
+          "upstream_file_bytes": 1776,
+          "bytes": 1776,
+          "sha256": "b86f99a2c28bf71cc4e991497dcc7e488939f33464cf5d960c8beb1a80240c05"
+        }
+      ]
+    },
+    {
+      "project": "vue",
+      "license_file": "licenses/vue.txt",
+      "license_url": "https://github.com/vuejs/docs/blob/40aa88af0094f7bab4aaf786e55c748a6a251d88/LICENSE",
+      "license_sha256": "6f70876b3f5285fed192164cdca75000cb37fa7388285c8e3813b2ea3ea6eff1",
+      "artifacts": [
+        {
+          "path": "artifacts/vue/tutorial-composition.js",
+          "upstream_path": "src/tutorial/src/step-10/App/composition.js",
+          "lines": "whole file",
+          "upstream_file_sha256": "6f66c52f735036780ea64381f4ee00d759fe2eddf158856849f67a77e11dcb4a",
+          "upstream_file_bytes": 401,
+          "bytes": 401,
+          "sha256": "6f66c52f735036780ea64381f4ee00d759fe2eddf158856849f67a77e11dcb4a"
+        },
+        {
+          "path": "artifacts/vue/watchers-L76-L96.js",
+          "upstream_path": "src/guide/essentials/watchers.md",
+          "lines": [
+            76,
+            96
+          ],
+          "upstream_file_sha256": "67af48b85a118b153b930500f3773d0481b0a16521adaa76866521fe8294c675",
+          "upstream_file_bytes": 19607,
+          "bytes": 591,
+          "sha256": "dbe8af13f914df9df8b43f1e4e95d40a0bc30c1f670e27ac1691c86ea9336d32"
+        }
+      ]
+    },
+    {
+      "project": "express",
+      "license_file": "licenses/express.txt",
+      "license_url": "https://github.com/expressjs/express/blob/1c6f1b0fe4000977b9a7b4f34097e4d527dd9824/LICENSE",
+      "license_sha256": "95a5762890e5c1c9808921cef095661fc482c5e1f0bba31446ac85595df6237c",
+      "artifacts": [
+        {
+          "path": "artifacts/express/login.ejs.html",
+          "upstream_path": "examples/auth/views/login.ejs",
+          "lines": "whole file",
+          "upstream_file_sha256": "e369b6cffc4e585c8f3b08ae88542f5f931f329d505142e90373ea204ef377fa",
+          "upstream_file_bytes": 533,
+          "bytes": 533,
+          "sha256": "e369b6cffc4e585c8f3b08ae88542f5f931f329d505142e90373ea204ef377fa"
+        }
+      ]
+    },
+    {
+      "project": "fastapi",
+      "license_file": "licenses/fastapi.txt",
+      "license_url": "https://github.com/fastapi/fastapi/blob/45cb2252c737906f37544f5ba6bee0295fb81468/LICENSE",
+      "license_sha256": "4ec89ffc81485b97fec584b2d4a961032eeffe834453894fd9c1274906cc744e",
+      "artifacts": [
+        {
+          "path": "artifacts/fastapi/item.html",
+          "upstream_path": "docs_src/templates/templates/item.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "c15145e8a288ce8f7061151196e5e094639d366a8b110605f205023e9a6d73da",
+          "upstream_file_bytes": 235,
+          "bytes": 235,
+          "sha256": "c15145e8a288ce8f7061151196e5e094639d366a8b110605f205023e9a6d73da"
+        }
+      ]
+    },
+    {
+      "project": "lit",
+      "license_file": "licenses/lit.txt",
+      "license_url": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/LICENSE",
+      "license_sha256": "c94b94b40b85a5083dea825ae844b1cedb40dd425685362c135e143265dd6cd4",
+      "artifacts": [
+        {
+          "path": "artifacts/lit/starter-index.html",
+          "upstream_path": "packages/lit-starter-ts/index.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "91dd5c97b6d1db0d11398c75e1a7ed2143d9979c3f328ebab274a70fed38141e",
+          "upstream_file_bytes": 183,
+          "bytes": 183,
+          "sha256": "91dd5c97b6d1db0d11398c75e1a7ed2143d9979c3f328ebab274a70fed38141e"
+        },
+        {
+          "path": "artifacts/lit/docs-index.html",
+          "upstream_path": "packages/lit-starter-ts/docs/index.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "0e8a26f5efafa0b292d744132776ec14be11f84a155c06a8b234ed510b5b3ed4",
+          "upstream_file_bytes": 4373,
+          "bytes": 4373,
+          "sha256": "0e8a26f5efafa0b292d744132776ec14be11f84a155c06a8b234ed510b5b3ed4"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+artifacts/** -text
+licenses/** -text
+*.json text eol=lf
+*.md text eol=lf

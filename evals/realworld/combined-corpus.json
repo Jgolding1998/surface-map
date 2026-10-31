@@ -1,0 +1,838 @@
+{
+  "cases": [
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/frameworks/artifacts/angular/profile-editor.component.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "74961c662420ea02a5872bfa1a0ee3284526b887",
+            "url": "https://github.com/angular/angular/blob/74961c662420ea02a5872bfa1a0ee3284526b887/adev/src/content/examples/reactive-forms/src/app/profile-editor/profile-editor.component.html"
+          },
+          "sha256": "b86f99a2c28bf71cc4e991497dcc7e488939f33464cf5d960c8beb1a80240c05"
+        }
+      ],
+      "family": "html-actionless-framework-form",
+      "id": "angular-reactive-form-without-document-url",
+      "project": "angular"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "batches/request-patterns/artifacts/astro/ssr-api.ts",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+            "url": "https://github.com/withastro/astro/blob/10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30/examples/ssr/src/api.ts"
+          },
+          "sha256": "9ba45fd123f948a645925055538e72066e782e1c9b3964910a4e2f71df07d75e"
+        }
+      ],
+      "family": "typescript-fetch-dynamic-origin-negative",
+      "id": "astro-ssr-api-dynamic-origin-negative",
+      "project": "astro"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/axios/get-index.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/get/index.html"
+          },
+          "sha256": "7e2e63da659ecf2f8247aaa4f71ed62ada9c9c13f4b87f289cdf482510c1a990"
+        },
+        {
+          "kind": "javascript",
+          "path": "artifacts/axios/get-inline-L15-L32.js",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/get/index.html#L15-L32"
+          },
+          "sha256": "cfac50b681c9e523dad32df43820c22fecd94508964fa8ab9fd7c5a66f602489"
+        }
+      ],
+      "family": "javascript-axios-global",
+      "id": "axios-example-get-global",
+      "project": "axios"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/axios/post-inline-L24-L39.js",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/post/index.html#L24-L39"
+          },
+          "sha256": "6eee6eb99328d185c1668c9492387c3c7fc48bb99bfb628b4d41a89f57de7317"
+        }
+      ],
+      "family": "javascript-axios-global",
+      "id": "axios-example-post-global",
+      "project": "axios"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/bootstrap/alert.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "c2ab624f40c4dcfdbcae9747dce265834ffb4f5d",
+            "url": "https://github.com/twbs/bootstrap/blob/c2ab624f40c4dcfdbcae9747dce265834ffb4f5d/js/tests/visual/alert.html"
+          },
+          "sha256": "772334fef55ca9115f20e5027b4de56cda9a591240e42099b20c6bfc4fbd82d8"
+        }
+      ],
+      "family": "html-fragment-links-negative",
+      "id": "bootstrap-visual-alert-fragment-links",
+      "project": "bootstrap"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/django/article_form.html",
+          "provenance": {
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31",
+            "revision": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+            "url": "https://github.com/django/django/blob/a05e16a7230fe33d3f43f4a3aaed103cebb42efc/tests/forms_tests/templates/forms_tests/article_form.html"
+          },
+          "sha256": "b1c269b6e295955d48f29681ed5420ca759847798c72b5d3ecd1fbc21e56f575"
+        }
+      ],
+      "document_url": "https://example.com/articles/create",
+      "family": "html-form-template-document-context",
+      "id": "django-actionless-unrendered-form",
+      "project": "django"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/frameworks/artifacts/express/login.ejs.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+            "url": "https://github.com/expressjs/express/blob/1c6f1b0fe4000977b9a7b4f34097e4d527dd9824/examples/auth/views/login.ejs"
+          },
+          "sha256": "e369b6cffc4e585c8f3b08ae88542f5f931f329d505142e90373ea204ef377fa"
+        }
+      ],
+      "family": "html-ejs-form-and-navigation",
+      "id": "express-auth-login-template",
+      "project": "express"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/frameworks/artifacts/fastapi/item.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "45cb2252c737906f37544f5ba6bee0295fb81468",
+            "url": "https://github.com/fastapi/fastapi/blob/45cb2252c737906f37544f5ba6bee0295fb81468/docs_src/templates/templates/item.html"
+          },
+          "sha256": "c15145e8a288ce8f7061151196e5e094639d366a8b110605f205023e9a6d73da"
+        }
+      ],
+      "family": "html-jinja-unrendered-navigation",
+      "id": "fastapi-unrendered-item-template",
+      "project": "fastapi"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/github-fetch/fetch-L526-L633.js",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4",
+            "url": "https://github.com/JakeChampion/fetch/blob/ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4/fetch.js#L526-L633"
+          },
+          "sha256": "4d43d944838144f39335058db138cd4d6d9fde45bcb6eec69e1bea0008c41c20"
+        }
+      ],
+      "family": "javascript-xhr-dynamic-negative",
+      "id": "fetch-polyfill-xhr-dynamic",
+      "project": "github-fetch"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/flask/login.html",
+          "provenance": {
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31",
+            "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+            "url": "https://github.com/pallets/flask/blob/49943b5a94413a530761350f04e896f76e8d620e/examples/tutorial/flaskr/templates/auth/login.html"
+          },
+          "sha256": "f0d4ee341a19c8f9d51a66c5da624e687e58de7e3fb2ca41c6f5b8d07e20a6c1"
+        }
+      ],
+      "document_url": "https://example.com/auth/login",
+      "family": "html-form-empty-action",
+      "id": "flask-tutorial-login-form",
+      "project": "flask"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/flask/register.html",
+          "provenance": {
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31",
+            "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+            "url": "https://github.com/pallets/flask/blob/49943b5a94413a530761350f04e896f76e8d620e/examples/tutorial/flaskr/templates/auth/register.html"
+          },
+          "sha256": "53da308c1d62f057613ec8e445eb70e89404288f503156102d1e3e39ec5b2153"
+        }
+      ],
+      "document_url": "https://example.com/auth/register",
+      "family": "html-form-empty-action",
+      "id": "flask-tutorial-register-form",
+      "project": "flask"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "batches/request-patterns/artifacts/googlechrome-samples/encoding-api-demo.js",
+          "provenance": {
+            "license": "Apache-2.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+            "url": "https://github.com/GoogleChrome/samples/blob/8c3a755f756fcd816f088684a3c697cbd891fc35/encoding-api/demo.js"
+          },
+          "sha256": "9e85121467f30549bd406f3c16cf6c5b23e83240a608a73aafcd8916d6d6031c"
+        }
+      ],
+      "family": "javascript-xhr-dynamic-negative",
+      "id": "googlechrome-encoding-xhr-parameter-negative",
+      "project": "googlechrome-samples"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "batches/request-patterns/artifacts/googlechrome-samples/fetch-post-demo.js",
+          "provenance": {
+            "license": "Apache-2.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+            "url": "https://github.com/GoogleChrome/samples/blob/8c3a755f756fcd816f088684a3c697cbd891fc35/fetch-api/fetch-post-demo.js"
+          },
+          "sha256": "d3fa5455891db4b03d77e69d638bf1d461f2ef458fe70b84801c944b6b64635b"
+        }
+      ],
+      "family": "javascript-fetch-lowercase-method",
+      "id": "googlechrome-fetch-post-gists",
+      "project": "googlechrome-samples"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/htmx/aborting-request.html",
+          "provenance": {
+            "license": "0BSD",
+            "retrieved_at": "2026-10-31",
+            "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+            "url": "https://github.com/bigskysoftware/htmx/blob/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1/test/manual/aborting-request.html"
+          },
+          "sha256": "d00de2749d7f27d30cca2a25d68238ee2b62eacc7274bdf560534eee1e96690f"
+        }
+      ],
+      "family": "html-framework-attribute-unsupported",
+      "id": "htmx-hx-get-unsupported",
+      "project": "htmx"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/htmx/manual-index.html",
+          "provenance": {
+            "license": "0BSD",
+            "retrieved_at": "2026-10-31",
+            "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+            "url": "https://github.com/bigskysoftware/htmx/blob/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1/test/manual/index.html"
+          },
+          "sha256": "d845461262f7a58ac71423e21500d9afe200168a746433d7cf9782d441227dd3"
+        }
+      ],
+      "document_url": "https://example.com/test/manual/index.html",
+      "family": "html-relative-navigation-origin-merge",
+      "id": "htmx-manual-relative-navigation",
+      "project": "htmx"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/httpbin/forms-post.html",
+          "provenance": {
+            "license": "ISC",
+            "retrieved_at": "2026-10-31",
+            "revision": "f8ec666b4d1b654e4ff6aedd356f510dcac09f83",
+            "url": "https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/templates/forms-post.html"
+          },
+          "sha256": "6297c5bca1846ead33fcd6adc0de34c90bce0ca4b7325817ceab72f85ce492fe"
+        }
+      ],
+      "family": "html-form-unrendered-action",
+      "id": "httpbin-forms-post-template",
+      "project": "httpbin"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/jquery/navigation-L1-L14.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf",
+            "url": "https://github.com/jquery/jquery/blob/c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf/test/data/qunit-fixture.html#L1-L14"
+          },
+          "sha256": "29722311c3b309cb007bb4b5ad35a98020196894372eccaf22a83710f22ba272"
+        }
+      ],
+      "family": "html-external-navigation-origin-merge",
+      "id": "jquery-fixture-external-navigation",
+      "project": "jquery"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/frameworks/artifacts/lit/docs-index.html",
+          "provenance": {
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31",
+            "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+            "url": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/lit-starter-ts/docs/index.html"
+          },
+          "sha256": "0e8a26f5efafa0b292d744132776ec14be11f84a155c06a8b234ed510b5b3ed4"
+        }
+      ],
+      "document_url": "https://example.com/",
+      "family": "html-relative-navigation-collision",
+      "id": "lit-docs-navigation-with-context",
+      "project": "lit"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/frameworks/artifacts/lit/starter-index.html",
+          "provenance": {
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31",
+            "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+            "url": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/lit-starter-ts/index.html"
+          },
+          "sha256": "91dd5c97b6d1db0d11398c75e1a7ed2143d9979c3f328ebab274a70fed38141e"
+        }
+      ],
+      "family": "html-starter-navigation",
+      "id": "lit-starter-demo-link",
+      "project": "lit"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/mdn-learning-area/get-method.html",
+          "provenance": {
+            "license": "CC0-1.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "21973263ba859ff3477919087b488157f9d618a6",
+            "url": "https://github.com/mdn/learning-area/blob/21973263ba859ff3477919087b488157f9d618a6/html/forms/sending-form-data/get-method.html"
+          },
+          "sha256": "8a98e5138ded59fdae45a625109061359d56a36249e221ddfae71cfa4a38178e"
+        }
+      ],
+      "family": "html-form-absolute-action",
+      "id": "mdn-form-get-method",
+      "project": "mdn-learning-area"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/mdn-learning-area/post-method.html",
+          "provenance": {
+            "license": "CC0-1.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "21973263ba859ff3477919087b488157f9d618a6",
+            "url": "https://github.com/mdn/learning-area/blob/21973263ba859ff3477919087b488157f9d618a6/html/forms/sending-form-data/post-method.html"
+          },
+          "sha256": "d695f7e69bd983feb5eeceb1f99a3d680ae7b7d8a4da19788129cbaeec0b2043"
+        }
+      ],
+      "family": "html-form-absolute-action",
+      "id": "mdn-form-post-method",
+      "project": "mdn-learning-area"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/nextjs/index.tsx",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "fac5fc87df2b60169189ac6dcba3142854124371",
+            "url": "https://github.com/vercel/next.js/blob/fac5fc87df2b60169189ac6dcba3142854124371/examples/api-routes-rest/pages/index.tsx"
+          },
+          "sha256": "b87bfdd05b9c69edd3e7931fef08bab81ee1a2d47fe4f74ec21b52561b20fee2"
+        }
+      ],
+      "family": "typescript-fetch-indirect-negative",
+      "id": "nextjs-swr-fetcher-indirect",
+      "project": "nextjs"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "batches/request-patterns/artifacts/remix/cart-button.tsx",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+            "url": "https://github.com/remix-run/remix/blob/a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259/demos/bookstore/app/actions/fragments/public/cart-button.tsx"
+          },
+          "sha256": "6192ff43dc2191aef84f7688be7ba8f80d7a4189f35eee64d4a65189b5d2b89a"
+        }
+      ],
+      "family": "typescript-fetch-route-helper-negative",
+      "id": "remix-bookstore-cart-button-route-helper-negative",
+      "project": "remix"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "batches/request-patterns/artifacts/redux-toolkit/pokemon.ts",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "0fd611cc79d44990ac9a040dec4d5cb446233440",
+            "url": "https://github.com/reduxjs/redux-toolkit/blob/0fd611cc79d44990ac9a040dec4d5cb446233440/examples/query/react/basic/src/services/pokemon.ts"
+          },
+          "sha256": "5d84ac4bb566ecf758405085e4db2a4525d723048da02d35b7d64757f15739b1"
+        }
+      ],
+      "family": "typescript-client-wrapper-negative",
+      "id": "rtk-query-pokemon-fetchbasequery-negative",
+      "project": "redux-toolkit"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "batches/html-clients/artifacts/sveltekit/enhance-form-L21-L31.html",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+            "url": "https://github.com/sveltejs/kit/blob/3da859a9f161d7e57d74a109149b83076664da7d/packages/kit/test/apps/basics/src/routes/actions/enhance/+page.svelte#L21-L31"
+          },
+          "sha256": "b8d1131696ce68afca8c22b8a1c27c9b5976310923892e15062449a7253b76ed"
+        }
+      ],
+      "document_url": "https://example.com/actions/enhance",
+      "family": "html-framework-form-static-fragment",
+      "id": "sveltekit-enhance-form-static-declaration",
+      "project": "sveltekit"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "batches/html-clients/artifacts/sveltekit/fetch-no-body-page.js",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+            "url": "https://github.com/sveltejs/kit/blob/3da859a9f161d7e57d74a109149b83076664da7d/packages/kit/test/apps/basics/src/routes/load/fetch-no-body/+page.js"
+          },
+          "sha256": "a67dcf9b0cdb8d15dac7db2d4ddf259a60802cee684d2bfb3e16a1245dd632de"
+        }
+      ],
+      "family": "javascript-injected-client-unsupported",
+      "id": "sveltekit-injected-fetch-scope-boundary",
+      "project": "sveltekit"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "batches/request-patterns/artifacts/tanstack-query/basic-posts-api.ts",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+            "url": "https://github.com/TanStack/query/blob/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec/examples/react/basic/src/services/posts/api.ts"
+          },
+          "sha256": "1a9ebe0cd5d36c715e95394b6a91901fbf1c57b1b3d77b195866614bbd9f8c73"
+        }
+      ],
+      "family": "typescript-fetch-literal-and-template",
+      "id": "tanstack-basic-posts-api",
+      "project": "tanstack-query"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "batches/request-patterns/artifacts/tanstack-query/star-wars-films-api.ts",
+          "provenance": {
+            "license": "MIT",
+            "retrieved_at": "2026-10-31",
+            "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+            "url": "https://github.com/TanStack/query/blob/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec/examples/react/star-wars/src/services/films/api.ts"
+          },
+          "sha256": "017dd2bec07750cd8cc508ee96f2b10bcf0a37ea299357014e441f022c798165"
+        }
+      ],
+      "family": "typescript-fetch-literal-and-template",
+      "id": "tanstack-star-wars-films-api",
+      "project": "tanstack-query"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "batches/frameworks/artifacts/vue/tutorial-composition.js",
+          "provenance": {
+            "license": "CC-BY-4.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+            "url": "https://github.com/vuejs/docs/blob/40aa88af0094f7bab4aaf786e55c748a6a251d88/src/tutorial/src/step-10/App/composition.js"
+          },
+          "sha256": "6f66c52f735036780ea64381f4ee00d759fe2eddf158856849f67a77e11dcb4a"
+        }
+      ],
+      "family": "javascript-framework-dynamic-target",
+      "id": "vue-tutorial-dynamic-todo-fetch",
+      "project": "vue"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "batches/frameworks/artifacts/vue/watchers-L76-L96.js",
+          "provenance": {
+            "license": "CC-BY-4.0",
+            "retrieved_at": "2026-10-31",
+            "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+            "url": "https://github.com/vuejs/docs/blob/40aa88af0094f7bab4aaf786e55c748a6a251d88/src/guide/essentials/watchers.md#L76-L96"
+          },
+          "sha256": "dbe8af13f914df9df8b43f1e4e95d40a0bc30c1f670e27ac1691c86ea9336d32"
+        }
+      ],
+      "family": "javascript-watch-callback-literal-fetch",
+      "id": "vue-watchers-literal-fetch",
+      "project": "vue"
+    }
+  ],
+  "name": "surface-map-realworld-development-combined-v1",
+  "projects": [
+    {
+      "exposure": "exposed",
+      "group": "angular",
+      "id": "angular",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "74961c662420ea02a5872bfa1a0ee3284526b887",
+        "url": "https://github.com/angular/angular/tree/74961c662420ea02a5872bfa1a0ee3284526b887"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "astro",
+      "id": "astro",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+        "url": "https://github.com/withastro/astro/tree/10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "axios",
+      "id": "axios",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+        "url": "https://github.com/axios/axios/tree/9d11464a75ee5c644c0308d742f58755c0482594"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "bootstrap",
+      "id": "bootstrap",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "c2ab624f40c4dcfdbcae9747dce265834ffb4f5d",
+        "url": "https://github.com/twbs/bootstrap/tree/c2ab624f40c4dcfdbcae9747dce265834ffb4f5d"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "django",
+      "id": "django",
+      "kind": "real",
+      "provenance": {
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31",
+        "revision": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+        "url": "https://github.com/django/django/tree/a05e16a7230fe33d3f43f4a3aaed103cebb42efc"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "express",
+      "id": "express",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+        "url": "https://github.com/expressjs/express/tree/1c6f1b0fe4000977b9a7b4f34097e4d527dd9824"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "fastapi",
+      "id": "fastapi",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "45cb2252c737906f37544f5ba6bee0295fb81468",
+        "url": "https://github.com/fastapi/fastapi/tree/45cb2252c737906f37544f5ba6bee0295fb81468"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "flask",
+      "id": "flask",
+      "kind": "real",
+      "provenance": {
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31",
+        "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+        "url": "https://github.com/pallets/flask/tree/49943b5a94413a530761350f04e896f76e8d620e"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "github-fetch",
+      "id": "github-fetch",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4",
+        "url": "https://github.com/JakeChampion/fetch/tree/ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "googlechrome-samples",
+      "id": "googlechrome-samples",
+      "kind": "real",
+      "provenance": {
+        "license": "Apache-2.0",
+        "retrieved_at": "2026-10-31",
+        "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+        "url": "https://github.com/GoogleChrome/samples/tree/8c3a755f756fcd816f088684a3c697cbd891fc35"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "htmx",
+      "id": "htmx",
+      "kind": "real",
+      "provenance": {
+        "license": "0BSD",
+        "retrieved_at": "2026-10-31",
+        "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+        "url": "https://github.com/bigskysoftware/htmx/tree/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "httpbin",
+      "id": "httpbin",
+      "kind": "real",
+      "provenance": {
+        "license": "ISC",
+        "retrieved_at": "2026-10-31",
+        "revision": "f8ec666b4d1b654e4ff6aedd356f510dcac09f83",
+        "url": "https://github.com/postmanlabs/httpbin/tree/f8ec666b4d1b654e4ff6aedd356f510dcac09f83"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "jquery",
+      "id": "jquery",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf",
+        "url": "https://github.com/jquery/jquery/tree/c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "lit",
+      "id": "lit",
+      "kind": "real",
+      "provenance": {
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31",
+        "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+        "url": "https://github.com/lit/lit/tree/16507ef656417c9c53a55a02a44a563bbbf2c484"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "mdn-learning-area",
+      "id": "mdn-learning-area",
+      "kind": "real",
+      "provenance": {
+        "license": "CC0-1.0",
+        "retrieved_at": "2026-10-31",
+        "revision": "21973263ba859ff3477919087b488157f9d618a6",
+        "url": "https://github.com/mdn/learning-area/tree/21973263ba859ff3477919087b488157f9d618a6"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "nextjs",
+      "id": "nextjs",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "fac5fc87df2b60169189ac6dcba3142854124371",
+        "url": "https://github.com/vercel/next.js/tree/fac5fc87df2b60169189ac6dcba3142854124371"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "redux-toolkit",
+      "id": "redux-toolkit",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "0fd611cc79d44990ac9a040dec4d5cb446233440",
+        "url": "https://github.com/reduxjs/redux-toolkit/tree/0fd611cc79d44990ac9a040dec4d5cb446233440"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "remix",
+      "id": "remix",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+        "url": "https://github.com/remix-run/remix/tree/a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "sveltekit",
+      "id": "sveltekit",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+        "url": "https://github.com/sveltejs/kit/tree/3da859a9f161d7e57d74a109149b83076664da7d"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "tanstack-query",
+      "id": "tanstack-query",
+      "kind": "real",
+      "provenance": {
+        "license": "MIT",
+        "retrieved_at": "2026-10-31",
+        "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+        "url": "https://github.com/TanStack/query/tree/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec"
+      },
+      "split": "development"
+    },
+    {
+      "exposure": "exposed",
+      "group": "vue",
+      "id": "vue",
+      "kind": "real",
+      "provenance": {
+        "license": "CC-BY-4.0",
+        "retrieved_at": "2026-10-31",
+        "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+        "url": "https://github.com/vuejs/docs/tree/40aa88af0094f7bab4aaf786e55c748a6a251d88"
+      },
+      "split": "development"
+    }
+  ],
+  "schema": "surface-map-holdout-corpus/1"
+}

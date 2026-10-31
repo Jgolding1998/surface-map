@@ -1,0 +1,41 @@
+{
+  "schema": "surface-map-realworld-regression/1",
+  "corpus_sha256": "a2a04ccada4f49843a5d0bfc82f689db56ddb12c295ffc52bd50566fa9172774",
+  "labels_sha256": "6b1694e84ad291f70ed86807c04c83109423725894980afb9f0efd7da646c7b4",
+  "engine": "enhanced",
+  "passing_case_ids": [
+    "angular-reactive-form-without-document-url",
+    "astro-ssr-api-dynamic-origin-negative",
+    "bootstrap-visual-alert-fragment-links",
+    "django-actionless-unrendered-form",
+    "express-auth-login-template",
+    "fastapi-unrendered-item-template",
+    "fetch-polyfill-xhr-dynamic",
+    "flask-tutorial-login-form",
+    "flask-tutorial-register-form",
+    "googlechrome-encoding-xhr-parameter-negative",
+    "googlechrome-fetch-post-gists",
+    "htmx-hx-get-unsupported",
+    "htmx-manual-relative-navigation",
+    "httpbin-forms-post-template",
+    "jquery-fixture-external-navigation",
+    "lit-docs-navigation-with-context",
+    "lit-starter-demo-link",
+    "mdn-form-get-method",
+    "mdn-form-post-method",
+    "nextjs-swr-fetcher-indirect",
+    "remix-bookstore-cart-button-route-helper-negative",
+    "rtk-query-pokemon-fetchbasequery-negative",
+    "sveltekit-enhance-form-static-declaration",
+    "sveltekit-injected-fetch-scope-boundary",
+    "tanstack-basic-posts-api",
+    "tanstack-star-wars-films-api",
+    "vue-tutorial-dynamic-todo-fetch",
+    "vue-watchers-literal-fetch"
+  ],
+  "known_failure_case_ids": [
+    "axios-example-get-global",
+    "axios-example-post-global"
+  ],
+  "scope": "Development regression baseline, not gold labels or unseen accuracy evidence. Known failures remain in the full evaluation and its denominator. Improvements are allowed; a previously passing case must not fail."
+}

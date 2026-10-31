@@ -1,0 +1,44 @@
+name: Project corpus evaluation
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --bin-links=false
+        working-directory: analyzers/javascript
+      - name: Check the harness using its synthetic self-tests
+        run: python -m evals.holdout --engine enhanced --repeats 3 --check --output harness-results.json
+      - name: Verify frozen project inputs, labels and combined manifest
+        run: python -m evals.realworld.combine --check --expected-projects 21
+      - name: Score all real-project development examples, including known gaps
+        run: python -m evals.holdout --corpus evals/realworld/combined-corpus.json --labels evals/realworld/combined-labels.json --engine enhanced --repeats 3 --output realworld-results.json
+      - name: Fail on new regressions while retaining known failures
+        run: python -m evals.realworld.regression --results realworld-results.json
+      - name: Retain scored reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: project-corpus-${{ matrix.os }}
+          path: |
+            harness-results.json
+            realworld-results.json
+          if-no-files-found: ignore
+          retention-days: 7

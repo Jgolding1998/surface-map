@@ -1,0 +1,141 @@
+{
+  "schema": "surface-map-holdout-labels/1",
+  "corpus_sha256": "697ecd8b8306937844b91e7cae5b3cf2f6d8aff17a4c544df7189159bf7f67b6",
+  "labels": [
+    {
+      "id": "bootstrap-visual-alert-fragment-links",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read the whole visual alert fixture. The only anchors have href='#', so they are in-page references excluded by the documented HTML rules. The stylesheet and module-script references are relative assets and are not operation routes. Buttons only dismiss or display alerts; no form or supported client request appears in the supplied HTML. External Bootstrap behavior is not loaded or executed. Empty expected set does not prove the rendered component never performs other behavior."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "htmx-manual-relative-navigation",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read the manual index. Its anchors are page-relative filenames/directories. Supplied document_url https://example.com/test/manual/index.html is reserved-host evaluation metadata reflecting the source directory, not a fetched or asserted deployment. Resolve each anchor against /test/manual/. 'test', 'manual' and every destination name are outside the fixed path vocabulary, so all become the same three-segment alias path and merge. Each is declared navigation, not an observed successful GET. The links are not followed. Origin redaction and name aliasing hide the distinctions among destinations."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}/{segment_3}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "htmx-hx-get-unsupported",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read the whole aborting-request fixture. A button has hx-get='https://httpbin.org/html' and hx-target='#target'. The documented extractor handles links, native forms and supported Fetch/XHR/Axios clients; it does not interpret htmx hx-* attributes. No anchor or form appears. The relative htmx script is only an asset; the inline event listener is ignored in HTML mode. Do not invent GET /html as a supported extracted operation. Runtime htmx could make that request, and the checkbox-dependent abort handler further affects behavior. This is an explicit unsupported-framework boundary."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "jquery-fixture-external-navigation",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read exact upstream lines 1-14 of qunit-fixture.html, containing complete paragraphs and a complete div. Literal links to Google, Google Groups, https://blog, Mozilla, Yahoo and Timmy Willison have empty/root paths and normalize to '/'; different hosts intentionally merge. John Resig's /blog/10th-anniversary-of-jquery/ has two unknown segments, yielding /{segment_1}/{segment_2}; its #body fragment is discarded. The #2 in-page anchor is ignored. No lower fixture forms, iframe or scripts are included. These declared links do not establish that any destination is reachable."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "django-actionless-unrendered-form",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read the full article_form.html fixture. The native form declares method='post' and has no action. Supplied https://example.com/articles/create is hypothetical reserved-host document metadata to exercise missing-action handling; it is not a claimed Django route or deployment. Submission therefore declares POST to that supplied page; 'articles' is outside the path vocabulary and 'create' is retained. {% csrf_token %} and {{ form.as_p }} remain unrendered template text. Do not invent expanded controls, authentication behavior or generated URLs. The submit input has no name. No template engine or server was executed."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "POST",
+            "path": "/{segment_1}/create",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "sveltekit-enhance-form-static-declaration",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read exact upstream +page.svelte lines 21-31: a complete native form whose method is post and action is the literal '?/login'. Supplied reserved-host document_url https://example.com/actions/enhance corresponds to the source route directory, but is evaluation metadata, not a fetched deployment. Resolving the query-only action keeps /actions/enhance, whose segments both alias. The root README excludes submit-button overrides, so formAction='?/register', '?/submitter' and '?/error' do not create extra operations. use:enhance is a Svelte directive and is not executed. SvelteKit's named-action query semantics are not reconstructed; the label asserts only the native form's static declaration, not correct runtime routing. Script imports and the other forms are outside this fragment."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "POST",
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "sveltekit-injected-fetch-scope-boundary",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read the complete +page.js module. load({ fetch }) receives a fetch binding through a parameter, shadowing the global client. Its literal '/load/fetch-no-body/endpoint' is called through that injected binding. The documented syntax/scope extractor cannot prove arbitrary supplied bindings are the global Fetch client, does not execute load, and does not know the SvelteKit injection contract. Expected routes and unresolved targets are empty for the supported static scope. At runtime SvelteKit does normally supply a request-capable fetch; this is a framework-awareness omission, not absence of a request in the application. The JSDoc import type is not a request."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,581 @@
+{
+  "corpus_sha256": "a2a04ccada4f49843a5d0bfc82f689db56ddb12c295ffc52bd50566fa9172774",
+  "labels": [
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "angular-reactive-form-without-document-url",
+      "review": {
+        "notes": "The complete upstream profile editor template has one form at line 3, no action, no method and no href navigation. The form has Angular [formGroup] and (ngSubmit) attributes; input formControlName values are not name attributes. No document_url is supplied, so the documented actionless-form rule omits a route. Framework callbacks are not run or interpreted. This empty set does not assert that the rendered Angular app has no network traffic.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "astro-ssr-api-dynamic-origin-negative",
+      "review": {
+        "notes": "Read examples/ssr/src/api.ts (whole file, 69 lines). Two fetch calls. L23: fetch(`${origin}${endpoint}`, {...}) where origin = new URL(incomingReq.url).origin and endpoint are getJson parameters -> dynamic; callers' literal '/api/products', '/api/user', '/api/cart' are arguments to getJson, not to fetch, and functions are not executed. L56: fetch(`${location.origin}/api/cart`, { method: 'POST', ... }) -- the literal method is POST but the URL begins with the ambient browser global location.origin, which is not a constant, so the full target is not a known string. Documented rules: no route; not an unresolved target either (unresolved requires a known URL). AMBIGUOUS: a tool that treats location.origin as the same-origin base would report POST /api/cart (and would be defensible); a tool following getJson call sites would add GET /api/products, /api/user, /api/cart. Labelled empty under the documented rules; auditors may reclassify L56.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "axios-example-get-global",
+      "review": {
+        "notes": "HTML artifact: only a stylesheet <link> and <script src=\"/axios.min.js\"> (assets, not routes); the inline script is ignored per README. The separately supplied JS fragment (upstream lines 15-32, the inline script body) calls axios.get('/get/server') with a literal root-relative URL. Neither 'get' nor 'server' is in SEGMENTS, so the path is /{segment_1}/{segment_2}. Strings building <a href> / <img src> markup inside JS are not calls or HTML tags. AMBIGUOUS: axios is a browser global loaded by a script tag, not an ES/CommonJS import. README only says 'supported Axios calls'; reading js_analysis.py suggests only imported/required axios is bound. The label records the literal call the artifact makes; a miss here may reflect a documented-scope gap rather than a parser bug. Auditors may prefer to move this case to an explicit unsupported-pattern family.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "POST",
+            "path": "/post/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "axios-example-post-global",
+      "review": {
+        "notes": "JS fragment (upstream lines 24-39 of examples/post/index.html, the inline script body) calls axios.post('/post/server', JSON.parse(data)) with a literal URL. 'post' is in the SEGMENTS vocabulary and is preserved; 'server' is not and becomes {segment_2}. The surrounding HTML (a form without action and onsubmit=\"return false;\") is excluded from this case. Same AMBIGUITY as axios-example-get-global: axios here is an unimported global.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "bootstrap-visual-alert-fragment-links",
+      "review": {
+        "notes": "Read the whole visual alert fixture. The only anchors have href='#', so they are in-page references excluded by the documented HTML rules. The stylesheet and module-script references are relative assets and are not operation routes. Buttons only dismiss or display alerts; no form or supported client request appears in the supplied HTML. External Bootstrap behavior is not loaded or executed. Empty expected set does not prove the rendered component never performs other behavior.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/{segment_1}/create"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "django-actionless-unrendered-form",
+      "review": {
+        "notes": "Read the full article_form.html fixture. The native form declares method='post' and has no action. Supplied https://example.com/articles/create is hypothetical reserved-host document metadata to exercise missing-action handling; it is not a claimed Django route or deployment. Submission therefore declares POST to that supplied page; 'articles' is outside the path vocabulary and 'create' is retained. {% csrf_token %} and {{ form.as_p }} remain unrendered template text. Do not invent expanded controls, authentication behavior or generated URLs. The submit input has no name. No template engine or server was executed.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}"
+          },
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/login"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "express-auth-login-template",
+      "review": {
+        "notes": "The complete upstream login.ejs includes an href=/restricted at line 6 and form method=post action=/login at line 7. login is in the public path vocabulary and restricted is not, so the latter normalizes to {segment_1}. Both are declared HTML evidence. The template has username/password input names. EJS include calls for head and foot are unrendered and excluded; no routes from those unsupplied templates are guessed. Authentication acceptance and rendered behavior are unverified.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "fastapi-unrendered-item-template",
+      "review": {
+        "notes": "The complete upstream item.html has a stylesheet URL and an anchor href made from literal Jinja url_for expressions. The href is not root-relative or absolute; without document_url it is omitted under the documented relative-reference rule. Jinja is not rendered, id is not guessed, stylesheets are assets and not API routes. The corresponding deployed route is intentionally not inferred from the Python tutorial.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "fetch-polyfill-xhr-dynamic",
+      "review": {
+        "notes": "JS fragment is the complete exported fetch(input, init) function of the polyfill (upstream lines 526-633). It declares its own fetch (shadowing the global), builds new Request(input, init) from parameters, and calls xhr.open(request.method, fixUrl(request.url), true). Both method and URL derive from function parameters, so per README (fully dynamic targets unsupported, functions not executed) there is no known target and no unresolved target. Expected: empty. Helpers referenced (Request, Response, DOMException, support, g, parseHeaders, normalizeName, normalizeValue) are intentionally outside the fragment.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/auth/login"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "flask-tutorial-login-form",
+      "review": {
+        "notes": "Read login.html: same structure as register.html, one <form method=\"post\"> without action, inputs username and password. document_url https://example.com/auth/login is hypothetical; its path comes from auth.py Blueprint url_prefix=\"/auth\" (L16) and @bp.route(\"/login\") (L84). 'auth' and 'login' are preserved SEGMENTS. base.html links are not part of the artifact.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/auth/register"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "flask-tutorial-register-form",
+      "review": {
+        "notes": "Read register.html: one <form method=\"post\"> with no action attribute; named inputs username and password (submit input has no name). Per README, a missing action submits to the document URL. document_url https://example.com/auth/register is hypothetical metadata (example.com host) whose path comes from upstream flaskr/auth.py at the same revision: Blueprint url_prefix=\"/auth\" (L16) and @bp.route(\"/register\") (L46). 'auth' and 'register' are both in the analyze.py SEGMENTS vocabulary, so the path is kept. Jinja block tags are plain text to an HTML parser. Template inheritance (base.html nav links) is excluded from the artifact and therefore from the label.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "googlechrome-encoding-xhr-parameter-negative",
+      "review": {
+        "notes": "Read encoding-api/demo.js (whole file, 36 lines). The only request is xhr.open('GET', file) at L19 inside fetchAndDecode(file, encoding); xhr is a local new XMLHttpRequest(). The URL is the function parameter 'file'. Callers pass Object.keys(filesToEncoding) entries ('utf8.bin', 'utf16le.bin', 'macintosh.bin') via forEach, but documented rules do not execute functions or follow call arguments into parameters, so the target is dynamic: no route and no unresolved target. Even if resolved, these are page-relative names and no document_url is supplied, so they would be omitted. Negative control. Expected: empty.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "POST",
+            "path": "/{segment_1}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "googlechrome-fetch-post-gists",
+      "review": {
+        "notes": "Read fetch-post-demo.js (whole file, 31 lines). One call at L3-L6: fetch('https://api.github.com/gists', { method: 'post', body: JSON.stringify(opts) }). URL is a literal absolute string; host is dropped, leaving /gists. 'gists' is not in analyze.py SEGMENTS, so the path is /{segment_1}. The options object is a literal with literal method 'post'; Fetch normalizes the byte-case-insensitive verbs DELETE/GET/HEAD/OPTIONS/POST/PUT to upper case, so the wire method is POST (js_analysis._wire_method upper-cases ASCII verbs except PATCH). The body depends on the opts parameter and does not affect the route. ChromeSamples is an external page global; nothing else issues a request. Expected: POST /{segment_1}, inferred, javascript.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "htmx-hx-get-unsupported",
+      "review": {
+        "notes": "Read the whole aborting-request fixture. A button has hx-get='https://httpbin.org/html' and hx-target='#target'. The documented extractor handles links, native forms and supported Fetch/XHR/Axios clients; it does not interpret htmx hx-* attributes. No anchor or form appears. The relative htmx script is only an asset; the inline event listener is ignored in HTML mode. Do not invent GET /html as a supported extracted operation. Runtime htmx could make that request, and the checkbox-dependent abort handler further affects behavior. This is an explicit unsupported-framework boundary.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}/{segment_3}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "htmx-manual-relative-navigation",
+      "review": {
+        "notes": "Read the manual index. Its anchors are page-relative filenames/directories. Supplied document_url https://example.com/test/manual/index.html is reserved-host evaluation metadata reflecting the source directory, not a fetched or asserted deployment. Resolve each anchor against /test/manual/. 'test', 'manual' and every destination name are outside the fixed path vocabulary, so all become the same three-segment alias path and merge. Each is declared navigation, not an observed successful GET. The links are not followed. Origin redaction and name aliasing hide the distinctions among destinations.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "httpbin-forms-post-template",
+      "review": {
+        "notes": "Read forms-post.html. The only route-bearing tag is <form method=post action=\"{{ url_for('view_post') }}\">. This is an unrendered Jinja template, so the literal action is a page-relative string (no leading slash or scheme). No document_url is supplied, so README/analyze.py omit page-relative form actions with a warning. No <a href>, no external scripts. Expected: no routes. The deployed httpbin service serves this form against POST /post, but that rendered output is not the artifact; a tool must not guess it.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/"
+          },
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "jquery-fixture-external-navigation",
+      "review": {
+        "notes": "Read exact upstream lines 1-14 of qunit-fixture.html, containing complete paragraphs and a complete div. Literal links to Google, Google Groups, https://blog, Mozilla, Yahoo and Timmy Willison have empty/root paths and normalize to '/'; different hosts intentionally merge. John Resig's /blog/10th-anniversary-of-jquery/ has two unknown segments, yielding /{segment_1}/{segment_2}; its #body fragment is discarded. The #2 in-page anchor is ignored. No lower fixture forms, iframe or scripts are included. These declared links do not establish that any destination is reachable.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}"
+          },
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/api"
+          },
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "lit-docs-navigation-with-context",
+      "review": {
+        "notes": "The complete upstream generated documentation HTML has href examples/, api/ and install/ in its navigation and a footer link https://github.com/lit/lit-element-starter-ts. Explicit document_url=https://example.com/ is reserved-domain resolution metadata, not an observed deployment or fetched URL. examples and install both alias to /{segment_1}, so two distinct declarations intentionally merge; api is preserved as /api. The two footer path segments are unknown and become /{segment_1}/{segment_2}. The empty Home href contributes no route. Stylesheet/script references are assets; code rendered with escaped markup is text, not extra routes. This case tests lossy static normalization rather than distinct destination identity.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "method": "GET",
+            "path": "/{segment_1}/index.html"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "lit-starter-demo-link",
+      "review": {
+        "notes": "The complete starter index.html contains one anchor href=/dev/index.html at line 9. dev is outside the fixed segment vocabulary and index.html is preserved; expected normalized route is GET /{segment_1}/index.html with declared link evidence. No client script or server behavior is supplied or run.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "GET",
+            "path": "/"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "mdn-form-get-method",
+      "review": {
+        "notes": "Read get-method.html: one <form action=\"http://example.com\" method=\"get\"> with inputs say and to. Absolute http URL with empty path normalizes to '/' (safe_path drops the host). GET form; no document_url is needed. No links or external scripts; the inline <style> is not a route.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "mdn-form-post-method",
+      "review": {
+        "notes": "Read post-method.html: one <form action=\"http://example.com\" method=\"post\"> with inputs say and to. Absolute URL with empty path normalizes to '/'. POST because method is post.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "nextjs-swr-fetcher-indirect",
+      "review": {
+        "notes": "Read pages/index.tsx (TSX; kind typescript, which the parser tries with the jsx plugin). '/api/users' is passed to useSwr (not a recognized client), and the actual fetch(url) call is inside the arrow function fetcher whose url is a parameter. README: functions are not executed and arbitrary function returns are not reconstructed, so the fetch target is dynamic: no known route and no unresolved target. <Link href=\"/user/[id]\"> is a JSX component prop, not an HTML <a>, and the template `/user/${user.id}` is not a request call. AMBIGUOUS in intent: at runtime the page does GET /api/users; an analyzer that resolves SWR keys would report it. Under the documented rules the expected set is empty.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "remix-bookstore-cart-button-route-helper-negative",
+      "review": {
+        "notes": "Read demos/bookstore/app/actions/fragments/public/cart-button.tsx (whole TSX file, 43 lines). One call at L24-L28: fetch(routes.api.cartToggle.href(), { method: 'POST', body: formData, signal }). The method is a literal POST, but the URL is the return value of an imported route helper (routes from '../../../routes.ts', not included) -> not a constant; no route. Because the URL is unknown, this is not an unresolved (known-URL/unknown-method) target either. The JSX and import.meta.url are not requests. Route-helper negative control. AMBIGUOUS: the real endpoint is defined in the excluded routes.ts; a project-level tool given that file might resolve it. Expected: empty.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "rtk-query-pokemon-fetchbasequery-negative",
+      "review": {
+        "notes": "Read query/react/basic/src/services/pokemon.ts (whole file, 14 lines). No fetch, XMLHttpRequest or Axios call appears. Requests are made at runtime by RTK Query's fetchBaseQuery({ baseUrl: 'https://pokeapi.co/api/v2/' }) combined with the endpoint query (name) => `pokemon/${name}`. fetchBaseQuery is an imported library wrapper, not a supported client, and the path depends on a parameter. Client-wrapper negative control. AMBIGUOUS: a tool that models RTK Query would report GET /api/v2/pokemon/{name} (normalized /api/v2/{segment_3}/{segment_4}); the documented static rules give an empty set. The literal baseUrl string is not a request call. Expected: empty.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "method": "POST",
+            "path": "/{segment_1}/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "sveltekit-enhance-form-static-declaration",
+      "review": {
+        "notes": "Read exact upstream +page.svelte lines 21-31: a complete native form whose method is post and action is the literal '?/login'. Supplied reserved-host document_url https://example.com/actions/enhance corresponds to the source route directory, but is evaluation metadata, not a fetched deployment. Resolving the query-only action keeps /actions/enhance, whose segments both alias. The root README excludes submit-button overrides, so formAction='?/register', '?/submitter' and '?/error' do not create extra operations. use:enhance is a Svelte directive and is not executed. SvelteKit's named-action query semantics are not reconstructed; the label asserts only the native form's static declaration, not correct runtime routing. Script imports and the other forms are outside this fragment.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "sveltekit-injected-fetch-scope-boundary",
+      "review": {
+        "notes": "Read the complete +page.js module. load({ fetch }) receives a fetch binding through a parameter, shadowing the global client. Its literal '/load/fetch-no-body/endpoint' is called through that injected binding. The documented syntax/scope extractor cannot prove arbitrary supplied bindings are the global Fetch client, does not execute load, and does not know the SvelteKit injection contract. Expected routes and unresolved targets are empty for the supported static scope. At runtime SvelteKit does normally supply a request-capable fetch; this is a framework-awareness omission, not absence of a request in the application. The JSDoc import type is not a request.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "GET",
+            "path": "/posts"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "tanstack-basic-posts-api",
+      "review": {
+        "notes": "Read basic/src/services/posts/api.ts (whole file, 16 lines). L5: fetch('https://jsonplaceholder.typicode.com/posts') with a literal absolute URL and no options -> GET; host dropped; 'posts' is in SEGMENTS -> /posts. L10-L12: fetch(`https://jsonplaceholder.typicode.com/posts/${id}`) where id is the getPost parameter; documented rules treat parameter-derived targets as dynamic, so it yields neither a route nor an unresolved target. 'import type' at L1 is type-only. AMBIGUOUS: a tool that templatizes partially-known URLs could report GET /posts/{segment_2} or similar; under the documented constant-expression rules it is excluded. Expected: GET /posts only.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "GET",
+            "path": "/api/{segment_2}"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "tanstack-star-wars-films-api",
+      "review": {
+        "notes": "Read star-wars/src/services/films/api.ts (whole file, 14 lines). L5: fetch('https://swapi.dev/api/films/') literal, no options -> GET. Host dropped; empty path chunks (trailing slash) are discarded by safe_path; 'api' is in SEGMENTS, 'films' is not and is the 2nd chunk -> /api/{segment_2}. L10: fetch(`https://swapi.dev/api/films/${filmId}/`) uses the filmId parameter -> dynamic, excluded (same ambiguity as tanstack-basic-posts-api). Expected: GET /api/{segment_2}.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Claude Code",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      },
+      "id": "vue-tutorial-dynamic-todo-fetch",
+      "review": {
+        "notes": "The complete upstream composition.js imports ref from vue and calls fetch with the template https://jsonplaceholder.typicode.com/todos/${todoId.value}. todoId is the return value of the imported ref function, not a statically known primitive URL suffix. The documented tool does not execute arbitrary functions or reconstruct their return values; the full target is unknown. Expect no known route and no known-URL/unknown-method target. The initial ref(1) is not a license to execute Vue or invent a /todos/1 request.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    },
+    {
+      "expected": {
+        "routes": [
+          {
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "method": "GET",
+            "path": "/api"
+          }
+        ],
+        "unresolved": []
+      },
+      "id": "vue-watchers-literal-fetch",
+      "review": {
+        "notes": "Exact complete JavaScript body from watchers.md lines 76-96, excluding Markdown fences and script tags. It retains the Vue ref/watch import and the entire watch callback. At upstream line 88 (saved line 13), unshadowed global fetch receives the literal https://yesno.wtf/api with no options. The method defaults to GET; host is removed and api is a preserved segment. This is inferred intent inside a conditional callback, not proof that the watcher runs or the endpoint works.",
+        "reviewed_at": "2026-10-31",
+        "reviewer": "Codex",
+        "status": "agent-reviewed"
+      }
+    }
+  ],
+  "schema": "surface-map-holdout-labels/1"
+}

@@ -1,0 +1,200 @@
+{
+  "schema": "surface-map-holdout-corpus/1",
+  "name": "surface-map-realworld-framework-development-batch-v1",
+  "projects": [
+    {
+      "id": "angular",
+      "group": "angular",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/angular/angular/tree/74961c662420ea02a5872bfa1a0ee3284526b887",
+        "revision": "74961c662420ea02a5872bfa1a0ee3284526b887",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "vue",
+      "group": "vue",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/vuejs/docs/tree/40aa88af0094f7bab4aaf786e55c748a6a251d88",
+        "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+        "license": "CC-BY-4.0",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "express",
+      "group": "express",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/expressjs/express/tree/1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+        "revision": "1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "fastapi",
+      "group": "fastapi",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/fastapi/fastapi/tree/45cb2252c737906f37544f5ba6bee0295fb81468",
+        "revision": "45cb2252c737906f37544f5ba6bee0295fb81468",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "lit",
+      "group": "lit",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/lit/lit/tree/16507ef656417c9c53a55a02a44a563bbbf2c484",
+        "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "angular-reactive-form-without-document-url",
+      "project": "angular",
+      "family": "html-actionless-framework-form",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/angular/profile-editor.component.html",
+          "sha256": "b86f99a2c28bf71cc4e991497dcc7e488939f33464cf5d960c8beb1a80240c05",
+          "provenance": {
+            "url": "https://github.com/angular/angular/blob/74961c662420ea02a5872bfa1a0ee3284526b887/adev/src/content/examples/reactive-forms/src/app/profile-editor/profile-editor.component.html",
+            "revision": "74961c662420ea02a5872bfa1a0ee3284526b887",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "vue-tutorial-dynamic-todo-fetch",
+      "project": "vue",
+      "family": "javascript-framework-dynamic-target",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/vue/tutorial-composition.js",
+          "sha256": "6f66c52f735036780ea64381f4ee00d759fe2eddf158856849f67a77e11dcb4a",
+          "provenance": {
+            "url": "https://github.com/vuejs/docs/blob/40aa88af0094f7bab4aaf786e55c748a6a251d88/src/tutorial/src/step-10/App/composition.js",
+            "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+            "license": "CC-BY-4.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "vue-watchers-literal-fetch",
+      "project": "vue",
+      "family": "javascript-watch-callback-literal-fetch",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/vue/watchers-L76-L96.js",
+          "sha256": "dbe8af13f914df9df8b43f1e4e95d40a0bc30c1f670e27ac1691c86ea9336d32",
+          "provenance": {
+            "url": "https://github.com/vuejs/docs/blob/40aa88af0094f7bab4aaf786e55c748a6a251d88/src/guide/essentials/watchers.md#L76-L96",
+            "revision": "40aa88af0094f7bab4aaf786e55c748a6a251d88",
+            "license": "CC-BY-4.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "express-auth-login-template",
+      "project": "express",
+      "family": "html-ejs-form-and-navigation",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/express/login.ejs.html",
+          "sha256": "e369b6cffc4e585c8f3b08ae88542f5f931f329d505142e90373ea204ef377fa",
+          "provenance": {
+            "url": "https://github.com/expressjs/express/blob/1c6f1b0fe4000977b9a7b4f34097e4d527dd9824/examples/auth/views/login.ejs",
+            "revision": "1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fastapi-unrendered-item-template",
+      "project": "fastapi",
+      "family": "html-jinja-unrendered-navigation",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/fastapi/item.html",
+          "sha256": "c15145e8a288ce8f7061151196e5e094639d366a8b110605f205023e9a6d73da",
+          "provenance": {
+            "url": "https://github.com/fastapi/fastapi/blob/45cb2252c737906f37544f5ba6bee0295fb81468/docs_src/templates/templates/item.html",
+            "revision": "45cb2252c737906f37544f5ba6bee0295fb81468",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lit-starter-demo-link",
+      "project": "lit",
+      "family": "html-starter-navigation",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/lit/starter-index.html",
+          "sha256": "91dd5c97b6d1db0d11398c75e1a7ed2143d9979c3f328ebab274a70fed38141e",
+          "provenance": {
+            "url": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/lit-starter-ts/index.html",
+            "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lit-docs-navigation-with-context",
+      "project": "lit",
+      "family": "html-relative-navigation-collision",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/lit/docs-index.html",
+          "sha256": "0e8a26f5efafa0b292d744132776ec14be11f84a155c06a8b234ed510b5b3ed4",
+          "provenance": {
+            "url": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/lit-starter-ts/docs/index.html",
+            "revision": "16507ef656417c9c53a55a02a44a563bbbf2c484",
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/"
+    }
+  ]
+}

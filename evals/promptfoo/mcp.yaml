@@ -1,0 +1,24 @@
+description: Surface Map real stdio MCP transport, four frozen synthetic tasks
+prompts:
+  - '{{tool_call}}'
+providers:
+  - id: mcp
+    label: direct-mcp-basic
+    config:
+      enabled: true
+      server:
+        path: ../../run_mcp.py
+        name: surface-map
+      tools: [analyze_capture, compare_captures]
+      transformResponse: result.content.filter(c => c.type === 'text').map(c => c.text).join('\n')
+tests: file://tests-mcp.json
+defaultTest:
+  assert:
+    - type: python
+      value: file://assertions.py:get_assert
+      metric: exact_case
+evaluateOptions:
+  maxConcurrency: 1
+  repeat: 3
+  cache: false
+sharing: false

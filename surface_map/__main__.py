@@ -21,6 +21,15 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command")
     commands.add_parser("mcp", help="Run the optional MCP stdio interface for saved contents and public HTTPS pages")
     commands.add_parser("setup-js", help="Explicitly install the pinned optional JavaScript parser with lifecycle scripts disabled")
+    analyze = commands.add_parser("analyze", help="Print a bounded offline saved-web-capture report as JSON")
+    analyze.add_argument("--capture", type=Path, required=True, help="Local JSON with artifacts and optional document_url")
+    analyze.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="enhanced")
+    compare = commands.add_parser("compare", help="Compare corresponding offline captures and apply explicit evidence-change policies")
+    compare.add_argument("--before", type=Path, required=True)
+    compare.add_argument("--after", type=Path, required=True)
+    compare.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="enhanced")
+    compare.add_argument("--format", choices=("json", "markdown"), default="json")
+    compare.add_argument("--fail-on", default="", help="Comma-separated added, absent, changed, unresolved, warnings; default advisory")
     inspect = commands.add_parser("inspect", help="Print a minimized static source inventory as JSON")
     inspect.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
     inputs = inspect.add_mutually_exclusive_group(required=True)
@@ -41,6 +50,25 @@ def main(argv=None):
     if args.command == "setup-js":
         from .js_parser import setup
         return setup()
+    if args.command in {"analyze", "compare"}:
+        from . import ci
+        try:
+            if args.command == "analyze":
+                report = ci.analyze_capture(ci.load_capture(args.capture), javascript_engine=args.javascript_engine)
+                output, code = ci.json_output(report), 0
+            else:
+                report = ci.compare_captures(ci.load_capture(args.before), ci.load_capture(args.after),
+                                             javascript_engine=args.javascript_engine, fail_on=args.fail_on)
+                output = ci.markdown(report) if args.format == "markdown" else ci.json_output(report)
+                code = 0 if report["policy"]["passed"] else 1
+        except ci.CIError as error:
+            print(str(error), file=sys.stderr)
+            return 2
+        except Exception:
+            print("Offline capture rejected: unsupported, malformed, unavailable, or over limit. No input text or paths are returned.", file=sys.stderr)
+            return 2
+        print(output)
+        return code
     if args.command == "inspect":
         try:
             artifacts = capture_sources(args.capture) if args.capture else selected_sources(args.files)

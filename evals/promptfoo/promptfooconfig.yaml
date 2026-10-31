@@ -1,0 +1,19 @@
+description: Surface Map direct Python, frozen synthetic non-JavaScript cases
+prompts:
+  - '{{case_id}}'
+providers:
+  - id: file://provider.py
+    label: direct-python-basic
+    config:
+      engine: basic
+tests: file://tests-basic.json
+defaultTest:
+  assert:
+    - type: python
+      value: file://assertions.py:get_assert
+      metric: exact_case
+evaluateOptions:
+  maxConcurrency: 1
+  repeat: 3
+  cache: false
+sharing: false

@@ -1,0 +1,157 @@
+{
+  "schema": "surface-map-holdout-labels/1",
+  "corpus_sha256": "81e6749716d45c99ab8c704a5d29fe9d64f7836d89c1e3b84e916c27cf7f4ed5",
+  "labels": [
+    {
+      "id": "angular-reactive-form-without-document-url",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete upstream profile editor template has one form at line 3, no action, no method and no href navigation. The form has Angular [formGroup] and (ngSubmit) attributes; input formControlName values are not name attributes. No document_url is supplied, so the documented actionless-form rule omits a route. Framework callbacks are not run or interpreted. This empty set does not assert that the rendered Angular app has no network traffic."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "vue-tutorial-dynamic-todo-fetch",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete upstream composition.js imports ref from vue and calls fetch with the template https://jsonplaceholder.typicode.com/todos/${todoId.value}. todoId is the return value of the imported ref function, not a statically known primitive URL suffix. The documented tool does not execute arbitrary functions or reconstruct their return values; the full target is unknown. Expect no known route and no known-URL/unknown-method target. The initial ref(1) is not a license to execute Vue or invent a /todos/1 request."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "vue-watchers-literal-fetch",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Exact complete JavaScript body from watchers.md lines 76-96, excluding Markdown fences and script tags. It retains the Vue ref/watch import and the entire watch callback. At upstream line 88 (saved line 13), unshadowed global fetch receives the literal https://yesno.wtf/api with no options. The method defaults to GET; host is removed and api is a preserved segment. This is inferred intent inside a conditional callback, not proof that the watcher runs or the endpoint works."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/api",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "express-auth-login-template",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete upstream login.ejs includes an href=/restricted at line 6 and form method=post action=/login at line 7. login is in the public path vocabulary and restricted is not, so the latter normalizes to {segment_1}. Both are declared HTML evidence. The template has username/password input names. EJS include calls for head and foot are unrendered and excluded; no routes from those unsupplied templates are guessed. Authentication acceptance and rendered behavior are unverified."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/{segment_1}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/login",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "fastapi-unrendered-item-template",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete upstream item.html has a stylesheet URL and an anchor href made from literal Jinja url_for expressions. The href is not root-relative or absolute; without document_url it is omitted under the documented relative-reference rule. Jinja is not rendered, id is not guessed, stylesheets are assets and not API routes. The corresponding deployed route is intentionally not inferred from the Python tutorial."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "lit-starter-demo-link",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete starter index.html contains one anchor href=/dev/index.html at line 9. dev is outside the fixed segment vocabulary and index.html is preserved; expected normalized route is GET /{segment_1}/index.html with declared link evidence. No client script or server behavior is supplied or run."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/{segment_1}/index.html",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "lit-docs-navigation-with-context",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "The complete upstream generated documentation HTML has href examples/, api/ and install/ in its navigation and a footer link https://github.com/lit/lit-element-starter-ts. Explicit document_url=https://example.com/ is reserved-domain resolution metadata, not an observed deployment or fetched URL. examples and install both alias to /{segment_1}, so two distinct declarations intentionally merge; api is preserved as /api. The two footer path segments are unknown and become /{segment_1}/{segment_2}. The empty Home href contributes no route. Stylesheet/script references are assets; code rendered with escaped markup is text, not extra routes. This case tests lossy static normalization rather than distinct destination identity."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/{segment_1}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/api",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    }
+  ]
+}

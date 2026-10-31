@@ -1,0 +1,18 @@
+    axios.get('/get/server')
+      .then(function (response) {
+        document.getElementById('people').innerHTML = response.data.map(function (person) {
+          return (
+            '<li class="row">' +
+            '<img src="https://avatars.githubusercontent.com/u/' + person.avatar + '?s=50" class="col-md-1"/>' +
+            '<div class="col-md-3">' +
+            '<strong>' + person.name + '</strong>' +
+            '<div>GitHub: <a href="https://github.com/' + person.github + '" target="_blank" rel="noopener noreferrer">' + person.github + '</a></div>' +
+            '<div>Twitter: <a href="https://twitter.com/' + person.twitter + '" target="_blank" rel="noopener noreferrer">' + person.twitter + '</a></div>' +
+            '</div>' +
+            '</li><br/>'
+          );
+        }).join('');
+      })
+      .catch(function (err) {
+        document.getElementById('people').innerHTML = '<li class="text-danger">' + err.message + '</li>';
+      });

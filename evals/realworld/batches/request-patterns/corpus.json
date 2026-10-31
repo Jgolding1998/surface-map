@@ -1,0 +1,199 @@
+{
+  "schema": "surface-map-holdout-corpus/1",
+  "name": "surface-map-realworld-development-request-patterns-v1",
+  "projects": [
+    {
+      "id": "googlechrome-samples",
+      "group": "googlechrome-samples",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/GoogleChrome/samples/tree/8c3a755f756fcd816f088684a3c697cbd891fc35",
+        "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+        "license": "Apache-2.0",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "tanstack-query",
+      "group": "tanstack-query",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/TanStack/query/tree/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+        "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "redux-toolkit",
+      "group": "redux-toolkit",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/reduxjs/redux-toolkit/tree/0fd611cc79d44990ac9a040dec4d5cb446233440",
+        "revision": "0fd611cc79d44990ac9a040dec4d5cb446233440",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "astro",
+      "group": "astro",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/withastro/astro/tree/10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+        "revision": "10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "remix",
+      "group": "remix",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/remix-run/remix/tree/a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+        "revision": "a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "googlechrome-fetch-post-gists",
+      "project": "googlechrome-samples",
+      "family": "javascript-fetch-lowercase-method",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/googlechrome-samples/fetch-post-demo.js",
+          "sha256": "d3fa5455891db4b03d77e69d638bf1d461f2ef458fe70b84801c944b6b64635b",
+          "provenance": {
+            "url": "https://github.com/GoogleChrome/samples/blob/8c3a755f756fcd816f088684a3c697cbd891fc35/fetch-api/fetch-post-demo.js",
+            "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+            "license": "Apache-2.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "googlechrome-encoding-xhr-parameter-negative",
+      "project": "googlechrome-samples",
+      "family": "javascript-xhr-dynamic-negative",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/googlechrome-samples/encoding-api-demo.js",
+          "sha256": "9e85121467f30549bd406f3c16cf6c5b23e83240a608a73aafcd8916d6d6031c",
+          "provenance": {
+            "url": "https://github.com/GoogleChrome/samples/blob/8c3a755f756fcd816f088684a3c697cbd891fc35/encoding-api/demo.js",
+            "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+            "license": "Apache-2.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tanstack-basic-posts-api",
+      "project": "tanstack-query",
+      "family": "typescript-fetch-literal-and-template",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/tanstack-query/basic-posts-api.ts",
+          "sha256": "1a9ebe0cd5d36c715e95394b6a91901fbf1c57b1b3d77b195866614bbd9f8c73",
+          "provenance": {
+            "url": "https://github.com/TanStack/query/blob/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec/examples/react/basic/src/services/posts/api.ts",
+            "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tanstack-star-wars-films-api",
+      "project": "tanstack-query",
+      "family": "typescript-fetch-literal-and-template",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/tanstack-query/star-wars-films-api.ts",
+          "sha256": "017dd2bec07750cd8cc508ee96f2b10bcf0a37ea299357014e441f022c798165",
+          "provenance": {
+            "url": "https://github.com/TanStack/query/blob/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec/examples/react/star-wars/src/services/films/api.ts",
+            "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rtk-query-pokemon-fetchbasequery-negative",
+      "project": "redux-toolkit",
+      "family": "typescript-client-wrapper-negative",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/redux-toolkit/pokemon.ts",
+          "sha256": "5d84ac4bb566ecf758405085e4db2a4525d723048da02d35b7d64757f15739b1",
+          "provenance": {
+            "url": "https://github.com/reduxjs/redux-toolkit/blob/0fd611cc79d44990ac9a040dec4d5cb446233440/examples/query/react/basic/src/services/pokemon.ts",
+            "revision": "0fd611cc79d44990ac9a040dec4d5cb446233440",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "astro-ssr-api-dynamic-origin-negative",
+      "project": "astro",
+      "family": "typescript-fetch-dynamic-origin-negative",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/astro/ssr-api.ts",
+          "sha256": "9ba45fd123f948a645925055538e72066e782e1c9b3964910a4e2f71df07d75e",
+          "provenance": {
+            "url": "https://github.com/withastro/astro/blob/10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30/examples/ssr/src/api.ts",
+            "revision": "10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "remix-bookstore-cart-button-route-helper-negative",
+      "project": "remix",
+      "family": "typescript-fetch-route-helper-negative",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/remix/cart-button.tsx",
+          "sha256": "6192ff43dc2191aef84f7688be7ba8f80d7a4189f35eee64d4a65189b5d2b89a",
+          "provenance": {
+            "url": "https://github.com/remix-run/remix/blob/a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259/demos/bookstore/app/actions/fragments/public/cart-button.tsx",
+            "revision": "a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    }
+  ]
+}

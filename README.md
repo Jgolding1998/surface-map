@@ -126,6 +126,25 @@ When document context is supplied, evidence also records `same_origin`, `cross_o
 
 ## Check it
 
+For PR review, the [offline comparison CLI and GitHub Action](docs/CI.md) compare
+corresponding saved captures, produce minimized JSON/Markdown reports, and apply
+optional evidence-change policies. The Action reuses the analyzer and makes no
+model API calls. Start with advisory reports: captured evidence and redacted
+route names do not establish complete runtime API compatibility.
+
+The [local promptfoo integration](evals/promptfoo/README.md) adds repeatable
+evaluations and a results viewer. The [project corpus runner](evals/holdout/README.md)
+adds provenance, separate labels, project-disjoint splits and review/exposure
+tracking for broader evaluation. Synthetic examples and exposed development
+fixtures do not count as independently reviewed unseen holdout projects.
+
+The [real-project development collection](evals/realworld/README.md) adds 30
+source-derived tasks from 21 pinned upstream projects. Its initial enhanced
+result is 28/30, stable across three repetitions; two browser-global Axios calls
+are missed and remain visible. These are agent-reviewed public source selections,
+not complete websites or unseen human-reviewed examples. CI checks for new
+regressions while retaining the known failures in scored reports.
+
 The [640-case scenario suite](evals/stress640/README.md) combines 16 families of HTML, HAR, JavaScript/TypeScript, privacy and comparison cases. Run `python -m evals.stress640 --engine enhanced --repeats 3 --check`. Its initial result was 640/640 in enhanced mode and 498/640 in basic mode. Version 1.4 improves basic mode to 538/640 on the same frozen cases, with no prior passing case lost. Enhanced mode remains 640/640. These are generated regression combinations, not 640 independent sites or a model comparison. CI runs the enhanced suite on Windows and Linux.
 
 Basic mode now retains some known targets with unknown methods and recognizes conservative `window.fetch` and `globalThis.fetch` calls. It still cannot resolve options as well as syntax analysis: the expanded suite includes ten targets it marks unresolved that enhanced mode resolves. That is an explicit uncertainty tradeoff, not a precision improvement on every metric. The original 64-case basic result improves from 57/64 to 59/64.

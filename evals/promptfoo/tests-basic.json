@@ -1,0 +1,554 @@
+[
+  {
+    "description": "navigation-lines",
+    "vars": {
+      "case_id": "navigation-lines"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "duplicate-navigation",
+    "vars": {
+      "case_id": "duplicate-navigation"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "numeric-private-path",
+    "vars": {
+      "case_id": "numeric-private-path"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "unicode-private-path",
+    "vars": {
+      "case_id": "unicode-private-path"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "fragment-and-mail",
+    "vars": {
+      "case_id": "fragment-and-mail"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "html-comment-noise",
+    "vars": {
+      "case_id": "html-comment-noise"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "query-key-inventory",
+    "vars": {
+      "case_id": "query-key-inventory"
+    },
+    "metadata": {
+      "family": "html-navigation",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "post-form-fields",
+    "vars": {
+      "case_id": "post-form-fields"
+    },
+    "metadata": {
+      "family": "html-forms",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "get-form-query",
+    "vars": {
+      "case_id": "get-form-query"
+    },
+    "metadata": {
+      "family": "html-forms",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "form-invalid-method",
+    "vars": {
+      "case_id": "form-invalid-method"
+    },
+    "metadata": {
+      "family": "html-forms",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "dialog-form",
+    "vars": {
+      "case_id": "dialog-form"
+    },
+    "metadata": {
+      "family": "html-forms",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "actionless-without-url",
+    "vars": {
+      "case_id": "actionless-without-url"
+    },
+    "metadata": {
+      "family": "html-forms",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "actionless-with-url",
+    "vars": {
+      "case_id": "actionless-with-url"
+    },
+    "metadata": {
+      "family": "html-resolution",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "relative-without-url",
+    "vars": {
+      "case_id": "relative-without-url"
+    },
+    "metadata": {
+      "family": "html-resolution",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "relative-with-url",
+    "vars": {
+      "case_id": "relative-with-url"
+    },
+    "metadata": {
+      "family": "html-resolution",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "first-base-wins",
+    "vars": {
+      "case_id": "first-base-wins"
+    },
+    "metadata": {
+      "family": "html-resolution",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "asset-not-api",
+    "vars": {
+      "case_id": "asset-not-api"
+    },
+    "metadata": {
+      "family": "html-coverage",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "inline-script-omission",
+    "vars": {
+      "case_id": "inline-script-omission"
+    },
+    "metadata": {
+      "family": "html-coverage",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "frame-omission",
+    "vars": {
+      "case_id": "frame-omission"
+    },
+    "metadata": {
+      "family": "html-coverage",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "client-rendered-shell",
+    "vars": {
+      "case_id": "client-rendered-shell"
+    },
+    "metadata": {
+      "family": "html-coverage",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-status",
+    "vars": {
+      "case_id": "har-status"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-json-shapes",
+    "vars": {
+      "case_id": "har-json-shapes"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-error-is-evidence",
+    "vars": {
+      "case_id": "har-error-is-evidence"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-options",
+    "vars": {
+      "case_id": "har-options"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-repeated-statuses",
+    "vars": {
+      "case_id": "har-repeated-statuses"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-origin-collision",
+    "vars": {
+      "case_id": "har-origin-collision"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-no-entries",
+    "vars": {
+      "case_id": "har-no-entries"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "har-credentials-discarded",
+    "vars": {
+      "case_id": "har-credentials-discarded"
+    },
+    "metadata": {
+      "family": "har-observations",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "method-keeps-routes-distinct",
+    "vars": {
+      "case_id": "method-keeps-routes-distinct"
+    },
+    "metadata": {
+      "family": "mixed-evidence",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "comparison-added",
+    "vars": {
+      "case_id": "comparison-added"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-absent",
+    "vars": {
+      "case_id": "comparison-absent"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-method",
+    "vars": {
+      "case_id": "comparison-method"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-status",
+    "vars": {
+      "case_id": "comparison-status"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-fields",
+    "vars": {
+      "case_id": "comparison-fields"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-values-redacted",
+    "vars": {
+      "case_id": "comparison-values-redacted"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-source-reorder",
+    "vars": {
+      "case_id": "comparison-source-reorder"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "comparison-lost-declaration",
+    "vars": {
+      "case_id": "comparison-lost-declaration"
+    },
+    "metadata": {
+      "family": "comparison",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "compare"
+    }
+  },
+  {
+    "description": "agent-hidden-text",
+    "vars": {
+      "case_id": "agent-hidden-text"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "agent-accessibility-hint",
+    "vars": {
+      "case_id": "agent-accessibility-hint"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "machine-document-link",
+    "vars": {
+      "case_id": "machine-document-link"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "machine-document-text",
+    "vars": {
+      "case_id": "machine-document-text"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "signals-script-is-data",
+    "vars": {
+      "case_id": "signals-script-is-data"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "signals-opt-in-only",
+    "vars": {
+      "case_id": "signals-opt-in-only"
+    },
+    "metadata": {
+      "family": "page-signals",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "invalid-har-object",
+    "vars": {
+      "case_id": "invalid-har-object"
+    },
+    "metadata": {
+      "family": "rejection",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "invalid-har-duplicate",
+    "vars": {
+      "case_id": "invalid-har-duplicate"
+    },
+    "metadata": {
+      "family": "rejection",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  },
+  {
+    "description": "unsupported-artifact",
+    "vars": {
+      "case_id": "unsupported-artifact"
+    },
+    "metadata": {
+      "family": "rejection",
+      "corpus_sha256": "028993bc9003b9d59e907a42130c1138b2decaf4c6e76fc47e7ed3f080eaafe2",
+      "synthetic": true,
+      "task": "analyze"
+    }
+  }
+]
