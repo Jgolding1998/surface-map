@@ -138,6 +138,12 @@ Known operations require method, normalized path, confidence and complete
 evidence-kind sets. `evidence` is optional: include it when exact source IDs,
 locations and kinds have also been independently labeled. Evidence locations
 are scored as unique location identities, without depending on order.
+Optional `assumptions` preserves machine-readable client uncertainty in scored
+predictions, currently `unverified_global_axios`. Existing labels that omit this
+field continue to score their original rubric; explicitly labeled assumptions
+must match. The report keeps this metadata even when the gold did not score it.
+Projected evidence locations retain their original three fields; production
+reports and exports also retain assumptions on the individual evidence entries.
 Unresolved targets require path, `confidence: "inferred"` and
 `evidence_kinds: ["javascript"]`, with optional evidence locations.
 `{"rejected": true}` is the entire expectation for a deliberately rejected input.

@@ -35,12 +35,14 @@ CAPTURE_GUIDE = (
 )
 
 
-def operation_unknowns(origin_relations):
+def operation_unknowns(origin_relations, assumptions=()):
     result = []
     if not origin_relations or "unknown" in origin_relations:
         result.append("Origin scope is unclassified; remove unrelated traffic before implementing this operation.")
     if origin_relations and "cross_origin" in origin_relations:
         result.append("Confirm origin scope before including this operation.")
+    if "unverified_global_axios" in assumptions:
+        result.append("Browser-global Axios identity and prior configuration are assumed; verify them before implementing this operation.")
     return result + [
         "Required inputs and allowed callers are unknown.",
         "Response shapes are combined observations, not guaranteed for each status.",
@@ -73,6 +75,8 @@ def plan_rebuild(artifacts, *, javascript_engine="auto", document_url=None, dead
         common["additional_evidence_count"] = max(0, len(route["evidence"]) - MAX_EVIDENCE)
         if "origin_relations" in route:
             common["origin_relations"] = route["origin_relations"]
+        if route.get("assumptions"):
+            common["assumptions"] = list(route["assumptions"])
         if kinds == {"link"}:
             pages.append(common)
             continue
@@ -81,7 +85,7 @@ def plan_rebuild(artifacts, *, javascript_engine="auto", document_url=None, dead
         operations.append({**common,
             **{key: route[key] for key in ("method", "statuses", "query_fields", "request_shapes", "response_shapes")},
             "stub": "none" if cross_origin else "not_implemented",
-            "unknowns": operation_unknowns(route.get("origin_relations"))})
+            "unknowns": operation_unknowns(route.get("origin_relations"), route.get("assumptions", []))})
     unresolved = report.get("unresolved_operations", [])
     coverage = {key: report[key] for key in (
         "sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context"

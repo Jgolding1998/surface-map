@@ -6,6 +6,8 @@
   "passing_case_ids": [
     "angular-reactive-form-without-document-url",
     "astro-ssr-api-dynamic-origin-negative",
+    "axios-example-get-global",
+    "axios-example-post-global",
     "bootstrap-visual-alert-fragment-links",
     "django-actionless-unrendered-form",
     "express-auth-login-template",
@@ -33,9 +35,6 @@
     "vue-tutorial-dynamic-todo-fetch",
     "vue-watchers-literal-fetch"
   ],
-  "known_failure_case_ids": [
-    "axios-example-get-global",
-    "axios-example-post-global"
-  ],
+  "known_failure_case_ids": [],
   "scope": "Development regression baseline, not gold labels or unseen accuracy evidence. Known failures remain in the full evaluation and its denominator. Improvements are allowed; a previously passing case must not fail."
 }

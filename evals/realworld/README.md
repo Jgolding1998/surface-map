@@ -1,9 +1,15 @@
 # Real-world development seed (v1)
 
 The combined collection contains **30 tasks from 21 upstream project groups**,
-with 31 saved artifacts. Its first enhanced run scored **28/30**, stable across
-three repetitions. The two failures are the browser-global Axios examples in
-this initial seed. They remain in the labels, failure list and denominator.
+with 31 saved artifacts. Enhanced analysis now scores **30/30**, stable across
+three repetitions, after adding scoped browser-global Axios inference. The
+original **28/30** result and baseline are preserved in
+[initial-results.json](initial-results.json) and
+[initial-baseline.json](initial-baseline.json). No inputs or gold labels changed.
+The fix was developed after inspecting those failures; this is known-case
+development tuning, not a new unseen accuracy measurement. The Axios predictions
+retain explicit `unverified_global_axios` assumption metadata: library identity
+and prior configuration are not verified.
 These are small public source selections and teaching examples, not 21 complete
 websites, private production captures, human-reviewed labels or an unseen
 holdout. All 30 labels are honestly marked agent-reviewed and all projects
@@ -13,13 +19,12 @@ Run the combined collection from the repository root after optional parser setup
 
 ```sh
 python -m evals.realworld.combine --expected-projects 21 --check
-python -m evals.holdout --corpus evals/realworld/combined-corpus.json --labels evals/realworld/combined-labels.json --engine enhanced --repeats 3 --output realworld-results.json
+python -m evals.holdout --corpus evals/realworld/combined-corpus.json --labels evals/realworld/combined-labels.json --engine enhanced --repeats 3 --check --output realworld-results.json
 python -m evals.realworld.regression --results realworld-results.json
 ```
 
-The full correctness gate is `--check` on the holdout runner; it currently exits
-1 for the two known Axios misses. The separate regression command retains all
-failures in the report but fails CI on a newly regressed passing case, an
+The full correctness gate is `--check` on the holdout runner; all 30 cases must
+now pass. The separate regression command fails CI on a regressed passing case, an
 unexpected execution/rejection error, or repeat instability. It allows a known
 failure to improve. Its baseline is a recorded regression snapshot, not a gold
 label generator. Changed corpus or label hashes require an intentional reviewed
@@ -105,7 +110,7 @@ The two Flask `document_url` values use the reserved `example.com` host. Their p
 
 ## Ambiguous labels and limitations
 
-- **Global Axios (`axios-example-*`):** these pages load Axios with a `<script>` tag and call the global `axios`. The README only says "supported Axios calls". Reading `js_analysis.py` suggests that only imported or required Axios is bound. The labels record the literal requests (`GET /{segment_1}/{segment_2}` and `POST /post/{segment_2}`). A miss may be an undocumented scope limit rather than a parser defect. Auditors may reclassify these cases.
+- **Global Axios (`axios-example-*`):** the initial analyzer recognized only imported or required clients and missed both literal requests (`GET /{segment_1}/{segment_2}` and `POST /post/{segment_2}`). Enhanced mode now supports the conventional global with explicit assumption metadata. It checks local bindings, mutations and selected peer scripts, while acknowledging uninspected initialization. The original label expectations and review notes remain unchanged.
 - **Next.js SWR (`nextjs-swr-fetcher-indirect`):** the page requests `GET /api/users` at runtime through `useSwr` → `fetcher(url)`. Under the documented rules, functions are not executed, so the expected set is empty. A tool that models SWR keys would disagree.
 - **httpbin template action:** the form posts to `POST /post` in the rendered service. The saved artifact is an unrendered template, so the expected set is empty.
 - No case has an unresolved known-URL/unknown-method target. A suitably licensed real example was not found within the time budget. The `unresolved` lists are empty, and this gap remains open.

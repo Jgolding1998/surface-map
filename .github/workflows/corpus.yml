@@ -28,9 +28,9 @@ jobs:
         run: python -m evals.holdout --engine enhanced --repeats 3 --check --output harness-results.json
       - name: Verify frozen project inputs, labels and combined manifest
         run: python -m evals.realworld.combine --check --expected-projects 21
-      - name: Score all real-project development examples, including known gaps
-        run: python -m evals.holdout --corpus evals/realworld/combined-corpus.json --labels evals/realworld/combined-labels.json --engine enhanced --repeats 3 --output realworld-results.json
-      - name: Fail on new regressions while retaining known failures
+      - name: Require every real-project development case to pass
+        run: python -m evals.holdout --corpus evals/realworld/combined-corpus.json --labels evals/realworld/combined-labels.json --engine enhanced --repeats 3 --check --output realworld-results.json
+      - name: Verify the promoted regression baseline
         run: python -m evals.realworld.regression --results realworld-results.json
       - name: Retain scored reports
         if: always()

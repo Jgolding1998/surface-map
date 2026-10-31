@@ -18,6 +18,8 @@ class Value:
     kind: str
     data: object = None
     identity: int | str | None = None
+    assumed_global: bool = False
+    assumed_bare: bool = False
 
 
 UNKNOWN = Value("unknown")
@@ -283,7 +285,7 @@ class Analyzer:
                 binding = self.lookup(self.f(target, "name"), self.context[target])
                 if binding is not None:
                     self.bindings[binding].writes += 1
-                elif self.f(target, "name") in {"fetch", "XMLHttpRequest", "Request", "URL", "JSON", "Object", "window", "self", "globalThis", "global", "require", "String", "Function"}:
+                elif self.f(target, "name") in {"fetch", "axios", "XMLHttpRequest", "Request", "URL", "JSON", "Object", "window", "self", "globalThis", "global", "require", "String", "Function"}:
                     self.global_mutated.add(self.f(target, "name"))
             if typ in CALLS:
                 callee = self.c(index, "callee")
@@ -334,7 +336,7 @@ class Analyzer:
             result = value.data[position] if position < len(value.data) else UNDEFINED
             return UNKNOWN if result.kind == "undefined" and self.global_mutated & {"Object", "Array"} else result
         if value.kind == "global":
-            return self._global(key)
+            return self._global(key, qualified=True)
         if value.kind == "fetch" and key == "bind" and "Function" not in self.global_mutated and "*" not in self.global_mutated:
             return Value("bind_fetch", value)
         if value.kind == "axios" and value.identity not in self.client_mutated:
@@ -374,12 +376,25 @@ class Analyzer:
             return Value("string", value.data) if key == "href" else UNKNOWN
         return UNKNOWN
 
-    def _global(self, name):
+    def _global(self, name, *, qualified=False):
         if name in self.global_mutated or "*" in self.global_mutated:
             return UNKNOWN
+        if name == "axios":
+            # Classic-script var/function declarations populate global-object
+            # properties. Lexical declarations and module locals do not.
+            if self._global_axios_declared():
+                return UNKNOWN
+            # This is a conventional client assumption, never verified library
+            # identity. Keep it distinct from an imported/required Axios module.
+            return Value("axios", None, "axios-global", True, not qualified)
         return {"fetch": Value("fetch"), "XMLHttpRequest": Value("xhr_ctor"), "Request": Value("request_ctor"),
                 "URL": Value("url_ctor"), "globalThis": Value("global"), "window": Value("global"), "self": Value("global"), "global": Value("global"),
                 "undefined": UNDEFINED, "JSON": Value("json"), "Object": Value("object_builtin"), "Reflect": Value("reflect_builtin")}.get(name, UNKNOWN)
+
+    def _global_axios_declared(self):
+        binding = self.scopes[0].bindings.get("axios")
+        return (not self.explicit_module and binding is not None
+                and self.bindings[binding].kind in {"var", "function"})
 
     def _ambient_require(self, callee, use):
         scope = self.context[use]
@@ -563,14 +578,14 @@ class Analyzer:
                 owner = callee.data[0]
                 inherited = owner.data
                 if owner.identity in self.base_mutated:
-                    return Value("axios", UNKNOWN, index)
+                    return Value("axios", UNKNOWN, index, owner.assumed_global, owner.assumed_bare)
                 if options.kind != "object" or options.identity in self.mutated or options.data.open:
-                    return Value("axios", UNKNOWN, index)
+                    return Value("axios", UNKNOWN, index, owner.assumed_global, owner.assumed_bare)
                 fields = {key: value for key, value in inherited.data.fields.items() if key not in {"url", "method", "data"}} if inherited is not None and inherited.kind == "object" else {}
                 if inherited is not None and inherited.kind != "object":
-                    return Value("axios", UNKNOWN, index)
+                    return Value("axios", UNKNOWN, index, owner.assumed_global, owner.assumed_bare)
                 fields.update(options.data.fields)
-                return Value("axios", Value("object", ObjectValue(fields)), index)
+                return Value("axios", Value("object", ObjectValue(fields)), index, owner.assumed_global, owner.assumed_bare)
             if callee.kind == "bind_fetch" and len(args) == 1:
                 receiver = self.value(args[0], depth + 1, visited)
                 return Value("fetch") if receiver.kind in {"global", "null", "undefined"} else UNKNOWN
@@ -890,6 +905,8 @@ class Analyzer:
                     imports.append({"module": name, "line": line})
             callee = self.value(callee_node)
             method, url, body, client_name, missing_url = None, None, UNKNOWN, None, False
+            assumed_global = False
+            assumed_bare = False
             if callee.kind == "fetch" and args:
                 target = self.value(args[0])
                 initial_method = "GET"
@@ -917,6 +934,8 @@ class Analyzer:
                 client_name = "xhr"
             elif callee.kind in {"axios", "axios_member"}:
                 client, operation = callee.data if callee.kind == "axios_member" else (callee, "request")
+                assumed_global = client.assumed_global
+                assumed_bare = client.assumed_bare
                 if client.identity in self.client_mutated or operation == "create":
                     continue
                 config = UNDEFINED
@@ -949,13 +968,16 @@ class Analyzer:
             if not isinstance(url, str) or not url or len(url) > 4096 or "\\" in url or any(ord(char) < 33 for char in url):
                 self.omitted += 1
                 continue
-            key = (url, method, line, client_name)
+            key = (url, method, line, client_name, assumed_global, assumed_bare)
             if key in seen:
                 continue
             if len(output) >= 800:
                 raise AnalysisLimit("JavaScript evidence exceeds its count limit")
             seen.add(key)
             fact = {"url": url, "method": method, "line": line, "client": client_name}
+            if assumed_global:
+                fact["assumed_global"] = True
+                fact["assumed_bare"] = assumed_bare
             try:
                 fact["body"] = self._plain(body)
             except ValueError:
@@ -963,7 +985,15 @@ class Analyzer:
             output.append(fact)
         if len(imports) > 800:
             raise AnalysisLimit("JavaScript import evidence exceeds its count limit")
-        return {"calls": output, "imports": imports, "omitted": self.omitted}
+        result = {"calls": output, "imports": imports, "omitted": self.omitted}
+        if (self._global_axios_declared() or self.global_mutated & {"axios", "*"}
+                or "axios-global" in self.client_mutated or "axios-global" in self.base_mutated):
+            result["global_axios_modified"] = True
+        binding = self.scopes[0].bindings.get("axios")
+        if (not self.explicit_module and binding is not None
+                and self.bindings[binding].kind in {"let", "const", "class"}):
+            result["global_axios_lexical"] = True
+        return result
 
 
 def inspect_ast(document):

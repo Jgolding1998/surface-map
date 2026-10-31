@@ -72,6 +72,7 @@ function details(route) {
   if (!route.method) panel.append(node("p", "", "The target is known, but its method is unresolved. This is retained as an extension, never invented as an OpenAPI operation."));
   const origins = {same_origin: "Same origin as the page", cross_origin: "Different origin from the page", unknown: "Origin could not be determined"};
   if (route.origin_relations?.length) panel.append(node("h4", "", "Origin context"), node("p", "", route.origin_relations.map(value => origins[value] || origins.unknown).join("; ")));
+  if (route.assumptions?.includes("unverified_global_axios")) panel.append(node("h4", "", "Client assumption"), node("p", "", "Axios is assumed from a conventional global name. Its library identity and prior configuration were not verified."));
   panel.append(node("h4", "", "Source locations"));
   const evidence = node("ul");
   for (const entry of route.evidence) evidence.append(node("li", "", `${entry.source.replace("_", " ")} · ${entry.location} · ${entry.kind}${entry.origin_relation ? " · " + (origins[entry.origin_relation] || origins.unknown) : ""}`));
@@ -270,6 +271,7 @@ function showPlan(result) {
       node("span", "inventory-confidence", operation.confidence || "unverified"),
       node("span", "inventory-ecosystem", operation.stub === "not_implemented" ? "Not implemented" : "Scope review required"));
     row.append(node("p", "", (operation.evidence || []).map(item => `${item.source.replace("_", " ")} · ${item.location}`).join("; ") || "No source location retained."));
+    if (operation.assumptions?.includes("unverified_global_axios")) row.append(node("p", "", "Client assumption: global Axios identity and prior configuration were not verified."));
     rows.append(row);
   }
   if (!operations.length) rows.append(node("p", "source-empty", "No known-method operations were retained. A string candidate alone does not define an operation."));

@@ -70,6 +70,14 @@
       ],
       "additionalProperties": false
     },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "enum": ["unverified_global_axios"]
+      },
+      "maxItems": 1,
+      "uniqueItems": true
+    },
     "route": {
       "type": "object",
       "properties": {
@@ -101,6 +109,9 @@
           "minItems": 1,
           "maxItems": 4,
           "uniqueItems": true
+        },
+        "assumptions": {
+          "$ref": "#/$defs/assumptions"
         },
         "evidence": {
           "type": "array",
@@ -134,6 +145,9 @@
           "const": [
             "javascript"
           ]
+        },
+        "assumptions": {
+          "$ref": "#/$defs/assumptions"
         },
         "evidence": {
           "type": "array",

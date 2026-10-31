@@ -55,15 +55,15 @@
     "scope": "Real project groups and exposure/review status are declared metadata, not external attestations. Tasks, captures and repeats are not independent websites. Public or previously inspected cases are not unseen holdout evidence."
   },
   "cases": 30,
-  "passed": 28,
+  "passed": 30,
   "stable_cases": 30,
   "known_operations": {
-    "tp": 19,
+    "tp": 21,
     "fp": 0,
-    "fn": 2,
+    "fn": 0,
     "precision": 1.0,
-    "recall": 0.9047619047619048,
-    "f1": 0.95
+    "recall": 1.0,
+    "f1": 1.0
   },
   "unresolved_targets": {
     "tp": 0,
@@ -78,11 +78,11 @@
     "python": "3.13.11",
     "source_sha256": {
       "surface_map/__init__.py": "a16d9dce068557ae30782242ca13cb424c6e4281958ceceb42b9b0a0f27b9089",
-      "surface_map/analyze.py": "0f261a574a53d74555ef58b314ba861f4a625ff89807651c9de59b7d124791a0",
-      "surface_map/export.py": "f529918e570dfb23239ce24fdb8cbae6630880284c55b110a4b0e4ad1d0cb5f1",
-      "surface_map/js_analysis.py": "bef29bb49e3a73a43d320acead5627194198888b32d327577a85e96222c85410",
+      "surface_map/analyze.py": "8410775925eceb83bd16dcf081e2342275095b7637494108b22acdc4237c9652",
+      "surface_map/export.py": "c9f7e00ce2f9648453e00318a063679f6344d616f55df4dc14787c1ef0371eb3",
+      "surface_map/js_analysis.py": "579375b05dda2befe349ebf9e760d9ea5fbcacf14442097dc173567822ced20d",
       "surface_map/js_parser.py": "87ab9ac18aa64d94599c672696bc33657041a416b1232f477ba2077731e25089",
-      "evals/holdout/run.py": "b4f29bdd3e88702460e680584c832761078ff0627cc620e88c368cc155511797",
+      "evals/holdout/run.py": "f2fe59fd5432377230c5cdc305701010c682abf0442feb2ba429d80fde74548d",
       "analyzers/javascript/parse.mjs": "66798af5d387ca7b911c5751f27870aabad5c07fe320ee94704e8898bbcab5e6",
       "analyzers/javascript/package-lock.json": "b53b24f49b8fbe9bd7550a453f99b98ea698226957b682c7b97adeaa9a8abaed",
       "analyzers/javascript/integrity.json": "ec2fd3fa5ce885d65f029ec36a44e4a5f9ec42d66e78071f60a92853425a6ebf"
@@ -135,15 +135,15 @@
     },
     "axios": {
       "cases": 2,
-      "passed": 0,
+      "passed": 2,
       "stable_cases": 2,
       "known_operations": {
-        "tp": 0,
+        "tp": 2,
         "fp": 0,
-        "fn": 2,
-        "precision": null,
-        "recall": 0.0,
-        "f1": 0.0
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
       },
       "unresolved_targets": {
         "tp": 0,
@@ -830,15 +830,15 @@
     },
     "javascript-axios-global": {
       "cases": 2,
-      "passed": 0,
+      "passed": 2,
       "stable_cases": 2,
       "known_operations": {
-        "tp": 0,
+        "tp": 2,
         "fp": 0,
-        "fn": 2,
-        "precision": null,
-        "recall": 0.0,
-        "f1": 0.0
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
       },
       "unresolved_targets": {
         "tp": 0,
@@ -1115,15 +1115,13 @@
       "project": "axios",
       "family": "javascript-axios-global",
       "review_status": "agent-reviewed",
-      "passed": false,
+      "passed": true,
       "stable": true,
-      "failures": [
-        "routes"
-      ],
+      "failures": [],
       "known_operations": {
-        "tp": 0,
+        "tp": 1,
         "fp": 0,
-        "fn": 1
+        "fn": 0
       },
       "unresolved_targets": {
         "tp": 0,
@@ -1131,7 +1129,26 @@
         "fn": 0
       },
       "prediction": {
-        "routes": [],
+        "routes": [
+          {
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 1",
+                "source": "source_2"
+              }
+            ],
+            "method": "GET",
+            "assumptions": [
+              "unverified_global_axios"
+            ]
+          }
+        ],
         "unresolved": []
       }
     },
@@ -1141,15 +1158,13 @@
       "project": "axios",
       "family": "javascript-axios-global",
       "review_status": "agent-reviewed",
-      "passed": false,
+      "passed": true,
       "stable": true,
-      "failures": [
-        "routes"
-      ],
+      "failures": [],
       "known_operations": {
-        "tp": 0,
+        "tp": 1,
         "fp": 0,
-        "fn": 1
+        "fn": 0
       },
       "unresolved_targets": {
         "tp": 0,
@@ -1157,7 +1172,26 @@
         "fn": 0
       },
       "prediction": {
-        "routes": [],
+        "routes": [
+          {
+            "path": "/post/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 6",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST",
+            "assumptions": [
+              "unverified_global_axios"
+            ]
+          }
+        ],
         "unresolved": []
       }
     },

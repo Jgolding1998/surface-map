@@ -22,6 +22,7 @@ PREDICTION_SCHEMA = "surface-map-holdout-predictions/1"
 RESULT_SCHEMA = "surface-map-holdout-results/1"
 KINDS = {"html", "har", "javascript", "typescript"}
 EVIDENCE_KINDS = {"link", "form", "har", "javascript"}
+ASSUMPTIONS = {"unverified_global_axios"}
 CONFIDENCE = {"declared", "inferred", "observed"}
 MAX_JSON = 16 * 1024 * 1024
 MAX_CAPTURE = 4 * 1024 * 1024
@@ -215,7 +216,7 @@ def _evidence(value):
 
 def _route(value, *, unresolved=False):
     required = {"path", "confidence", "evidence_kinds"} | (set() if unresolved else {"method"})
-    _keys(value, required, {"evidence"})
+    _keys(value, required, {"evidence", "assumptions"})
     _string(value["path"], 2048)
     if not value["path"].startswith("/") or any(c.isspace() for c in value["path"]):
         raise EvaluationError("Invalid normalized route path")
@@ -228,6 +229,12 @@ def _route(value, *, unresolved=False):
         raise EvaluationError("Invalid evidence kinds")
     _unique(kinds)
     result = {**value, "evidence_kinds": sorted(kinds)}
+    if "assumptions" in value:
+        assumptions = _list(value["assumptions"], len(ASSUMPTIONS))
+        if any(not isinstance(item, str) or item not in ASSUMPTIONS for item in assumptions):
+            raise EvaluationError("Invalid route assumption")
+        _unique(assumptions)
+        result["assumptions"] = sorted(assumptions)
     if unresolved and kinds != ["javascript"]:
         raise EvaluationError("Unresolved targets require JavaScript evidence")
     if "evidence" in value:
@@ -390,7 +397,7 @@ def export_inputs(corpus, split="all"):
 
 
 def project_report(report):
-    """Project only scored route facts, retaining complete route sets."""
+    """Retain complete scored route sets and explicit client assumptions."""
     def route(row, unresolved=False):
         evidence = [{key: item[key] for key in ("source", "location", "kind")} for item in row["evidence"]]
         evidence = [json.loads(item) for item in sorted({_canonical(item) for item in evidence})]
@@ -399,6 +406,8 @@ def project_report(report):
                  "evidence": evidence}
         if not unresolved:
             value["method"] = row["method"]
+        if "assumptions" in row:
+            value["assumptions"] = row["assumptions"]
         return value
     return canonical_prediction({"routes": [route(row) for row in report["routes"]],
                                  "unresolved": [route(row, True) for row in report.get("unresolved_operations", [])]})

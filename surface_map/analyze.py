@@ -24,6 +24,11 @@ JS_WORK_SECONDS = 3.0
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 SEGMENTS = set("api v1 v2 v3 public private users user accounts account auth login logout register session sessions profile settings dashboard health healthz status orders order customers customer invoices invoice products product inventory items item cart checkout payments payment reports report search files file upload download events event notifications messages message contact submit forms form assets static js css images index.html app.js main.js bundle.js app.css main.css index.js favicon.ico favicon.svg robots.txt admin list details create update delete feed tags categories comments posts post projects project tasks task export import docs openapi.json graphql".split())
 FIELDS = set("id name email password token authorization api_key secret access_token refresh_token session cookie customer_id invoice_id order_id items total amount currency status created_at updated_at page limit offset search q query sort filter count username enabled success error message description sku quantity price url path method version phone address first_name last_name data result results type key value timestamp code active title content next previous roles role permissions fields format include exclude size file files subject body user customer order invoice product metadata cursor locale language expires csrf csrf_token".split())
+GLOBAL_AXIOS_ASSUMPTION = "unverified_global_axios"
+GLOBAL_AXIOS_WARNING = (
+    "An unbound global Axios client was assumed from its conventional name; "
+    "library identity and prior configuration were not verified."
+)
 
 
 class ArtifactError(ValueError):
@@ -409,6 +414,9 @@ class Builder:
         self.evidence_omissions = {}
         self.unresolved, self.javascript = {}, []
         self.javascript_engine = javascript_engine
+        self.pending_global_axios = []
+        self.global_axios_modified = False
+        self.global_axios_lexical = False
         # Set only when the caller supplies the final document URL.
         self.document_url = self.base_url = None
         self.relative_reason = "A relative URL was omitted because the page URL is unknown"
@@ -469,7 +477,19 @@ class Builder:
             relations.append(relation)
             relations.sort()
 
-    def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None):
+    def _assumption(self, row, evidence, source, assumption):
+        if assumption is None:
+            return
+        if assumption != GLOBAL_AXIOS_ASSUMPTION:
+            raise ArtifactError("Unsupported JavaScript client assumption")
+        evidence["assumptions"] = [assumption]
+        assumptions = row.setdefault("assumptions", [])
+        if assumption not in assumptions:
+            assumptions.append(assumption)
+            assumptions.sort()
+        self.warn(source, GLOBAL_AXIOS_WARNING)
+
+    def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None, assumption=None):
         if kind != "har":
             raw = self.resolve(raw, kind)
         if kind != "har" and page_relative(raw):
@@ -496,10 +516,11 @@ class Builder:
             model = {"type": "object", "properties": fields}
             self.retain(route["request_shapes"], model, source, "route_request_shapes", 64)
         evidence = {"source": source, "location": location, "kind": kind}
+        self._assumption(route, evidence, source, assumption)
         self.add_origin_context(route, evidence, raw)
         self.retain(route["evidence"], evidence, source, "route_evidence", 32)
 
-    def unresolved_operation(self, raw, source, location):
+    def unresolved_operation(self, raw, source, location, *, assumption=None):
         raw = self.resolve(raw, "javascript")
         if page_relative(raw):
             self.warn(source, self.relative_reason)
@@ -516,6 +537,7 @@ class Builder:
         for name in fields:
             self.retain(target["query_fields"], name, source, "unresolved_query_fields", 64)
         evidence = {"source": source, "location": location, "kind": "javascript"}
+        self._assumption(target, evidence, source, assumption)
         self.add_origin_context(target, evidence, raw)
         self.retain(target["evidence"], evidence, source, "unresolved_evidence", 32)
 
@@ -539,6 +561,27 @@ class Builder:
         self.retain(self.warnings, item, source, "warnings", 32)
 
     def finish(self):
+        # Global client initialization is not reconstructed across scripts.
+        # Delay conventional global hints so any known contradictory mutation
+        # in the supplied scripts suppresses them, regardless of input order.
+        pending, self.pending_global_axios = self.pending_global_axios, []
+        analysis_by_source = {item["source"]: item for item in self.javascript}
+        for call, source in pending:
+            omitted_reason = ("global_client_modified" if self.global_axios_modified else
+                              "global_lexical_binding" if self.global_axios_lexical and call.get("assumed_bare") else None)
+            if omitted_reason and source in analysis_by_source:
+                counts = analysis_by_source[source].setdefault("assumed_global_axios_omissions", {})
+                counts[omitted_reason] = counts.get(omitted_reason, 0) + 1
+            if self.global_axios_modified:
+                self.warn(source, "Calls through an assumed global Axios client were omitted because selected JavaScript modifies or escapes that global Axios client; cross-script initialization is not reconstructed.")
+            elif self.global_axios_lexical and call.get("assumed_bare"):
+                self.warn(source, "Calls through a bare assumed global Axios name were omitted because selected JavaScript declares that name in the classic-script global lexical scope; cross-script binding resolution is not reconstructed.")
+            elif call["method"] is None:
+                self.unresolved_operation(call["url"], source, f"line {call['line']}", assumption=GLOBAL_AXIOS_ASSUMPTION)
+            else:
+                body = shape(call["body"]) if "body" in call else None
+                self.add(call["url"], call["method"], "javascript", source, f"line {call['line']}", request=body,
+                         assumption=GLOBAL_AXIOS_ASSUMPTION)
         routes = []
         for index, (_, route) in enumerate(sorted(self.routes.items()), 1):
             for key in ("kinds", "statuses", "query_fields"):
@@ -798,12 +841,18 @@ def parse_js(text, source, builder, *, kind="javascript"):
     except AnalysisLimit:
         raise ArtifactError("JavaScript interpretation exceeded its work limit") from None
     builder.javascript.append({"source": source, "engine": "enhanced", "parser": "babel-8.0.4"})
+    builder.global_axios_modified |= bool(result.get("global_axios_modified"))
+    builder.global_axios_lexical |= bool(result.get("global_axios_lexical"))
     for call in result["calls"]:
+        assumption = GLOBAL_AXIOS_ASSUMPTION if call.get("assumed_global") else None
+        if assumption:
+            builder.pending_global_axios.append((call, source))
+            continue
         if call["method"] is None:
-            builder.unresolved_operation(call["url"], source, f"line {call['line']}")
+            builder.unresolved_operation(call["url"], source, f"line {call['line']}", assumption=assumption)
         else:
             body = shape(call["body"]) if "body" in call else None
-            builder.add(call["url"], call["method"], "javascript", source, f"line {call['line']}", request=body)
+            builder.add(call["url"], call["method"], "javascript", source, f"line {call['line']}", request=body, assumption=assumption)
     if result["omitted"]:
         builder.warn(source, "Some dynamic JavaScript targets could not be resolved safely.")
 

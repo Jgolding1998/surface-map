@@ -136,7 +136,11 @@ representative dataset or establish that agents benefit from the tool.
 
 The [real-project collection](../evals/realworld/README.md) includes 30 exposed
 development tasks from 21 upstream projects. The initial enhanced result is
-28/30; CI keeps both known misses visible and rejects newly regressed cases.
+28/30; the unchanged collection now passes 30/30 after scoped global-Axios support.
+Both the initial result and the updated result are retained. CI requires all 30
+to pass. Added or lost `unverified_global_axios` assumptions count as evidence
+changes even if the normalized route and method stay the same. The assumption
+is preserved in JSON, contract/OpenAPI exports, compact review and rebuild plans.
 The pinned Action is for comparing an application's captures. The project's own
 test/evaluation workflows also run proposed analyzer changes, as normal test CI;
 those jobs are not a trusted independent verdict on arbitrary hostile changes.
