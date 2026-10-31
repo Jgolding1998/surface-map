@@ -10,6 +10,7 @@ package-lock.json
 captures/
 *.har
 !/examples/rebuild-demo/session.har
+!/evals/holdout/fixtures/rejected.har
 *.zip
 *.apk
 *.exe
