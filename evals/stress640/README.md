@@ -102,6 +102,14 @@ parser failures; it expands regression coverage of established behavior.
 The difference is between two Surface Map parser modes, not a comparison
 against Claude, Codex, or a competing tool.
 
+Version 1.4 retains the original corpus and improves basic mode to **538/640**,
+with no previously passing case lost. Enhanced mode remains **640/640**. Basic
+mode retains more targets with uncertain methods; it labels ten targets as
+unresolved that enhanced mode resolves, so this is not an improvement on every
+precision metric. The [separate 20-case model record](agent_comparison/README.md)
+and [HTML library comparison](html_comparison/README.md) document their own
+rules, results and limitations.
+
 Repeated calls are not independent examples. These correlated, generated
 cases do not justify population confidence intervals or a general claim of
 100% accuracy. Recorded timings include projection overhead and possible

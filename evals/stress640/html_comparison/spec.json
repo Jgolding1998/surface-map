@@ -1,0 +1,18 @@
+{
+  "schema": "html-library-baseline-spec/1",
+  "frozen_before_scoring": true,
+  "corpus_sha256": "c09c2db557e34ff580753fe829936d82c1e8a19d0fd5401e6871d9b7bfbdc0ce",
+  "families": ["html-navigation", "document-bases", "form-controls", "text-containers", "foreign-content"],
+  "case_count": 200,
+  "selection": "Every accepted analyze case in these five families with exactly one saved synthetic HTML artifact; no network access and no execution of scripts.",
+  "task": "Extract declared ordinary HTML anchor destinations and form action/method/control-name fields from the saved source.",
+  "visibility_policy": "Ordinary HTML element tree, not browser-rendered visibility. Skip templates, raw-text descendants, noscript with scripting enabled, and elements in foreign namespaces. All selected expected destinations occur in ordinary active HTML. No computed CSS visibility claim.",
+  "form_policy": "GET and POST; omitted or invalid method means GET; dialog produces no network operation. Named input/select/textarea controls are declared field names, not proof they would be successful controls during submission. GET form controls replace the action query. POST retains action query and has request fields. Missing or empty action targets document URL, not base URL.",
+  "url_policy": "Resolve references against supplied document URL and first active base href when present. Without document URL, normalize supported standalone references. Apply Surface Map safe_path and safe_field to both outputs so normalization is intentionally shared and not independently tested here.",
+  "primary_metric": "Exact match per case of sets of (HTTP method, normalized path), plus micro precision and recall.",
+  "secondary_metric": "Query-field and request-field names scored as separate (method,path,field-kind,field-name) facts, including required empty sets in exact-case scoring.",
+  "not_scored": ["source line evidence", "confidence labels", "warnings", "JavaScript", "HAR", "live requests", "authentication", "runtime behavior", "security findings"],
+  "repeats": 3,
+  "timing": "Same process, sequential local parsing/extraction, alternate tool order by case/repeat, excluding imports, retaining full Surface Map output construction cost. Report median and p95 diagnostics, not a production benchmark or claim of equivalent work.",
+  "limitations": ["Developer-authored corpus is not a hidden holdout.", "200 combinations are correlated and not 200 independent sites.", "Beautiful Soup/html5lib are parsing libraries; adapter extraction policy is our code.", "Normalization is shared with Surface Map and may merge distinct raw URLs.", "Any discrepancy must be inspected to distinguish adapter policy from parser behavior."]
+}

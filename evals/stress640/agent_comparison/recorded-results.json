@@ -1,0 +1,210 @@
+{
+  "schema": "surface-map-stress-agent-result/1",
+  "corpus_sha256": "c09c2db557e34ff580753fe829936d82c1e8a19d0fd5401e6871d9b7bfbdc0ce",
+  "model_reported_by_cli": [
+    "claude-opus-5-5"
+  ],
+  "cases": 20,
+  "agent_trials": 1,
+  "tool_passed": 20,
+  "agent_passed": 17,
+  "paired": {
+    "tool_only": 3,
+    "agent_only": 0,
+    "both_passed": 17,
+    "both_failed": 0
+  },
+  "policy_sensitive_case_ids": [
+    "case_0004",
+    "case_0017"
+  ],
+  "results": [
+    {
+      "id": "case_0001",
+      "source_id": "text-containers-17",
+      "family": "text-containers",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0002",
+      "source_id": "capture-comparison-39",
+      "family": "capture-comparison",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0003",
+      "source_id": "javascript-resolution-08",
+      "family": "javascript-resolution",
+      "tool_passed": true,
+      "agent_passed": false,
+      "tool_failures": [],
+      "agent_failures": [
+        "route_details",
+        "routes"
+      ]
+    },
+    {
+      "id": "case_0004",
+      "source_id": "form-controls-01",
+      "family": "form-controls",
+      "tool_passed": true,
+      "agent_passed": false,
+      "tool_failures": [],
+      "agent_failures": [
+        "route_details"
+      ]
+    },
+    {
+      "id": "case_0005",
+      "source_id": "har-body-shapes-05",
+      "family": "har-body-shapes",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0006",
+      "source_id": "har-body-shapes-24",
+      "family": "har-body-shapes",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0007",
+      "source_id": "form-controls-18",
+      "family": "form-controls",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0008",
+      "source_id": "javascript-uncertainty-11",
+      "family": "javascript-uncertainty",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0009",
+      "source_id": "javascript-uncertainty-37",
+      "family": "javascript-uncertainty",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0010",
+      "source_id": "javascript-resolution-04",
+      "family": "javascript-resolution",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0011",
+      "source_id": "text-containers-20",
+      "family": "text-containers",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0012",
+      "source_id": "har-body-shapes-20",
+      "family": "har-body-shapes",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0013",
+      "source_id": "javascript-uncertainty-39",
+      "family": "javascript-uncertainty",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0014",
+      "source_id": "har-body-shapes-03",
+      "family": "har-body-shapes",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0015",
+      "source_id": "capture-comparison-26",
+      "family": "capture-comparison",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0016",
+      "source_id": "javascript-resolution-20",
+      "family": "javascript-resolution",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0017",
+      "source_id": "form-controls-11",
+      "family": "form-controls",
+      "tool_passed": true,
+      "agent_passed": false,
+      "tool_failures": [],
+      "agent_failures": [
+        "route_details"
+      ]
+    },
+    {
+      "id": "case_0018",
+      "source_id": "text-containers-39",
+      "family": "text-containers",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0019",
+      "source_id": "capture-comparison-19",
+      "family": "capture-comparison",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    },
+    {
+      "id": "case_0020",
+      "source_id": "javascript-uncertainty-28",
+      "family": "javascript-uncertainty",
+      "tool_passed": true,
+      "agent_passed": true,
+      "tool_failures": [],
+      "agent_failures": []
+    }
+  ]
+}

@@ -78,7 +78,7 @@ See the [verified Claude agent demonstration](docs/AGENT_DEMO.md) for real tool 
 
 Ask an agent: **“Use Surface Map to analyze this public URL and explain the routes and coverage limits.”** `analyze_url` fetches one public HTTPS page and up to five same-origin external scripts. It does not run JavaScript, log in, submit forms, test discovered APIs, or crawl linked pages. Captures are analyzed locally; the tool returns minimized evidence and explicit omissions. Use `demo` for an offline example.
 
-For a smaller response, ask for **a compact review** (`output: "review"`). It keeps counts, warnings and capture limits, lists the next evidence checks, and shows at most 12 prioritized routes by default. It does not include body shapes or the entire inventory; use `output: "report"` for retained detail. This reduces response size, not input limits or parser work.
+For a smaller response, ask for **a compact review** (`output: "review"`). It keeps counts, warnings and capture limits, lists the next evidence checks, and shows at most 12 prioritized routes by default. Navigation-only links have a separate bounded list, so menu links do not bury form or request evidence. It does not include body shapes or the entire inventory; use `output: "report"` for retained detail. This reduces response size, not input limits or parser work.
 
 For logged-in or rendered pages, use a separate browser to obtain authorized saved artifacts, then call `analyze_capture`. Prefer small relevant selections; the client handles those supplied contents before Surface Map minimizes its response, and its context limit may be lower than the analyzer's byte caps.
 
@@ -91,6 +91,8 @@ Input stays in process memory; the server keeps no upload files or reports. Opti
 Headers, cookies, hostnames, query values and body values are discarded. A small fixed vocabulary preserves common route and field names. Other names become aliases, and numeric path segments become inferred parameters. For example, a customer-specific path can become `/api/customers/{integer_3}/{segment_4}`. JSON bodies contribute types and field shapes, without examples, constants or inferred required fields.
 
 This is deliberately lossy. Different origins or private route names can normalize to the same path. Aliases are not the original API's parameter names. Field aliases follow sorted raw names within each retained field set, so reordering that set does not rename them; adding, removing or truncating fields can change aliases. Check a report before sharing it; minimization does not establish that every possible sensitive fact is absent.
+
+When document context is supplied, evidence also records `same_origin`, `cross_origin`, or `unknown`. Route aggregates retain all three possible classes even if individual evidence examples reach a cap. These labels survive contracts, OpenAPI exports and comparisons without exposing hostnames. Different offsite services can still merge into one normalized route; origin classes do not identify destinations.
 
 ## Practical limits
 
@@ -114,7 +116,13 @@ This is deliberately lossy. Different origins or private route names can normali
 
 ## Check it
 
-The [640-case scenario suite](evals/stress640/README.md) combines 16 families of HTML, HAR, JavaScript/TypeScript, privacy and comparison cases. Run `python -m evals.stress640 --engine enhanced --repeats 3 --check`. Its initial result was 640/640 in enhanced mode and 498/640 in basic mode. These are generated regression combinations, not 640 independent sites or a model comparison. CI runs the enhanced suite on Windows and Linux.
+The [640-case scenario suite](evals/stress640/README.md) combines 16 families of HTML, HAR, JavaScript/TypeScript, privacy and comparison cases. Run `python -m evals.stress640 --engine enhanced --repeats 3 --check`. Its initial result was 640/640 in enhanced mode and 498/640 in basic mode. Version 1.4 improves basic mode to 538/640 on the same frozen cases, with no prior passing case lost. Enhanced mode remains 640/640. These are generated regression combinations, not 640 independent sites or a model comparison. CI runs the enhanced suite on Windows and Linux.
+
+Basic mode now retains some known targets with unknown methods and recognizes conservative `window.fetch` and `globalThis.fetch` calls. It still cannot resolve options as well as syntax analysis: the expanded suite includes ten targets it marks unresolved that enhanced mode resolves. That is an explicit uncertainty tradeoff, not a precision improvement on every metric. The original 64-case basic result improves from 57/64 to 59/64.
+
+A separate [fresh 20-case Claude comparison](evals/stress640/agent_comparison/README.md) records 20/20 for enhanced analysis and 17/20 for text-only Claude. Two form cases depend on a rule underspecified in the prompt; one missed JavaScript target is unambiguous. This narrow sample does not establish a general model ranking.
+
+An [offline HTML comparison](evals/stress640/html_comparison/README.md) tied at 200/200 against an extraction adapter built with Beautiful Soup and html5lib. It scores shared link/form facts on synthetic inputs, using the same path normalization. It does not compare complete products or independent real websites.
 
 ```sh
 python -m unittest discover -s tests -v

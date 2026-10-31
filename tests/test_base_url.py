@@ -56,7 +56,7 @@ class DocumentUrlTests(unittest.TestCase):
         self.assertTrue({("script", "/api/v1/static/app.js"), ("stylesheet", "/api/v1/css/main.css"),
                          ("embedded-document", "/api/v1/{segment_3}/item")} <= assets(report))
         checkout = next(route for route in report["routes"] if route["path"] == "/api/v1/checkout")
-        self.assertEqual(checkout["evidence"], [{"source": "source_1", "location": "line 8", "kind": "form"}])
+        self.assertEqual(checkout["evidence"], [{"source": "source_1", "location": "line 8", "kind": "form", "origin_relation": "same_origin"}])
         self.assertEqual(checkout["confidence"], "declared")
         self.assertNotIn("A relative URL was omitted because the page URL is unknown", reasons(report))
         self.assertNoUrlLeak(report)
@@ -154,7 +154,7 @@ class DocumentUrlTests(unittest.TestCase):
                       html('<a href="/x">x</a><base href="/api/v3/">')])
         self.assertTrue({("GET", "/api/v3/api/items"), ("POST", "/api/v1/orders"), ("GET", "/api/v3")} <= routes(report))
         items = next(route for route in report["routes"] if route["path"] == "/api/v3/api/items")
-        self.assertEqual(items["evidence"], [{"source": "source_1", "location": "line 1", "kind": "javascript"}])
+        self.assertEqual(items["evidence"], [{"source": "source_1", "location": "line 1", "kind": "javascript", "origin_relation": "same_origin"}])
         self.assertNoUrlLeak(report)
 
     def test_base_prepass_shares_html_caps_and_deadline(self):

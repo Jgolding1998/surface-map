@@ -61,9 +61,11 @@ function details(route) {
   const panel = $("#detail"); panel.replaceChildren();
   panel.append(node("span", "detail-label", "ROUTE EVIDENCE"), node("h3", "", `${route.method || "METHOD UNKNOWN"} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
   if (!route.method) panel.append(node("p", "", "The target is known, but its method is unresolved. This is retained as an extension, never invented as an OpenAPI operation."));
+  const origins = {same_origin: "Same origin as the page", cross_origin: "Different origin from the page", unknown: "Origin could not be determined"};
+  if (route.origin_relations?.length) panel.append(node("h4", "", "Origin context"), node("p", "", route.origin_relations.map(value => origins[value] || origins.unknown).join("; ")));
   panel.append(node("h4", "", "Source locations"));
   const evidence = node("ul");
-  for (const entry of route.evidence) evidence.append(node("li", "", `${entry.source.replace("_", " ")} · ${entry.location} · ${entry.kind}`));
+  for (const entry of route.evidence) evidence.append(node("li", "", `${entry.source.replace("_", " ")} · ${entry.location} · ${entry.kind}${entry.origin_relation ? " · " + (origins[entry.origin_relation] || origins.unknown) : ""}`));
   panel.append(evidence);
   panel.append(node("h4", "", "Query fields"), node("p", "", route.query_fields.join(", ") || "None observed"));
   for (const [key, title] of [["request_shapes", "Request field shapes"], ["response_shapes", "Response field shapes"]]) {

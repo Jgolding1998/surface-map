@@ -439,6 +439,36 @@ class Builder:
         except ValueError:
             return None
 
+    def origin_relation(self, raw):
+        """Classify a reference against the document without retaining its host."""
+        from .page_signals import _origin
+
+        if not isinstance(raw, str) or raw.startswith("///"):
+            return "unknown"
+        try:
+            parts = urlsplit(raw)
+            if parts.scheme:
+                resolved = raw
+            elif self.base_url is not None:
+                resolved = urljoin(self.base_url, raw)
+            else:
+                return "unknown"
+        except (ValueError, UnicodeError):
+            return "unknown"
+        document, target = _origin(self.document_url), _origin(resolved)
+        return "unknown" if document is None or target is None else (
+            "same_origin" if document == target else "cross_origin")
+
+    def add_origin_context(self, row, evidence, raw):
+        if self.document_url is None:
+            return
+        relation = self.origin_relation(raw)
+        evidence["origin_relation"] = relation
+        relations = row.setdefault("origin_relations", [])
+        if relation not in relations:
+            relations.append(relation)
+            relations.sort()
+
     def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None):
         if kind != "har":
             raw = self.resolve(raw, kind)
@@ -466,6 +496,7 @@ class Builder:
             model = {"type": "object", "properties": fields}
             self.retain(route["request_shapes"], model, source, "route_request_shapes", 64)
         evidence = {"source": source, "location": location, "kind": kind}
+        self.add_origin_context(route, evidence, raw)
         self.retain(route["evidence"], evidence, source, "route_evidence", 32)
 
     def unresolved_operation(self, raw, source, location):
@@ -485,6 +516,7 @@ class Builder:
         for name in fields:
             self.retain(target["query_fields"], name, source, "unresolved_query_fields", 64)
         evidence = {"source": source, "location": location, "kind": "javascript"}
+        self.add_origin_context(target, evidence, raw)
         self.retain(target["evidence"], evidence, source, "unresolved_evidence", 32)
 
     def asset(self, raw, kind, source, location):
@@ -515,6 +547,8 @@ class Builder:
             route["confidence"] = "observed" if "har" in route["kinds"] else "declared" if "form" in route["kinds"] or "link" in route["kinds"] else "inferred"
             routes.append(route)
         report = {"version": 1, "sources": self.sources, "routes": routes, "assets": sorted(self.assets.values(), key=lambda item: (item["kind"], item["path"])), "warnings": self.warnings, "privacy": {"mode": "conservative", "origins": "discarded", "filenames": "discarded", "headers_cookies_values": "discarded", "unknown_names": "aliased", "scope": "Normalized paths may merge unrelated origins or identifiers. Evidence is incomplete; no route was requested or verified by this tool."}}
+        if self.document_url is not None:
+            report["has_document_context"] = True
         if self.javascript:
             report["javascript_analysis"] = self.javascript
         if self.evidence_omissions:
@@ -616,19 +650,50 @@ def literal_constants(tokens):
     return {name: literal for name, literal in candidates.items() if literal is not None and sites[name] == 1}
 
 
+def _basic_call_end(tokens, opening, limit=84):
+    """Only retain an uncertain call's target when its bounded envelope closes."""
+    stack, pairs = [], {")": "(", "]": "[", "}": "{"}
+    for position in range(opening, min(len(tokens), opening + limit)):
+        kind, value, _, claimable = tokens[position]
+        if not claimable:
+            return None
+        if kind != "punctuation":
+            continue
+        if value in "([{":
+            stack.append(value)
+        elif value in ")]}":
+            if not stack or stack.pop() != pairs[value]:
+                return None
+            if not stack:
+                return position
+    return None
+
+
 def parse_js_basic(text, source, builder):
     from .js_analysis import Analyzer
     from .source import _Rejected, _binding_counts
 
     tokens = _js_tokens(text)
     try:
-        fetch_bound = _binding_counts(tokens, ("fetch",))["fetch"]
+        bindings = _binding_counts(tokens, ("fetch", "window", "globalThis"))
     except _Rejected:
         raise ArtifactError("JavaScript binding analysis exceeded its work limit") from None
-    if fetch_bound:
+    if bindings["fetch"]:
         builder.warn(source, "A local fetch binding was found; fetch hints were omitted")
         return
     constants = literal_constants(tokens)
+    global_receivers = {"window", "globalThis"}
+    qualified_safe = not any(bindings[name] for name in global_receivers)
+    for index, token in enumerate(tokens):
+        if not token[3] or token[:2] in {("identifier", "with"), ("identifier", "eval"),
+                                        ("identifier", "self"), ("identifier", "this")}:
+            qualified_safe = False
+        if token[0] != "identifier" or token[1] not in global_receivers:
+            continue
+        following = tokens[index + 1:index + 4]
+        if (len(following) != 3 or [item[1] for item in following] != [".", "fetch", "("]
+                or index and tokens[index - 1][1] in {".", "new", "delete"}):
+            qualified_safe = False
     direct, depth = set(), 0
     for index, token in enumerate(tokens):
         if token[0] == "punctuation" and token[1] in "([{":
@@ -638,8 +703,16 @@ def parse_js_basic(text, source, builder):
         elif depth == 0 and token[:2] == ("identifier", "fetch"):
             direct.add(index)
     for index, token in enumerate(tokens):
-        if token[:2] != ("identifier", "fetch") or (index and tokens[index - 1][1] == "."):
+        if token[:2] != ("identifier", "fetch"):
             continue
+        qualified = index >= 2 and tokens[index - 1][:2] == ("punctuation", ".")
+        if qualified:
+            if tokens[index - 2][0] != "identifier" or tokens[index - 2][1] not in global_receivers:
+                continue
+            if not qualified_safe:
+                builder.warn(source, "A global fetch receiver was shadowed or used indirectly; qualified fetch hints were omitted")
+                continue
+        location = f"line {tokens[index - 2][2] if qualified else token[2]}"
         if not token[3]:
             builder.warn(source, "Ambiguous JavaScript syntax was omitted")
             continue
@@ -657,6 +730,11 @@ def parse_js_basic(text, source, builder):
             tail = tokens[index + 4:index + 84]
             if not tail or tail[0][1] != "{":
                 builder.warn(source, "Fetch options were dynamic; method was not inferred")
+                simple_options = (len(tail) >= 2 and tail[0][0] == "identifier" and tail[1][1] == ")")
+                empty_call = (len(tail) >= 4 and tail[0][0] == "identifier"
+                              and [item[1] for item in tail[1:4]] == ["(", ")", ")"])
+                if (simple_options or empty_call) and _basic_call_end(tokens, index + 1) is not None:
+                    builder.unresolved_operation(url, source, location)
                 continue
             level, closed, methods, dynamic = 0, None, [], False
             for offset in range(len(tail)):
@@ -686,14 +764,16 @@ def parse_js_basic(text, source, builder):
                         methods.append(Analyzer._wire_method(literal[1]))
             if closed is None or closed + 1 >= len(tail) or tail[closed + 1][1] != ")" or dynamic or len(methods) > 1 or not all(item[3] for item in tail[:closed + 2]):
                 builder.warn(source, "Fetch options were dynamic or incomplete; method was not inferred")
+                if _basic_call_end(tokens, index + 1) is not None:
+                    builder.unresolved_operation(url, source, location)
                 continue
             if methods:
                 method = methods[0]
         if method is None:
-            builder.unresolved_operation(url, source, f"line {token[2]}")
+            builder.unresolved_operation(url, source, location)
             builder.warn(source, "A fetch method was outside the supported wire methods; its target is unresolved")
         else:
-            builder.add(url, method, "javascript", source, f"line {token[2]}")
+            builder.add(url, method, "javascript", source, location)
 
 
 def parse_js(text, source, builder, *, kind="javascript"):

@@ -165,6 +165,48 @@ class PublicCaptureTests(unittest.TestCase):
         self.assertIn(capture._WARNINGS["script_failed"], result["warnings"])
         self.assertNotIn(capture._WARNINGS["deadline"], result["warnings"])
 
+    def test_script_omission_counts_distinguish_selection_and_failure_reasons(self):
+        self.page('<script src="https://cdn.example.com/private.js"></script>'
+                  '<script src="/ignored" type="application/json"></script>'
+                  '<script src=""></script><script src="/app.js"></script>'
+                  '<script src="/app.js"></script><script src="/large.js"></script>'
+                  '<script src="/two.js"></script><script src="/three.js"></script>'
+                  '<script src="/four.js"></script><script src="/five.js"></script>')
+        for name in ('app', 'two', 'three', 'four'):
+            self.responses[f'https://example.com/{name}.js'] = Response('// inert', content_type='text/javascript')
+        self.responses['https://example.com/large.js'] = capture.CaptureError('too_large')
+        result = capture.capture_public_url('https://example.com/')
+        metadata = result['capture']
+        self.assertEqual(metadata['scripts_skipped_by_reason'], {
+            'cross_origin': 1, 'duplicate': 1, 'fetch_failed': 1, 'invalid_reference': 1,
+            'non_javascript': 1, 'selection_limit': 1})
+        self.assertEqual(sum(metadata['scripts_skipped_by_reason'].values()), metadata['scripts_skipped'])
+        self.assertEqual(metadata['scripts_fetched'], 4)
+        self.assertEqual(metadata['script_capture_failures'], [{'reference':'script_6', 'declared_by':'source_1',
+                                                              'location':'line 1', 'code':'too_large'}])
+        self.assertNotIn('private.js', json.dumps(metadata))
+        self.assertNotIn('cdn.example.com', json.dumps(metadata))
+
+    def test_disabled_and_budget_stopped_scripts_are_counted_without_requests(self):
+        self.page('<script src="/a.js"></script><script src="/b.js"></script><script src="/c.js"></script>')
+        disabled = capture.capture_public_url('https://example.com/', False)['capture']
+        self.assertEqual(disabled['scripts_skipped_by_reason'], {'disabled':3})
+        self.page('<script src="/a.js"></script><script src="/b.js"></script><script src="/c.js"></script>')
+        self.responses['https://example.com/a.js'] = capture.CaptureError('dns_timeout')
+        stopped = capture.capture_public_url('https://example.com/')['capture']
+        self.assertEqual(stopped['scripts_skipped_by_reason'], {'fetch_failed':1, 'budget_not_attempted':2})
+        self.assertEqual(stopped['script_capture_failures'][0]['code'], 'dns_timeout')
+        self.assertEqual(stopped['scripts_requested'], 1)
+        self.page('<script src="/a.js"></script><script src="https://other.example.com/x.js"></script>'
+                  '<script type="application/json" src="/data.js"></script><script src="/a.js"></script>'
+                  '<script src="/b.js"></script>')
+        self.responses['https://example.com/a.js'] = capture.CaptureError('dns_timeout')
+        stopped = capture.capture_public_url('https://example.com/')['capture']
+        self.assertEqual(stopped['scripts_skipped_by_reason'], {'fetch_failed':1, 'cross_origin':1,
+                          'non_javascript':1, 'duplicate':1, 'budget_not_attempted':1})
+        self.assertEqual(sum(stopped['scripts_skipped_by_reason'].values()), stopped['scripts_skipped'])
+        self.assertEqual(stopped['scripts_requested'], 1)
+
     def test_displayed_code_and_template_content_never_select_script_or_base(self):
         self.page('<title><base href="https://other.example.com/"><script src="/fake1.js"></script></title>'
                   '<textarea><script src="/fake2.js"></script></textarea>'

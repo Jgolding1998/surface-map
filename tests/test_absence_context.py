@@ -66,7 +66,7 @@ class AbsenceContextTests(unittest.TestCase):
     @unittest.skipUnless(available()[0], 'optional JavaScript parser unavailable')
     def test_real_engine_and_omission_reports_explain_added_and_changed_evidence(self):
         try:
-            capture = [{'kind': 'javascript', 'text': 'window.fetch("/api/items");'}]
+            capture = [{'kind': 'javascript', 'text': 'fetch("".concat("/api/items"));'}]
             before = analyze(capture, javascript_engine='basic')
             after = analyze(capture, javascript_engine='enhanced')
             self.assertIn('javascript_engine_changed', compare(before, after)['added'][0]['presence_context'])

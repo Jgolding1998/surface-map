@@ -5,6 +5,7 @@ from collections import Counter
 
 
 CHECKS = {
+    "confirm_origin_scope": "Review this cross-origin reference; include its traffic only when authorized for that destination.",
     "resolve_method": "Inspect the calling code or an authorized network capture to establish the request method.",
     "inspect_error_response": "Inspect the recorded error response and capture conditions; a status alone does not establish the cause.",
     "capture_response": "Obtain an authorized network capture before treating this declared or inferred operation as observed behavior.",
@@ -20,11 +21,21 @@ def review(report, *, route_limit=12):
         raise ValueError("Review route limit must be an integer from 1 to 25")
     routes = report["routes"]
     unresolved = report.get("unresolved_operations", [])
-    counts = Counter(row["confidence"] for row in routes)
-    candidates, checks = [], Counter()
+    counts = Counter()
+    candidates, navigation, checks = [], [], Counter()
     for route in [*unresolved, *routes]:
+        kinds = set(route.get("kinds", (row["kind"] for row in route["evidence"])))
+        origin = {"origin_relations": route["origin_relations"]} if "origin_relations" in route else {}
+        if kinds == {"link"}:
+            navigation.append({"id": route["id"], "path": route["path"],
+                               "evidence": route["evidence"][:3], **origin})
+            continue
+        if route["method"] is not None:
+            counts[route["confidence"]] += 1
         statuses = route.get("statuses", [])
-        if route["method"] is None:
+        if route.get("origin_relations") == ["cross_origin"]:
+            reason = "confirm_origin_scope"
+        elif route["method"] is None:
             reason = "resolve_method"
         elif any(status >= 400 for status in statuses):
             reason = "inspect_error_response"
@@ -39,24 +50,28 @@ def review(report, *, route_limit=12):
         candidates.append({"id": route["id"], "method": route["method"], "path": route["path"],
                            "confidence": route["confidence"], "reason": reason,
                            "statuses": statuses, "evidence": evidence[:3],
-                           "additional_evidence_count": max(0, len(evidence) - 3)})
+                           "additional_evidence_count": max(0, len(evidence) - 3), **origin})
     order = {code: index for index, code in enumerate(CHECKS)}
     candidates.sort(key=lambda row: (order[row["reason"]], row["path"], row["method"] or ""))
     result = {
         "format": "surface-map-review-v1",
-        "counts": {"known_operations": len(routes), "unresolved_targets": len(unresolved),
+        "counts": {"route_groups": len(routes) + len(unresolved),
+                   "known_operations": len(routes) - len(navigation), "unresolved_targets": len(unresolved),
                    **{name: counts[name] for name in ("observed", "declared", "inferred")},
                    "assets": len(report["assets"]), "review_candidates": len(candidates),
-                   "not_prioritized_operations": len(routes) + len(unresolved) - len(candidates)},
+                   "navigation_only_groups": len(navigation),
+                   "not_prioritized_operations": len(routes) + len(unresolved) - len(candidates) - len(navigation)},
         "next_checks": [{"code": code, "count": checks[code], "suggestion": text}
                         for code, text in CHECKS.items() if checks[code]],
         "routes_to_review": candidates[:route_limit],
+        "navigation_links": sorted(navigation, key=lambda row: row["path"])[:route_limit],
+        "additional_navigation_groups": max(0, len(navigation) - route_limit),
         "additional_review_candidates": max(0, len(candidates) - route_limit),
-        "selection": "Unknown methods first, then recorded error statuses, unobserved operations and missing response statuses. Observed operations without those flags are counted as not prioritized; they are not verified or exempt from review. This is a review order, not a risk score.",
+        "selection": "Order: cross-origin scope, unknown methods, errors, unobserved operations, missing statuses. Navigation-only groups are separate from operation counts. Not prioritized does not mean verified or safe. This is not a risk score.",
         "scope": "A compact view of supplied static evidence, not the full inventory. Counts describe retained analysis, not complete site coverage. Successful HAR statuses do not verify current availability, authorization or safety. No discovered operation is replayed. Request output report for full retained evidence; a repeated URL capture may change.",
         "privacy": report["privacy"],
     }
-    for key in ("sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions",
+    for key in ("sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context",
                 "capture", "capture_warnings"):
         if key in report:
             result[key] = report[key]

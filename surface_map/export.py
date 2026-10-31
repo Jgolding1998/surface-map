@@ -8,6 +8,17 @@ def union(schemas):
     return schemas[0] if len(schemas) == 1 else {"anyOf": schemas} if schemas else {}
 
 
+def _origin_fields(route):
+    return {"origin_relations": list(route["origin_relations"])} if "origin_relations" in route else {}
+
+
+def _origin_change(a, b):
+    if "origin_relations" not in a and "origin_relations" not in b:
+        return {}
+    return {"before_origin_relations": list(a["origin_relations"]) if "origin_relations" in a else None,
+            "origin_relations": list(b["origin_relations"]) if "origin_relations" in b else None}
+
+
 def openapi_routes(routes):
     groups = {}
     for route in routes:
@@ -24,17 +35,24 @@ def openapi_routes(routes):
         for route in group:
             method = route["method"]
             if method not in operations:
-                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}}
+                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence", "origin_relations") if key in route}}
             merged = operations[method]
             for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence"):
                 for value in route[key]:
                     if value not in merged[key]:
                         merged[key].append(value)
+            if "origin_relations" in route:
+                relations = merged.setdefault("origin_relations", [])
+                for value in route["origin_relations"]:
+                    if value not in relations:
+                        relations.append(value)
             if ("inferred", "declared", "observed").index(route["confidence"]) > ("inferred", "declared", "observed").index(merged["confidence"]):
                 merged["confidence"] = route["confidence"]
         for route in operations.values():
             route["statuses"].sort()
             route["query_fields"].sort()
+            if "origin_relations" in route:
+                route["origin_relations"].sort()
             result.append(route)
     return result
 
@@ -45,6 +63,8 @@ def openapi(report):
         parameters = [{"name": field, "in": "query", "required": False, "schema": {"type": "string"}, "description": "Name observed; values discarded and type unverified."} for field in route["query_fields"]]
         parameters.extend({"name": name, "in": "path", "required": True, "schema": {"type": "integer" if name.startswith("integer_") else "string"}, "description": "Inferred redaction placeholder, not a verified API parameter."} for name in re.findall(r"\{([a-z0-9_]+)\}", route["path"]))
         operation = {"operationId": route["id"], "summary": f"{route['method']} {route['path']}", "description": "Evidence-derived skeleton only. Origins, raw values and unknown names were removed. Confirm behavior and supply your own server before use.", "parameters": parameters, "responses": {}, "x-surface-map-confidence": route["confidence"], "x-surface-map-evidence": route["evidence"]}
+        if "origin_relations" in route:
+            operation["x-surface-map-origin-relations"] = route["origin_relations"]
         for status in route["statuses"]:
             operation["responses"][str(status)] = {"description": "Status observed in a HAR entry. Body shapes are combined observations, not guaranteed for this status."}
             if route["response_shapes"]:
@@ -63,7 +83,7 @@ def openapi(report):
 
 
 def contract(report):
-    result = {"format": "surface-map-contract-v1", "routes": [{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")} for route in report["routes"]], "privacy": report["privacy"]}
+    result = {"format": "surface-map-contract-v1", "routes": [{**{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}, **_origin_fields(route)} for route in report["routes"]], "privacy": report["privacy"]}
     if report.get("unresolved_operations"):
         result["unresolved_operations"] = report["unresolved_operations"]
     if report.get("evidence_limits"):
@@ -86,6 +106,11 @@ def compare(before, after):
                 fields.append(key)
         if evidence_kinds(a) != evidence_kinds(b):
             fields.append("evidence_kinds")
+        if "origin_relations" in a and "origin_relations" in b:
+            left = sorted(a["origin_relations"])
+            right = sorted(b["origin_relations"])
+            if left != right:
+                fields.append("origin_relations")
         return fields
 
     def keyed(report):
@@ -133,15 +158,16 @@ def compare(before, after):
 
     def coverage(report):
         return {"source_kinds": sorted({row["kind"] for row in report["sources"]}),
+                "has_document_context": bool(report.get("has_document_context")),
                 "retained_warning_count": len(report["warnings"]),
                 "omitted_script_count": len(report.get("script_omissions", [])),
                 "evidence_retention_limited": bool(report.get("evidence_limits"))}
 
     old, new = keyed(before), keyed(after)
     added = [{"method": method, "path": path, "evidence": new[(method, path)]["evidence"],
-              "presence_context": presence_context(new[(method, path)])} for method, path in sorted(new.keys() - old.keys())]
+              "presence_context": presence_context(new[(method, path)]), **_origin_fields(new[(method, path)])} for method, path in sorted(new.keys() - old.keys())]
     removed = [{"method": method, "path": path, "evidence": old[(method, path)]["evidence"],
-                "absence_context": absence_context(old[(method, path)])} for method, path in sorted(old.keys() - new.keys())]
+                "absence_context": absence_context(old[(method, path)]), **_origin_fields(old[(method, path)])} for method, path in sorted(old.keys() - new.keys())]
     changed = []
     for method, path in sorted(old.keys() & new.keys()):
         a, b = old[(method, path)], new[(method, path)]
@@ -156,7 +182,7 @@ def compare(before, after):
             if "javascript" in kinds and old_engines and new_engines and old_engines != new_engines:
                 context.append("javascript_engine_changed")
             changed.append({"method": method, "path": path, "changed_fields": fields,
-                            "before_evidence": a["evidence"], "evidence": b["evidence"], "context": context})
+                            "before_evidence": a["evidence"], "evidence": b["evidence"], "context": context, **_origin_change(a, b)})
     result = {"added": added, "removed": removed, "changed": changed,
               "before_coverage": coverage(before), "after_coverage": coverage(after),
               "note": "Differences are between supplied, normalized evidence. Missing from a capture does not prove a route was removed from a service. Row context is not exhaustive and does not establish causes; inspect before/after warnings. Coverage warnings and retention limits apply to the capture overall."}
@@ -173,5 +199,5 @@ def compare(before, after):
             fields = changed_fields(a, b, ("query_fields",))
             if fields:
                 result["unresolved_changed"].append({"method": None, "path": path, "changed_fields": fields,
-                                                     "before_evidence": a["evidence"], "evidence": b["evidence"]})
+                                                     "before_evidence": a["evidence"], "evidence": b["evidence"], **_origin_change(a, b)})
     return result

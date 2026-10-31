@@ -7,6 +7,7 @@ does not render pages, execute source, replay APIs/forms or follow page links.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from collections import Counter
 from dataclasses import dataclass
 from html.parser import HTMLParser
 import http.client
@@ -61,7 +62,7 @@ _MESSAGES = {
     "network": "The HTTPS request failed; no target or response details are returned.",
 }
 _WARNINGS = {
-    "scope": "Static HTTPS capture only: no browser rendering, API traffic, form submission, stylesheets, embedded pages or dynamic imports were captured.",
+    "scope": "Static HTTPS capture only: no browser rendering, API traffic, form submission, stylesheets, embedded pages or static/dynamic imports were captured.",
     "inline": "Inline JavaScript was not extracted or executed.",
     "scripts_disabled": "External script fetching was disabled.",
     "script_omitted": "Some external scripts were omitted because of origin, URL, type, duplication or selection limits.",
@@ -527,17 +528,31 @@ def capture_public_url(url, include_scripts=True):
                 bad_base = True
                 warnings.append(_WARNINGS["base"])
         requested, seen, omitted, failed = 0, set(), False, False
+        budget_stopped = False
+        skipped_by_reason, capture_failures = Counter(), []
         if not include_scripts:
             warnings.append(_WARNINGS["scripts_disabled"])
+            skipped_by_reason["disabled"] = len(parser.scripts)
         else:
-            for reference, line, javascript in parser.scripts:
+            for index, (reference, line, javascript) in enumerate(parser.scripts):
+                if not javascript:
+                    skipped_by_reason["non_javascript"] += 1
+                    omitted = True
+                    continue
                 try:
-                    if not javascript or not reference or (bad_base and not reference.startswith("https://")):
+                    if not reference or (bad_base and not reference.startswith("https://")):
                         raise CaptureError("invalid_url")
                     script = _reference(base, reference)
-                    if script.origin != document.origin or script.url in seen or requested >= MAX_SCRIPTS:
-                        raise CaptureError("blocked_target")
                 except (CaptureError, ValueError):
+                    skipped_by_reason["invalid_reference"] += 1
+                    omitted = True
+                    continue
+                reason = ("cross_origin" if script.origin != document.origin else
+                          "duplicate" if script.url in seen else
+                          "selection_limit" if requested >= MAX_SCRIPTS else
+                          "budget_not_attempted" if budget_stopped else None)
+                if reason:
+                    skipped_by_reason[reason] += 1
                     omitted = True
                     continue
                 seen.add(script.url)
@@ -548,9 +563,12 @@ def capture_public_url(url, include_scripts=True):
                     source_text, _ = _fetch(script, "javascript", budget, min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - total), document.origin)
                 except CaptureError as error:
                     failed = True
+                    skipped_by_reason["fetch_failed"] += 1
+                    capture_failures.append({"reference": f"script_{index + 1}", "declared_by": "source_1",
+                                             "location": f"line {line}", "code": error.code})
                     if error.code in {"timeout", "request_limit", "dns_timeout", "dns_busy"}:
                         warnings.append(_WARNINGS["deadline"])
-                        break
+                        budget_stopped = True
                     continue
                 size = len(source_text.encode("utf-8"))
                 total += size
@@ -565,6 +583,8 @@ def capture_public_url(url, include_scripts=True):
                 "capture": {"mode": "public_https_static", "requested": 1 + requested, "fetched": len(artifacts),
                             "external_scripts_seen": len(parser.scripts), "scripts_requested": requested,
                             "scripts_fetched": len(artifacts) - 1, "scripts_skipped": len(parser.scripts) - len(artifacts) + 1,
+                            "scripts_skipped_by_reason": dict(sorted(skipped_by_reason.items())),
+                            "script_capture_failures": capture_failures,
                             "inline_scripts_skipped": parser.inline, "network_requests": budget.requests,
                             "redirects": budget.redirects, "bytes": total, "sources": sources,
                             "limits": {"artifacts": MAX_ARTIFACTS, "scripts": MAX_SCRIPTS, "requests": MAX_REQUESTS,

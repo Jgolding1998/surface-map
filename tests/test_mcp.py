@@ -121,7 +121,7 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_compact_review_is_available_through_stdio_and_validates_limits(self):
         async with self.session() as client:
             report = self.result_json(await client.call_tool("analyze_capture", {
-                "artifacts": [{"kind": "html", "text": '<a href="/api/items">items</a><a href="/api/users">users</a>'}],
+                "artifacts": [{"kind": "html", "text": '<form action="/api/items"></form><form action="/api/users"></form>'}],
                 "output": "review", "review_limit": 1.0}))
             self.assertEqual(report["format"], "surface-map-review-v1")
             self.assertEqual(len(report["routes_to_review"]), 1)

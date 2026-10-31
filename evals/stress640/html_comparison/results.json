@@ -1,0 +1,130 @@
+{
+  "schema": "surface-map-html-library-comparison/1",
+  "spec_sha256": "1c112cef78a4dbec6c13bbe2aacc030f331cbff4116954eea94d626668699032",
+  "corpus_sha256": "c09c2db557e34ff580753fe829936d82c1e8a19d0fd5401e6871d9b7bfbdc0ce",
+  "adapter_sha256": "6b484ef57bbeaff393e747191269eb3a094e3ca6b87ffd69c2133be86851ce41",
+  "runner_sha256": "f433ca91a6b67a2118e8a2668cf230b6573b3dca39f791a74a34754b585557a2",
+  "surface_map_source_hashes": {
+    "surface_map/__init__.py": "eeeae33c2c036fa9e36df3ff85d2e0fc7f3903f2da486033bd223233084833b0",
+    "surface_map/__main__.py": "7ca4faa712896248042a789672b2ced1491d424858fe92cb98815f31c1f9631f",
+    "surface_map/analyze.py": "e391b9c1fb74afa1ba717101c0107859c5ade9f342e83ef3e31a3525d4b04d50",
+    "surface_map/export.py": "4b7826dcee904585c8c35127cfe7ce2b60500a6c4e8c8ca4a087e044da69d0d1",
+    "surface_map/js_analysis.py": "fb5b6ff8242f9b6056fa6093e01b648209be9c7c026a55d7d4470afaeacd2f03",
+    "surface_map/js_parser.py": "7d31800573fb2cb01fffc7fd7587f51cf882825f9b603adfda0eb266c36a07d3",
+    "surface_map/mcp_server.py": "444db882c86fffb74175701d2fefe434c3c99c439ac081ee3be2faaa66a4c867",
+    "surface_map/page_signals.py": "944373aacb4fa48554354e166451b11eb71ed9c4dc10e8c90450a6328083be74",
+    "surface_map/review.py": "2bcbf316d37e9265e8d840df04e930f5a58d529f4522d9ebc228f224131b570e",
+    "surface_map/samples.py": "3fe5e1dc030bf66520869dbdf8df2bb5de201de3ec0713339ef4c07f77904a08",
+    "surface_map/server.py": "e396b2286d3dca2a73781e0364c66064be2f9278a9e7aaa3f6b5518e24cca17b",
+    "surface_map/source.py": "e76a75f9f167588520e865ff18eb4d7dea0613c0ee54fe5ac7bbb69348c949a3",
+    "surface_map/source_io.py": "914aff239db8dea4f7e6df21ff9cd050026777899a832233cab492d1ccc9c424",
+    "surface_map/url_capture.py": "7a5276595ba90d0f3557c57abba9c3d0d168c52d306de19932ff8ebf741a4c8e"
+  },
+  "package_versions": {
+    "beautifulsoup4": "4.15.0",
+    "html5lib": "1.1",
+    "soupsieve": "3.0.4",
+    "typing-extensions": "4.16.0",
+    "six": "1.17.0",
+    "webencodings": "0.6.1"
+  },
+  "python": "3.12.14",
+  "repeats": 3,
+  "external_operations_attempted": 0,
+  "summary": {
+    "beautifulsoup_html5lib": {
+      "cases": 200,
+      "operations_exact": 200,
+      "full_exact": 200,
+      "stable": 200,
+      "operations": {
+        "tp": 196,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "fields": {
+        "tp": 78,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "families": {
+        "html-navigation": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "document-bases": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "form-controls": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "text-containers": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "foreign-content": {
+          "cases": 40,
+          "full_exact": 40
+        }
+      },
+      "timing": {
+        "median_ms": 0.2831,
+        "p95_ms": 0.4493
+      }
+    },
+    "surface_map_basic_html": {
+      "cases": 200,
+      "operations_exact": 200,
+      "full_exact": 200,
+      "stable": 200,
+      "operations": {
+        "tp": 196,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "fields": {
+        "tp": 78,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "families": {
+        "html-navigation": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "document-bases": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "form-controls": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "text-containers": {
+          "cases": 40,
+          "full_exact": 40
+        },
+        "foreign-content": {
+          "cases": 40,
+          "full_exact": 40
+        }
+      },
+      "timing": {
+        "median_ms": 0.069,
+        "p95_ms": 0.1457
+      }
+    }
+  },
+  "failures": [],
+  "empty_prediction_exact_cases": 12
+}

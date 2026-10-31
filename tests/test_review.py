@@ -28,14 +28,17 @@ class ReviewTests(unittest.TestCase):
             'evidence': [{'source': 'source_3', 'location': 'line 1', 'kind': 'javascript'}],
         }]
         brief = review(report, route_limit=2)
-        self.assertEqual(brief['counts']['known_operations'], 4)
+        self.assertEqual(brief['counts']['known_operations'], 3)
+        self.assertEqual(brief['counts']['route_groups'], 5)
+        self.assertEqual(sum(brief['counts'][key] for key in ('observed', 'declared', 'inferred')), 3)
         self.assertEqual(brief['counts']['unresolved_targets'], 1)
-        self.assertEqual(brief['counts']['review_candidates'], 4)
+        self.assertEqual(brief['counts']['review_candidates'], 3)
         self.assertEqual(brief['counts']['not_prioritized_operations'], 1)
+        self.assertEqual(brief['counts']['navigation_only_groups'], 1)
         self.assertEqual([r['reason'] for r in brief['routes_to_review']], ['resolve_method', 'inspect_error_response'])
-        self.assertEqual(brief['additional_review_candidates'], 2)
+        self.assertEqual(brief['additional_review_candidates'], 1)
         self.assertEqual({c['code'] for c in brief['next_checks']},
-                         {'resolve_method', 'inspect_error_response', 'capture_response', 'inspect_missing_status'})
+                         {'resolve_method', 'inspect_error_response', 'inspect_missing_status'})
         self.assertNotIn('private-canary', json.dumps(brief))
         self.assertNotIn('Private content', json.dumps(brief))
         self.assertIn('do not verify', brief['scope'])
@@ -73,7 +76,7 @@ class ReviewTests(unittest.TestCase):
         self.assertLess(len(json.dumps(brief)), len(json.dumps(report)) / 2)
 
     def test_default_report_remains_compatible_and_invalid_limits_fail(self):
-        args = {'artifacts': [{'kind': 'html', 'text': '<a href="/api/items">x</a>'}]}
+        args = {'artifacts': [{'kind': 'html', 'text': '<form action="/api/items" method="post"></form>'}]}
         full = _execute('analyze_capture', args)
         self.assertIn('routes', full)
         self.assertEqual(len(review(full, route_limit=2.0)['routes_to_review']), 1)
@@ -118,3 +121,27 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(brief['counts']['known_operations'], 0)
         self.assertTrue(brief['warnings'])
         self.assertIn('not the full inventory', brief['scope'])
+
+    def test_navigation_does_not_bury_form_and_origin_context_survives_preview(self):
+        links = '\n'.join(['<a href="/api/items">x</a>'] * 35)
+        report = analyze([{'kind': 'html', 'text': links +
+                          '<a href="https://private-canary.invalid/api/items">x</a>' +
+                          '<a href="/api/orders">x</a><a href="/api/users">x</a>' +
+                          '<form action="/api/tasks" method="post"></form>'}],
+                         document_url='https://page-canary.invalid/')
+        brief = review(report, route_limit=1)
+        self.assertEqual([r['path'] for r in brief['routes_to_review']], ['/api/tasks'])
+        self.assertEqual(brief['counts']['navigation_only_groups'], 3)
+        self.assertEqual(brief['additional_navigation_groups'], 2)
+        self.assertEqual(brief['navigation_links'][0]['origin_relations'], ['cross_origin', 'same_origin'])
+        self.assertEqual(brief['routes_to_review'][0]['origin_relations'], ['same_origin'])
+        self.assertEqual(brief['next_checks'][0]['code'], 'capture_response')
+        self.assertNotIn('canary.invalid', json.dumps(brief))
+
+    def test_cross_origin_form_requires_scope_check_before_capture_suggestion(self):
+        report = analyze([{'kind':'html', 'text':'<form action="https://private-canary.invalid/api/items" method="post"></form>'}],
+                         document_url='https://page-canary.invalid/')
+        brief = review(report)
+        self.assertEqual(brief['routes_to_review'][0]['reason'], 'confirm_origin_scope')
+        self.assertEqual([row['code'] for row in brief['next_checks']], ['confirm_origin_scope'])
+        self.assertNotIn('canary.invalid', json.dumps(brief))

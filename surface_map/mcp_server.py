@@ -26,7 +26,7 @@ from .page_signals import MAX_FINDINGS, MAX_TEXT_WINDOW, MAX_DEPTH
 REJECTED = "Capture rejected: unsupported, malformed, or over limit. Supply supported contents within limits; no input text or paths are returned."
 INVALID = "Invalid tool arguments. Use the advertised schema; URL retrieval is available only through analyze_url."
 URL_ANALYSIS_REJECTED = "URL analysis failed: the fetched page is unsupported, malformed or over the analysis limits. No page contents or target details are returned."
-URL_OUTPUT_REJECTED = "URL analysis result exceeded the output limit. Retry with include_scripts false or analyze a narrower saved capture. No page contents or target details are returned."
+URL_OUTPUT_REJECTED = "URL analysis result exceeded the output limit. Retry with output review, include_scripts false, or a narrower saved capture. No page contents or target details are returned."
 INSTRUCTIONS = (
     "Saved-capture tools analyze only supplied contents and never access the network. analyze_url makes "
     "bounded public HTTPS GETs for a page and selected same-origin scripts, without cookies, credentials, "

@@ -1,0 +1,177 @@
+{
+  "schema": "surface-map-stress-agent-comparison/1",
+  "corpus_sha256": "c09c2db557e34ff580753fe829936d82c1e8a19d0fd5401e6871d9b7bfbdc0ce",
+  "seed": "surface-map-blind-broader-v1",
+  "selection": "For each fixed family quota select lowest SHA256(seed:case_id); reorder by SHA256(seed:mix:case_id). Selection fixed before model calls.",
+  "family_quotas": {
+    "form-controls": 3,
+    "text-containers": 3,
+    "har-body-shapes": 4,
+    "javascript-uncertainty": 4,
+    "javascript-resolution": 3,
+    "capture-comparison": 3
+  },
+  "cases": [
+    {
+      "id": "case_0001",
+      "source_id": "text-containers-17",
+      "family": "text-containers"
+    },
+    {
+      "id": "case_0002",
+      "source_id": "capture-comparison-39",
+      "family": "capture-comparison"
+    },
+    {
+      "id": "case_0003",
+      "source_id": "javascript-resolution-08",
+      "family": "javascript-resolution"
+    },
+    {
+      "id": "case_0004",
+      "source_id": "form-controls-01",
+      "family": "form-controls"
+    },
+    {
+      "id": "case_0005",
+      "source_id": "har-body-shapes-05",
+      "family": "har-body-shapes"
+    },
+    {
+      "id": "case_0006",
+      "source_id": "har-body-shapes-24",
+      "family": "har-body-shapes"
+    },
+    {
+      "id": "case_0007",
+      "source_id": "form-controls-18",
+      "family": "form-controls"
+    },
+    {
+      "id": "case_0008",
+      "source_id": "javascript-uncertainty-11",
+      "family": "javascript-uncertainty"
+    },
+    {
+      "id": "case_0009",
+      "source_id": "javascript-uncertainty-37",
+      "family": "javascript-uncertainty"
+    },
+    {
+      "id": "case_0010",
+      "source_id": "javascript-resolution-04",
+      "family": "javascript-resolution"
+    },
+    {
+      "id": "case_0011",
+      "source_id": "text-containers-20",
+      "family": "text-containers"
+    },
+    {
+      "id": "case_0012",
+      "source_id": "har-body-shapes-20",
+      "family": "har-body-shapes"
+    },
+    {
+      "id": "case_0013",
+      "source_id": "javascript-uncertainty-39",
+      "family": "javascript-uncertainty"
+    },
+    {
+      "id": "case_0014",
+      "source_id": "har-body-shapes-03",
+      "family": "har-body-shapes"
+    },
+    {
+      "id": "case_0015",
+      "source_id": "capture-comparison-26",
+      "family": "capture-comparison"
+    },
+    {
+      "id": "case_0016",
+      "source_id": "javascript-resolution-20",
+      "family": "javascript-resolution"
+    },
+    {
+      "id": "case_0017",
+      "source_id": "form-controls-11",
+      "family": "form-controls"
+    },
+    {
+      "id": "case_0018",
+      "source_id": "text-containers-39",
+      "family": "text-containers"
+    },
+    {
+      "id": "case_0019",
+      "source_id": "capture-comparison-19",
+      "family": "capture-comparison"
+    },
+    {
+      "id": "case_0020",
+      "source_id": "javascript-uncertainty-28",
+      "family": "javascript-uncertainty"
+    }
+  ],
+  "scope": "20 rule-specified synthetic developer-known tasks; routes/evidence/details/comparisons only. No warnings/page-signals/privacy/scalar speed comparison. Fresh text-only sessions, no tools.",
+  "batches": [
+    {
+      "batch": 1,
+      "case_ids": [
+        "case_0001",
+        "case_0002",
+        "case_0003",
+        "case_0004",
+        "case_0005",
+        "case_0006",
+        "case_0007",
+        "case_0008",
+        "case_0009",
+        "case_0010"
+      ],
+      "prompt_sha256": "032b5583cec94552d07936f9db711370d83af7544a0e5d23b18919d1167bbab4"
+    },
+    {
+      "batch": 2,
+      "case_ids": [
+        "case_0011",
+        "case_0012",
+        "case_0013",
+        "case_0014",
+        "case_0015",
+        "case_0016",
+        "case_0017",
+        "case_0018",
+        "case_0019",
+        "case_0020"
+      ],
+      "prompt_sha256": "5a8dae69614735f1620fade41d38691fe89d91ce5c19ddd9dbb2a3897f7dbcf1"
+    }
+  ],
+  "conditions": {
+    "model_reported_by_cli": [
+      "claude-opus-5-5"
+    ],
+    "trials": 1,
+    "fresh_sessions": 2,
+    "cases_per_session": 10,
+    "agent_tools_enabled": false,
+    "prior_context_supplied": false,
+    "tool_engine": "enhanced",
+    "selection_and_prompts_saved_before_calls": true,
+    "prompt_bytes_verified_against_requests": true,
+    "post_result_prompt_or_label_tuning": false,
+    "provenance_limit": "Ordering and CLI conditions are self-reported, not independently attested. Source files were not snapshotted at inference time."
+  },
+  "policy_sensitive_case_ids": [
+    "case_0004",
+    "case_0017"
+  ],
+  "files": {
+    "prompt-1.txt": "032b5583cec94552d07936f9db711370d83af7544a0e5d23b18919d1167bbab4",
+    "prompt-2.txt": "5a8dae69614735f1620fade41d38691fe89d91ce5c19ddd9dbb2a3897f7dbcf1",
+    "response-1.txt": "c40c453254680e3df757fbe8cf0aa4c7d1a1f41473e55385a0ddbdbdf4d4d76a",
+    "response-2.txt": "b41eea3e1f5c823572fa9dbd5758c9a723d9d7e71776356c601ad76d83b59444",
+    "surface-map-predictions.json": "7ba6f4c960d8960bcc6a41988d2c81469c016fe37d92b7ea9a7bb7f10b48955a"
+  }
+}

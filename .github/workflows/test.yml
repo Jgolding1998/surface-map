@@ -36,6 +36,10 @@ jobs:
         run: python -m evals.diverse.compare_agent --tool-results diverse-results.json
       - name: 640 scenario combinations
         run: python -m evals.stress640 --engine enhanced --repeats 3 --check --output stress640-results.json
+      - name: Verify recorded twenty-case comparison
+        run: python -m evals.stress640.agent_comparison --output recorded-comparison.json
+      - name: Check comparison record integrity
+        run: python -m unittest evals.stress640.agent_comparison.test_record -v
   mcp:
     runs-on: ${{ matrix.os }}
     strategy:
