@@ -31,6 +31,14 @@ The JavaScript parser remains separately optional. To use `enhanced` analysis, f
 
 This is a local MCP server, not a hosted endpoint or a one-click remote connector. Your client must support local stdio tools. After setup, try: "Use Surface Map to inspect https://docs.python.org/3/library/json.html and explain what the evidence supports, including omitted resources."
 
+## Compact review
+
+Use `output: "review"` on `analyze_url` or `analyze_capture` when the agent needs a small first pass. `review_limit` accepts 1 through 25 route examples, defaulting to 12. It prioritizes unresolved methods, recorded error statuses, unobserved operations and missing response statuses. It returns source references, counts, warnings, capture omissions and fixed suggestions for further evidence gathering. These are review priorities, not vulnerability findings or a safety score.
+
+The brief omits body schemas and most route details, explicitly counts additional review candidates, and summarizes optional page signals without their findings. A route absent from the brief can still exist in the full report. Request `output: "report"` for all retained evidence. No report is cached; calling `analyze_url` again fetches a new capture that may differ. Smaller output does not increase input, parser or host limits.
+
+When evidence retention reaches a cap, `evidence_limits` reports discarded occurrences by fixed category and generic source ID. Repeated discarded values can count more than once. Its absence does not establish full website coverage.
+
 ## Configure a client
 
 Replace the placeholder paths below with your checkout. These examples are configuration instructions; installing requirements or running tests does not modify a client's settings.
@@ -88,14 +96,14 @@ Every tool advertises `readOnlyHint: true`, `destructiveHint: false`, and `idemp
 
 | Tool | Arguments | Result |
 | --- | --- | --- |
-| `analyze_url` | `url`, optional `include_scripts`, `javascript_engine` and `include_page_signals` | Static public-page analysis, capture counts and omissions |
-| `analyze_capture` | `artifacts`, optional `document_url`, `javascript_engine`, `output` and `include_page_signals` | Minimized report, or OpenAPI/contract document with source and warning context |
+| `analyze_url` | `url`, optional `include_scripts`, `javascript_engine`, `include_page_signals`, `output` and `review_limit` | Static public-page report or compact review, with capture counts and omissions |
+| `analyze_capture` | `artifacts`, optional `document_url`, `javascript_engine`, `output`, `review_limit` and `include_page_signals` | Minimized report, compact review, or OpenAPI/contract document with source and warning context |
 | `compare_captures` | `before`, `after`, optional `before_document_url`, `after_document_url` and `javascript_engine` | Added, absent (`removed`) and changed normalized evidence, plus each capture's warnings |
 | `inspect_sources` | `artifacts`, optional `javascript_engine` | Minimized source inventory, source parse status and warnings |
 | `demo` | none | Actual analysis of bundled synthetic captures and source fixtures, plus a synthetic comparison |
 | `limits` | none | Current byte limits, scope and client privacy considerations |
 
-`javascript_engine` is `auto` (default), `basic`, or `enhanced`. `output` is `report` (default), `openapi`, or `contract`. A web capture uses `text`; the MCP interface accepts plain text only, unlike the HTTP interface's additional base64 option:
+`javascript_engine` is `auto` (default), `basic`, or `enhanced`. Both analysis tools support `output: "review"` for a compact brief; the default is `report`. Saved captures also support `openapi` and `contract`. A web capture uses `text`; the MCP interface accepts plain text only, unlike the HTTP interface's additional base64 option:
 
 ```json
 {

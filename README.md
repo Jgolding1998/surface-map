@@ -33,6 +33,8 @@ The **JavaScript analysis** selector offers automatic, required syntax analysis,
 3. Export the report, an OpenAPI 3.1 skeleton, or the compact contract as JSON.
 4. To compare captures, keep the first analyzed selection as a baseline, import and analyze the second, then compare. Clear the session to release both selections and reports from the page.
 
+Absent routes include capture context, such as a missing source kind or a method becoming unresolved. This helps distinguish a change in available evidence from a change to the service. If retained evidence or field details hit a cap, the report and exports carry `evidence_limits` with bounded omission counts.
+
 | Evidence | What is extracted | Label |
 | --- | --- | --- |
 | HAR | Request method, normalized path, status, query names and supported JSON body shapes | Observed |
@@ -76,6 +78,8 @@ See the [verified Claude agent demonstration](docs/AGENT_DEMO.md) for real tool 
 
 Ask an agent: **“Use Surface Map to analyze this public URL and explain the routes and coverage limits.”** `analyze_url` fetches one public HTTPS page and up to five same-origin external scripts. It does not run JavaScript, log in, submit forms, test discovered APIs, or crawl linked pages. Captures are analyzed locally; the tool returns minimized evidence and explicit omissions. Use `demo` for an offline example.
 
+For a smaller response, ask for **a compact review** (`output: "review"`). It keeps counts, warnings and capture limits, lists the next evidence checks, and shows at most 12 prioritized routes by default. It does not include body shapes or the entire inventory; use `output: "report"` for retained detail. This reduces response size, not input limits or parser work.
+
 For logged-in or rendered pages, use a separate browser to obtain authorized saved artifacts, then call `analyze_capture`. Prefer small relevant selections; the client handles those supplied contents before Surface Map minimizes its response, and its context limit may be lower than the analyzer's byte caps.
 
 To inspect source-level agent guidance, ask for `include_page_signals: true` with `analyze_url` or `analyze_capture`. It reports phrases that address or mention AI agents, explicit hiding declarations and machine-document references with source locations, without returning the page's instructions or following them. [Example and limitations](docs/PAGE_SIGNALS.md).
@@ -86,7 +90,7 @@ Input stays in process memory; the server keeps no upload files or reports. Opti
 
 Headers, cookies, hostnames, query values and body values are discarded. A small fixed vocabulary preserves common route and field names. Other names become aliases, and numeric path segments become inferred parameters. For example, a customer-specific path can become `/api/customers/{integer_3}/{segment_4}`. JSON bodies contribute types and field shapes, without examples, constants or inferred required fields.
 
-This is deliberately lossy. Different origins or private route names can normalize to the same path. Aliases are not the original API's parameter names. Check a report before sharing it; minimization does not establish that every possible sensitive fact is absent.
+This is deliberately lossy. Different origins or private route names can normalize to the same path. Aliases are not the original API's parameter names. Field aliases follow sorted raw names within each retained field set, so reordering that set does not rename them; adding, removing or truncating fields can change aliases. Check a report before sharing it; minimization does not establish that every possible sensitive fact is absent.
 
 ## Practical limits
 
@@ -109,6 +113,8 @@ This is deliberately lossy. Different origins or private route names can normali
 - Comparison reports added, absent and changed normalized evidence, including gained or lost evidence kinds and query-field changes for unknown-method targets. Changed entries retain before and after source evidence. Line moves and source-order changes alone do not count as changes. Absence from a capture does not prove removal from a service.
 
 ## Check it
+
+The [640-case scenario suite](evals/stress640/README.md) combines 16 families of HTML, HAR, JavaScript/TypeScript, privacy and comparison cases. Run `python -m evals.stress640 --engine enhanced --repeats 3 --check`. Its initial result was 640/640 in enhanced mode and 498/640 in basic mode. These are generated regression combinations, not 640 independent sites or a model comparison. CI runs the enhanced suite on Windows and Linux.
 
 ```sh
 python -m unittest discover -s tests -v

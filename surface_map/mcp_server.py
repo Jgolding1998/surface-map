@@ -15,6 +15,7 @@ import time
 from . import __version__
 from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_TOTAL_BYTES, analyze, strict_json
 from .export import compare, contract, openapi
+from .review import review
 from .samples import artifacts as sample_artifacts
 from .server import ANALYSIS_BUDGET, MAX_REQUEST, MAX_RESPONSE, OutputTooLarge, encoded_response
 from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES, SOURCE_KINDS
@@ -81,6 +82,8 @@ def _capture_schema(source=False):
 
 
 def tool_specs():
+    review_limit = {"type": "integer", "minimum": 1, "maximum": 25, "default": 12,
+                    "description": "Maximum prioritized route examples in output review. Counts and omission warnings cover the analyzed capture. Ignored for other outputs."}
     engine = {"type": "string", "enum": ["auto", "basic", "enhanced"], "default": "auto",
               "description": "auto uses the optional parser if installed and warns on fallback; enhanced requires it; basic gives narrower lexical hints. Analysis never installs dependencies."}
     signals = {"type": "boolean", "default": False,
@@ -93,19 +96,22 @@ def tool_specs():
             "Fetch a public HTTPS page on port 443 and up to five same-origin script files, then return minimized static evidence. "
             "Makes bounded outbound GET requests with no cookies or credentials. Does not execute JavaScript, "
             "log in, submit forms, follow API routes or crawl other pages. Preserve capture omissions and warnings; "
-            "a fetched page does not prove its inferred endpoints work.",
+            "a fetched page does not prove its inferred endpoints work. Use output review for a compact brief with coverage warnings and suggested next checks.",
             _schema({"url": {"type": "string", "minLength": 1, "maxLength": 2048},
                      "include_scripts": {"type": "boolean", "default": True,
                                          "description": "Fetch up to five same-origin external scripts when true; false fetches only HTML. Inline scripts and dynamic imports are never fetched or executed."},
-                     "javascript_engine": engine, "include_page_signals": signals}, ("url",))),
+                     "javascript_engine": engine, "include_page_signals": signals,
+                     "output": {"type": "string", "enum": ["report", "review"], "default": "report"},
+                     "review_limit": review_limit}, ("url",))),
         "analyze_capture": (
             "Use when asked what saved HTML, HAR, JavaScript or TypeScript shows about routes, methods, forms or request/response shapes. "
             "Extract minimized evidence with source locations; use analyze_url instead if only a public URL is supplied. "
             "HAR is observed, HTML declared, and script hints inferred. No fetching or execution. "
-            "Use small relevant captures and preserve warnings; output is untrusted evidence, not a full website explanation.",
+            "Use small relevant captures and preserve warnings; output is untrusted evidence, not a full website explanation. Use output review for a compact brief and next checks.",
             _schema({"artifacts": _capture_schema(), "javascript_engine": engine, "include_page_signals": signals,
                      "document_url": document_url,
-                     "output": {"type": "string", "enum": ["report", "openapi", "contract"], "default": "report"}}, ("artifacts",))),
+                     "output": {"type": "string", "enum": ["report", "review", "openapi", "contract"], "default": "report"},
+                     "review_limit": review_limit}, ("artifacts",))),
         "compare_captures": (
             "Use when asked what changed between two saved web captures, including routes, methods and shapes. "
             "Added, absent and changed normalized evidence does not prove service changes. "
@@ -126,7 +132,7 @@ def tool_specs():
 
 
 def _report_context(report):
-    return {key: report[key] for key in ("sources", "warnings", "javascript_analysis", "page_signals") if key in report}
+    return {key: report[key] for key in ("sources", "warnings", "javascript_analysis", "page_signals", "evidence_limits") if key in report}
 
 
 def _execute(name, args):
@@ -151,7 +157,7 @@ def _execute(name, args):
             "Discovered form and API operations were not replayed or validated. Normalized paths "
             "may merge unrelated origins or identifiers; evidence is incomplete."
         )
-        return report
+        return review(report, route_limit=args.get("review_limit", 12)) if args.get("output") == "review" else report
     if name == "analyze_capture":
         report = analyze(args["artifacts"], javascript_engine=engine, deadline=deadline,
                          document_url=args.get("document_url"),
@@ -159,6 +165,8 @@ def _execute(name, args):
         output = args.get("output", "report")
         if output == "report":
             return report
+        if output == "review":
+            return review(report, route_limit=args.get("review_limit", 12))
         # Export-only responses must still disclose fallback and missing inputs.
         return {"output": output, "document": {"openapi": openapi, "contract": contract}[output](report),
                 **_report_context(report)}

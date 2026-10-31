@@ -34,6 +34,8 @@ jobs:
         run: python -m evals.diverse --engine enhanced --repeats 3 --check --output diverse-results.json
       - name: Compare current evidence with the recorded agent baseline
         run: python -m evals.diverse.compare_agent --tool-results diverse-results.json
+      - name: 640 scenario combinations
+        run: python -m evals.stress640 --engine enhanced --repeats 3 --check --output stress640-results.json
   mcp:
     runs-on: ${{ matrix.os }}
     strategy:

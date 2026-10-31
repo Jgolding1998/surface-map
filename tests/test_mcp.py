@@ -108,7 +108,7 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
         }]}}
         capture = [{"kind": "har", "text": json.dumps(har)}]
         async with self.session() as client:
-            requests = [("analyze_capture", {"artifacts": capture, "output": output}) for output in ("report", "openapi", "contract")]
+            requests = [("analyze_capture", {"artifacts": capture, "output": output}) for output in ("report", "review", "openapi", "contract")]
             requests.extend([
                 ("compare_captures", {"before": capture, "after": [{"kind": "html", "text": ""}]}),
                 ("inspect_sources", {"artifacts": [{"kind": "package", "content": json.dumps({"name": CANARY, "dependencies": {"react": CANARY, CANARY: "1"}})}]}),
@@ -116,6 +116,20 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
             for name, args in requests:
                 result = await client.call_tool(name, args)
                 self.result_json(result)
+                self.assertNotIn(CANARY, result.model_dump_json())
+
+    async def test_compact_review_is_available_through_stdio_and_validates_limits(self):
+        async with self.session() as client:
+            report = self.result_json(await client.call_tool("analyze_capture", {
+                "artifacts": [{"kind": "html", "text": '<a href="/api/items">items</a><a href="/api/users">users</a>'}],
+                "output": "review", "review_limit": 1.0}))
+            self.assertEqual(report["format"], "surface-map-review-v1")
+            self.assertEqual(len(report["routes_to_review"]), 1)
+            self.assertEqual(report["additional_review_candidates"], 1)
+            for value in (0, 26, True, CANARY):
+                result = await client.call_tool("analyze_capture", {
+                    "artifacts": [{"kind": "html", "text": ""}], "output": "review", "review_limit": value})
+                self.assertTrue(result.is_error)
                 self.assertNotIn(CANARY, result.model_dump_json())
 
     async def test_saved_document_context_resolves_forms_links_and_scripts_through_stdio(self):

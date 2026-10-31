@@ -196,7 +196,20 @@ function showDiff(value) {
   for (const [key, label] of [["added", "Added"], ["removed", "Absent"], ["changed", "Changed"]]) {
     for (const route of value[key]) {
       const row = node("div", "diff-row");
-      row.append(node("strong", "", label), node("code", "", `${route.method} ${route.path}`), node("span", "", route.changed_fields ? route.changed_fields.join(", ") : "Capture evidence only"));
+      const absenceLabels = {
+        prior_source_kind_not_supplied:"Prior source kind not supplied",
+        same_path_unresolved_after:"Same path has an unknown method in new capture",
+        same_path_unresolved_before:"Same path had an unknown method in prior capture",
+        source_kind_not_supplied_before:"Source kind not supplied in prior capture",
+        not_seen_in_prior_capture:"Absent from prior capture",
+        scripts_omitted_from_analysis:"Scripts omitted from analysis",
+        scripts_omitted_before:"Scripts omitted from prior analysis",
+        javascript_engine_changed:"JavaScript engine changed",
+        not_seen_in_supplied_capture:"Absent from supplied capture"
+      };
+      const context = (route.absence_context || route.presence_context || route.context || []).map(code => absenceLabels[code]).filter(Boolean).join("; ");
+      const detail = [route.changed_fields?.join(", "), context].filter(Boolean).join("; ");
+      row.append(node("strong", "", label), node("code", "", `${route.method} ${route.path}`), node("span", "", detail || "Capture evidence only"));
       list.append(row);
     }
   }

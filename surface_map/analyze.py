@@ -344,7 +344,7 @@ def safe_path(raw):
                 result.append(f"{{segment_{index}}}")
         query = parse_qsl(parts.query, keep_blank_values=True, max_num_fields=64)
         used = set()
-        names = sorted({safe_field(key, i, used) for i, (key, _) in enumerate(query, 1)})
+        names = sorted(safe_field(key, i, used) for i, key in enumerate(sorted({key for key, _ in query}), 1))
         return "/" + "/".join(result), names
     except (ValueError, UnicodeError):
         return None
@@ -365,7 +365,8 @@ def shape(value, depth=0):
         return {"type": "string"}
     if isinstance(value, dict):
         used = set()
-        properties = {safe_field(key, i, used): shape(item, depth + 1) for i, (key, item) in enumerate(list(value.items())[:32], 1)}
+        keys = sorted(value)[:32]
+        properties = {safe_field(key, i, used): shape(value[key], depth + 1) for i, key in enumerate(keys, 1)}
         result = {"type": "object", "properties": properties}
         if len(value) > 32:
             result["x-surface-map-truncated"] = True
@@ -405,11 +406,29 @@ def json_body(container):
 class Builder:
     def __init__(self, javascript_engine="auto"):
         self.routes, self.assets, self.sources, self.warnings = {}, {}, [], []
+        self.evidence_omissions = {}
         self.unresolved, self.javascript = {}, []
         self.javascript_engine = javascript_engine
         # Set only when the caller supplies the final document URL.
         self.document_url = self.base_url = None
         self.relative_reason = "A relative URL was omitted because the page URL is unknown"
+
+    def record_omission(self, source, category, limit):
+        key = (source, category)
+        if key not in self.evidence_omissions:
+            self.evidence_omissions[key] = {"source": source, "category": category,
+                                            "limit": limit, "omitted_occurrences": 0}
+            if category != "warnings":
+                self.warn(source, "Some evidence exceeded a retention limit; inspect evidence_limits for omitted occurrence counts.")
+        self.evidence_omissions[key]["omitted_occurrences"] += 1
+
+    def retain(self, values, value, source, category, limit):
+        if value in values:
+            return
+        if len(values) < limit:
+            values.append(value)
+        else:
+            self.record_omission(source, category, limit)
 
     def resolve(self, raw, kind):
         """Resolve a page-relative reference against the document base when one is known."""
@@ -442,16 +461,12 @@ class Builder:
         route = self.routes[key]
         for field, values in [("kinds", [kind]), ("query_fields", query_fields), ("statuses", [status] if status is not None else []), ("request_shapes", [request] if request else []), ("response_shapes", [response] if response else [])]:
             for value in values:
-                if value not in route[field]:
-                    if len(route[field]) < 64:
-                        route[field].append(value)
+                self.retain(route[field], value, source, "route_" + field, 64)
         if fields:
             model = {"type": "object", "properties": fields}
-            if model not in route["request_shapes"] and len(route["request_shapes"]) < 64:
-                route["request_shapes"].append(model)
+            self.retain(route["request_shapes"], model, source, "route_request_shapes", 64)
         evidence = {"source": source, "location": location, "kind": kind}
-        if evidence not in route["evidence"] and len(route["evidence"]) < 32:
-            route["evidence"].append(evidence)
+        self.retain(route["evidence"], evidence, source, "route_evidence", 32)
 
     def unresolved_operation(self, raw, source, location):
         raw = self.resolve(raw, "javascript")
@@ -468,11 +483,9 @@ class Builder:
             self.unresolved[path] = {"method": None, "path": path, "confidence": "inferred", "query_fields": [], "evidence": []}
         target = self.unresolved[path]
         for name in fields:
-            if name not in target["query_fields"] and len(target["query_fields"]) < 64:
-                target["query_fields"].append(name)
+            self.retain(target["query_fields"], name, source, "unresolved_query_fields", 64)
         evidence = {"source": source, "location": location, "kind": "javascript"}
-        if evidence not in target["evidence"] and len(target["evidence"]) < 32:
-            target["evidence"].append(evidence)
+        self.retain(target["evidence"], evidence, source, "unresolved_evidence", 32)
 
     def asset(self, raw, kind, source, location):
         raw = self.resolve(raw, "asset")
@@ -487,13 +500,11 @@ class Builder:
         if len(self.assets) >= 200 and key not in self.assets:
             raise ArtifactError("Capture exceeds the 200-asset limit; narrow the capture scope")
         item = self.assets.setdefault(key, {"path": path, "kind": kind, "evidence": []})
-        if len(item["evidence"]) < 16:
-            item["evidence"].append({"source": source, "location": location})
+        self.retain(item["evidence"], {"source": source, "location": location}, source, "asset_evidence", 16)
 
     def warn(self, source, reason):
         item = {"source": source, "reason": reason}
-        if item not in self.warnings and len(self.warnings) < 32:
-            self.warnings.append(item)
+        self.retain(self.warnings, item, source, "warnings", 32)
 
     def finish(self):
         routes = []
@@ -506,6 +517,12 @@ class Builder:
         report = {"version": 1, "sources": self.sources, "routes": routes, "assets": sorted(self.assets.values(), key=lambda item: (item["kind"], item["path"])), "warnings": self.warnings, "privacy": {"mode": "conservative", "origins": "discarded", "filenames": "discarded", "headers_cookies_values": "discarded", "unknown_names": "aliased", "scope": "Normalized paths may merge unrelated origins or identifiers. Evidence is incomplete; no route was requested or verified by this tool."}}
         if self.javascript:
             report["javascript_analysis"] = self.javascript
+        if self.evidence_omissions:
+            report["evidence_limits"] = {
+                "truncated": True,
+                "omissions": [self.evidence_omissions[key] for key in sorted(self.evidence_omissions)],
+                "scope": "Counts discarded occurrences, not distinct values. Repeated discarded values can be counted again. Missing omissions do not establish complete coverage.",
+            }
         if self.unresolved:
             report["unresolved_operations"] = []
             for index, (_, target) in enumerate(sorted(self.unresolved.items()), 1):
@@ -600,6 +617,7 @@ def literal_constants(tokens):
 
 
 def parse_js_basic(text, source, builder):
+    from .js_analysis import Analyzer
     from .source import _Rejected, _binding_counts
 
     tokens = _js_tokens(text)
@@ -665,13 +683,17 @@ def parse_js_basic(text, source, builder):
                     if literal[0] != "string" or offset + 3 >= len(tail) or tail[offset + 3][1] not in {",", "}"}:
                         dynamic = True
                     else:
-                        methods.append(literal[1].upper())
+                        methods.append(Analyzer._wire_method(literal[1]))
             if closed is None or closed + 1 >= len(tail) or tail[closed + 1][1] != ")" or dynamic or len(methods) > 1 or not all(item[3] for item in tail[:closed + 2]):
                 builder.warn(source, "Fetch options were dynamic or incomplete; method was not inferred")
                 continue
             if methods:
                 method = methods[0]
-        builder.add(url, method, "javascript", source, f"line {token[2]}")
+        if method is None:
+            builder.unresolved_operation(url, source, f"line {token[2]}")
+            builder.warn(source, "A fetch method was outside the supported wire methods; its target is unresolved")
+        else:
+            builder.add(url, method, "javascript", source, f"line {token[2]}")
 
 
 def parse_js(text, source, builder, *, kind="javascript"):
@@ -717,6 +739,8 @@ class HTML(HTMLParser):
         self.inline_warning = False
         self.raw = None
         self.foreign = []
+        self.form_open = False
+        self.template_depth = 0
 
     def set_cdata_mode(self, *args, **kwargs):
         if not getattr(self, "foreign", None):
@@ -751,6 +775,8 @@ class HTML(HTMLParser):
             attrs.setdefault(key, value.strip("\t\n\f\r ") if key in {"href", "src", "action"} and value else value)
         raw_action = next((value for key, value in attributes if key == "action"), None)
         location = f"line {self.getpos()[0]}"
+        if tag == "template":
+            self.template_depth += 1
         if tag == "script" and not attrs.get("src") and not self.inline_warning:
             self.inline_warning = True
             self.builder.warn(self.source, "HTML analysis reads links, forms and asset references. Inline scripts and embedded JSON are not analyzed; add JavaScript or HAR evidence for those.")
@@ -768,29 +794,39 @@ class HTML(HTMLParser):
                 self.builder.asset(attrs["src"], "embedded-document", self.source, location)
             self.builder.warn(self.source, "Embedded document content is not inspected; add a separate authorized capture to analyze it.")
         elif tag == "form":
-            self._finish_form()
-            method = (attrs.get("method") or "").lower()
-            action = attrs.get("action")
-            if not raw_action and self.builder.document_url is not None:
-                # A missing or empty action submits to the document URL, not the base URL.
-                action = self.builder.document_url
-            elif raw_action and not action and self.builder.base_url is not None:
-                # A whitespace-only action is parsed as "" against the base URL.
-                action = self.builder.base_url
-            if not action:
-                if self.builder.document_url is None:
-                    self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
-                else:
-                    self.builder.warn(self.source, self.builder.relative_reason)
-            elif method != "dialog":
-                action = self.builder.resolve(action, "form")
-                _guard_html_url(self.get_starttag_text(), "action", action)
-                self.form = {"url": action, "method": "POST" if method == "post" else "GET", "fields": {}, "names": set(), "location": location}
-        elif tag in {"input", "textarea", "select"} and self.form is not None and attrs.get("name"):
-            fields, names = self.form["fields"], self.form["names"]
-            if len(fields) < 32 and attrs["name"] not in names:
-                names.add(attrs["name"])
-                fields[safe_field(attrs["name"], len(fields) + 1, set(fields))] = {"type": "string"}
+            if self.template_depth:
+                self.builder.warn(self.source, "Template form and control declarations are omitted; their form ownership is not resolved.")
+            elif self.form_open:
+                self.builder.warn(self.source, "A nested form start was ignored; controls remain associated with the active form until a form end tag.")
+            else:
+                self.form_open = True
+                method = (attrs.get("method") or "").lower()
+                action = attrs.get("action")
+                if not raw_action and self.builder.document_url is not None:
+                    # A missing or empty action submits to the document URL, not the base URL.
+                    action = self.builder.document_url
+                elif raw_action and not action and self.builder.base_url is not None:
+                    # A whitespace-only action is parsed as "" against the base URL.
+                    action = self.builder.base_url
+                if not action:
+                    if self.builder.document_url is None:
+                        self.builder.warn(self.source, "A form without an action was omitted because its page URL is unknown")
+                    else:
+                        self.builder.warn(self.source, self.builder.relative_reason)
+                elif method != "dialog":
+                    action = self.builder.resolve(action, "form")
+                    _guard_html_url(self.get_starttag_text(), "action", action)
+                    self.form = {"url": action, "method": "POST" if method == "post" else "GET", "names": set(), "location": location}
+        elif tag in {"input", "textarea", "select"}:
+            if self.template_depth:
+                self.builder.warn(self.source, "Template form and control declarations are omitted; their form ownership is not resolved.")
+            elif self.form is not None and attrs.get("name"):
+                names = self.form["names"]
+                if attrs["name"] not in names:
+                    if len(names) < 32:
+                        names.add(attrs["name"])
+                    else:
+                        self.builder.record_omission(self.source, "form_fields", 32)
         if tag in {"script", "style", "title", "textarea", "xmp", "iframe", "noembed", "noframes", "noscript", "plaintext"}:
             if tag == "noscript":
                 self.builder.warn(self.source, "Conditional noscript content is omitted because the browser scripting state is unknown.")
@@ -812,9 +848,13 @@ class HTML(HTMLParser):
         self.handle_starttag(tag, attributes)
 
     def _finish_form(self):
+        self.form_open = False
         if self.form:
             form, self.form = self.form, None
-            self.builder.add(form["url"], form["method"], "form", self.source, form["location"], fields=form["fields"])
+            used = set()
+            fields = {safe_field(name, index, used): {"type": "string"}
+                      for index, name in enumerate(sorted(form["names"]), 1)}
+            self.builder.add(form["url"], form["method"], "form", self.source, form["location"], fields=fields)
 
     def handle_endtag(self, tag):
         self._check_time()
@@ -827,7 +867,9 @@ class HTML(HTMLParser):
             if tag == self.raw and tag != "plaintext":
                 self.raw = None
             return
-        if tag == "form":
+        if tag == "template":
+            self.template_depth = max(0, self.template_depth - 1)
+        elif tag == "form" and not self.template_depth:
             self._finish_form()
 
     def handle_data(self, data):
