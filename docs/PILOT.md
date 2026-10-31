@@ -35,8 +35,9 @@ Check venue rules again when posting. Sources were checked on 2026-10-31.
   Action; users must provide comparable captures. It does not establish complete
   runtime API compatibility.
 - The free local trial now includes a file-free synthetic agent-brief example,
-  simple/developer/Gen Z introductions, and Markdown handoffs. It uses no model
-  API calls.
+  simple/developer/Gen Z introductions, Markdown handoffs, and an explicit public
+  HTTPS URL mode. Public inspection fetches a page and selected scripts once;
+  it does not render or exercise the application. It uses no model API calls.
 - Ask for one owned flow, one incorrect claim, one missed interaction, and whether
   it improved a handoff. Captures can stay private.
 - Link [PR #1](https://github.com/Jgolding1998/surface-map/pull/1) and

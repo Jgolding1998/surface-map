@@ -2,7 +2,7 @@
 
 Inspect saved web artifacts and selected source files without running them. Build a route inventory and API skeleton from web captures, or a minimized language, dependency and library-capability inventory from source. Useful when documenting an app you own or comparing authorized captures.
 
-For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). The optional interface can also inspect a public HTTPS URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
+For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). Both the local workspace's **Public HTTPS page** mode and the optional MCP interface can inspect a public URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
 
 **Try it without an AI account or paid service:** start the local workspace,
 select **Basic lexical hints**, then **Try an example agent brief**. Read an
@@ -41,6 +41,23 @@ The **JavaScript analysis** selector offers automatic, required syntax analysis,
 
 ## Use
 
+For a public page, choose **Public HTTPS page**, enter its HTTPS URL, and select
+**Inspect page + create brief**. Typing does not fetch. The computer running
+Surface Map retrieves one public page and optionally up to five same-origin
+external scripts, then produces a report and agent brief from that same capture.
+No login, browser rendering, code execution, page-link crawling, form submission
+or API replay occurs. **Show route inventory and exports** reveals the underlying
+evidence without fetching again. Each new inspection makes a fresh capture.
+
+Public-page plans retain capture and analysis omissions. String/module reference
+inventory is intentionally not performed in this mode and is reported as omitted.
+Use saved captures for authenticated flows, comparisons, reference inventory and
+mock files. The URL field and results are cleared when you change mode or clear
+the session; no server-side capture cache is created. Public HTTPS checks, pinned
+DNS connections and redirect validation reject private/internal destinations.
+
+For saved files:
+
 1. Choose **Saved web artifacts** and add UTF-8 HTML, HAR or JavaScript files you own or have permission to inspect.
 2. Analyze the selection. Inspect each route's generic source ID and line or HAR-entry location.
 3. Export the report, an OpenAPI 3.1 skeleton, or the compact contract as JSON.
@@ -54,7 +71,7 @@ Absent routes include capture context, such as a missing source kind or a method
 | HTML | Links, form actions and control names, script and stylesheet asset paths | Declared |
 | JavaScript/TypeScript | Syntax and scope analysis of Fetch, XMLHttpRequest and supported Axios calls, aliases, constant expressions and options | Inferred |
 
-Saved-artifact analysis executes no source, replays no traffic, and fetches no URL. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension. The optional MCP URL tool below can fetch a public page and selected external scripts before analysis.
+Saved-artifact analysis executes no source, replays no traffic, and fetches no URL. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension. Public HTTPS mode and the optional MCP URL tool can fetch a public page and selected external scripts before analysis.
 
 ## Inspect selected source files
 
@@ -120,6 +137,7 @@ When document context is supplied, evidence also records `same_origin`, `cross_o
 ## Practical limits
 
 - Up to 6 web artifacts per capture: HTML can be up to 4 MiB, HAR/JavaScript/TypeScript up to 512 KiB each, and the capture can total 4 MiB of decoded UTF-8. Selected source files retain their separate 512 KiB per-file and 1 MiB combined limits. The interface reads these limits from the local server and reports the measured size when rejecting an input.
+- Public URL inspection reuses the MCP transport's maximum 9 requests, 3 redirects and 20-second capture budget, followed by a 10-second analysis budget and a separate one-second plan-projection budget. Its browser timeout is 45 seconds; saved-file requests retain their 35-second timeout. These are work safeguards, not an overall latency guarantee. One public capture can run at a time, leaving capacity for offline work. Public OpenAPI/contract downloads retain capture, script-omission, warning, parser and source context in `x-surface-map-*` extensions.
 - The browser sends web artifacts as strict base64 UTF-8 to avoid JSON quote expansion. API callers can send either `text` or `text_b64` for each artifact, never both. The HTTP envelope is capped at 16 MiB plus 64 KiB for web analysis and comparison, 3 MiB for source requests. Heavily escaped legacy `text` requests can hit the envelope cap before the decoded cap; use `text_b64` for predictable transfer size.
 - HAR supports up to 300 entries and 20,000 JSON nodes. Header-heavy captures can reach the node limit before the entry limit. HTML supports up to 10,000 start tags with cooperative three-second work checks. Inline scripts and embedded JSON are not interpreted. Embedded documents are recorded as references, without fetching their content; reports warn about these missing inputs.
 - Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. The basic JavaScript scanner supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget. The optional parser allows 100,000 flat AST nodes, 200,000 edges, an 8 MiB protocol response, a 256 MiB Node heap and a three-second request deadline. Python interpretation has separate nesting and work limits. Dense files can be rejected below 512 KiB.

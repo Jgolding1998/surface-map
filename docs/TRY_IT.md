@@ -35,6 +35,26 @@ run `python -m surface_map --port 9000 --open`. Keep the terminal running.
 If you want to practice importing files, use the three artifacts and expected
 results in [the synthetic quickstart](../examples/quickstart/README.md).
 
+## Try a public URL without preparing files
+
+Select **Public HTTPS page**, enter a public HTTPS URL, and select **Inspect
+page + create brief**. Choose whether to include up to five same-origin external
+scripts. No request is made just by typing. This fetches from the computer running
+Surface Map; it uses no browser login or cookies and does not render the page.
+
+The report and brief come from one capture. Change the explanation style, copy
+the brief, or select **Show route inventory and exports** without another fetch.
+Capture warnings remain available in the evidence notes and JSON downloads.
+Private/internal targets are rejected. Some public sites will reject automated
+retrieval or fall outside the supported media, size, encoding or time limits.
+Use reviewed saved files for those flows.
+
+This mode intentionally omits a separate string/module reference inventory and
+does not generate mock files or compare versions. Those use saved artifacts.
+Editing the URL or script-selection option clears the previous results so the
+next brief cannot be mistaken for the old capture. Clearing the session or
+changing mode clears the URL field too.
+
 ## A five-minute task after setup
 
 Choose a web app you own or are authorized to inspect. Use a test account and

@@ -17,6 +17,9 @@ from .source_io import compare_sources, inspect_sources, source_examples
 from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES
 from .project import (MAX_FILES as PROJECT_FILES, MAX_TOTAL_BYTES as PROJECT_BYTES,
                       WORK_SECONDS as PROJECT_SECONDS, inspect_project)
+from .public_url import CLIENT_TIMEOUT_MS as PUBLIC_CLIENT_TIMEOUT_MS, PLAN_SECONDS, inspect_public_url
+from .url_capture import (CAPTURE_SECONDS, MAX_REDIRECTS, MAX_REQUESTS, MAX_SCRIPTS,
+                          MAX_URL_LENGTH, CaptureError)
 
 STATIC = Path(__file__).parent / "static"
 MAX_REQUEST = 16 * 1024 * 1024 + 64 * 1024
@@ -25,6 +28,7 @@ MAX_RESPONSE = 3 * 1024 * 1024
 HEADER_TIMEOUT = 10.0
 ANALYSIS_BUDGET = 10.0
 CLIENT_TIMEOUT_MS = 35000
+MAX_PUBLIC_REQUEST = 16384
 
 
 class OutputTooLarge(ValueError):
@@ -50,6 +54,7 @@ def bundle(report):
 def make_server(port=8768):
     token = secrets.token_hex(32)
     processing = threading.BoundedSemaphore(2)
+    public_capture = threading.BoundedSemaphore(1)
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.0"
@@ -159,6 +164,14 @@ def make_server(port=8768):
                                  "rebuild": {"max_artifacts": MAX_ARTIFACTS, "html_bytes": MAX_HTML_BYTES,
                                              "other_file_bytes": MAX_FILE_BYTES, "total_bytes": MAX_TOTAL_BYTES,
                                              "scope": "Saved evidence and optional inert scaffold text; no network or code execution."},
+                                 "public_url": {"max_url_length": MAX_URL_LENGTH, "max_scripts": MAX_SCRIPTS,
+                                                "capture_seconds": CAPTURE_SECONDS, "analysis_seconds": ANALYSIS_BUDGET,
+                                                "plan_seconds": PLAN_SECONDS,
+                                                "request_timeout_ms": PUBLIC_CLIENT_TIMEOUT_MS,
+                                                "request_bytes": MAX_PUBLIC_REQUEST, "max_requests": MAX_REQUESTS,
+                                                "max_redirects": MAX_REDIRECTS,
+                                                "concurrent_requests": 1,
+                                                "scope": "Explicit public HTTPS page and selected same-origin scripts; no browser execution, login, API replay or mock files."},
                                  "request_bytes": MAX_REQUEST, "source_request_bytes": MAX_SOURCE_REQUEST,
                                  "project_request_bytes": MAX_REQUEST, "rebuild_request_bytes": MAX_REQUEST,
                                  "response_bytes": MAX_RESPONSE, "analysis_seconds": ANALYSIS_BUDGET,
@@ -170,7 +183,8 @@ def make_server(port=8768):
             if self.headers.get("Transfer-Encoding") is not None:
                 raise ArtifactError("Transfer encoding is unsupported")
             length = self.headers.get("Content-Length", "")
-            limit = MAX_REQUEST if self.path in {"/api/analyze", "/api/compare", "/api/rebuild", "/api/project"} else MAX_SOURCE_REQUEST
+            limit = (MAX_PUBLIC_REQUEST if self.path == "/api/public-url" else
+                     MAX_REQUEST if self.path in {"/api/analyze", "/api/compare", "/api/rebuild", "/api/project"} else MAX_SOURCE_REQUEST)
             if not re.fullmatch(r"[0-9]{1,10}", length) or not 1 <= int(length) <= limit:
                 raise ArtifactError(f"Request must include Content-Length and fit within {limit:,} encoded JSON bytes. Use a smaller capture or comparison.")
             if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
@@ -192,10 +206,16 @@ def make_server(port=8768):
         def do_POST(self):
             if not self.allowed(post=True):
                 return
-            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo", "/api/rebuild", "/api/rebuild-demo", "/api/project"}:
+            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo", "/api/rebuild", "/api/rebuild-demo", "/api/project", "/api/public-url"}:
                 self.reply(404, {"error": "Not found"})
                 return
+            is_public = self.path == "/api/public-url"
+            if is_public and not public_capture.acquire(blocking=False):
+                self.reply(503, {"error": "A public URL capture is already running; try again when it finishes."})
+                return
             if not processing.acquire(blocking=False):
+                if is_public:
+                    public_capture.release()
                 self.reply(503, {"error": "Analysis is busy; try again"})
                 return
             try:
@@ -209,6 +229,17 @@ def make_server(port=8768):
                 keys = set(document) - {"javascript_engine"}
                 if self.path == "/api/analyze" and keys == {"artifacts"}:
                     result = bundle(analyze(document["artifacts"], javascript_engine=engine, deadline=deadline))
+                elif self.path == "/api/public-url" and "url" in keys and keys <= {"url", "include_scripts"}:
+                    public = inspect_public_url(document["url"],
+                                                include_scripts=document.get("include_scripts", True),
+                                                javascript_engine=engine)
+                    result = {**bundle(public["report"]), "plan": public["plan"]}
+                    context = {"x-surface-map-" + key.replace("_", "-"): public["report"][key]
+                               for key in ("capture", "capture_warnings", "script_omissions", "warnings",
+                                           "javascript_analysis", "sources", "has_document_context")
+                               if key in public["report"]}
+                    for name in ("openapi", "contract"):
+                        result[name].update(context)
                 elif self.path == "/api/compare" and keys == {"baseline", "candidate"}:
                     result = {"diff": compare(analyze(document["baseline"], javascript_engine=engine, deadline=deadline), analyze(document["candidate"], javascript_engine=engine, deadline=deadline))}
                 elif self.path == "/api/demo" and not keys:
@@ -245,9 +276,11 @@ def make_server(port=8768):
                 else:
                     raise ArtifactError("Unsupported request shape")
                 self.reply(200, result)
+            except CaptureError as error:
+                self.reply(422, {"error": str(error), "code": error.code})
             except ArtifactError as error:
                 self.reply(422, {"error": "Selection rejected: unsupported, malformed or over limit. No input text or paths are returned."
-                                 if self.path in {"/api/rebuild", "/api/project"} else str(error)})
+                                 if self.path in {"/api/rebuild", "/api/project", "/api/public-url"} else str(error)})
             except (UnicodeError, TypeError, ValueError, RecursionError, OverflowError):
                 self.reply(422, {"error": "Artifact rejected: unsupported, malformed or over limit. No source text is returned."})
             except (OSError, TimeoutError):
@@ -256,11 +289,13 @@ def make_server(port=8768):
                 except OSError:
                     pass
             except Exception:
-                if self.path not in {"/api/rebuild", "/api/project"}:
+                if self.path not in {"/api/rebuild", "/api/project", "/api/public-url"}:
                     raise
                 self.reply(500, {"error": "Selection processing failed. No input text or paths are returned."})
             finally:
                 processing.release()
+                if is_public:
+                    public_capture.release()
 
         def do_OPTIONS(self):
             self.reply(405, {"error": "Method unsupported"})

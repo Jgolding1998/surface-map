@@ -60,6 +60,13 @@ files. Simple, developer and Gen Z modes change the introduction; the evidence,
 uncertainty and instructions stay identical. They use fixed templates, without
 model calls or a paid service.
 
+**Public HTTPS page** can produce a report and brief without preparing files.
+That workflow fetches once and projects the plan from the same analyzed report;
+it does not re-fetch for style changes or downloads. Public plans disclose actual
+retrieval, capture omissions and omitted reference inventory. They are intended
+for review and handoff; use saved artifacts for mock generation and comparison.
+The offline planner and its scope remain unchanged.
+
 Review the Markdown before copying it or downloading **Agent brief (.md)**.
 Clipboard refusal opens a selectable text preview. Briefs show at most 20
 operations, 8 navigation references, 8 unresolved targets and 2 evidence examples

@@ -49,7 +49,7 @@ const {chromium} = require("playwright");
     check(!JSON.stringify(plan).includes(canary), "Plan export does not contain canaries");
     const simpleBrief = await page.locator("#agent-brief").inputValue();
     check(simpleBrief.includes("# Surface Map agent implementation brief") && !simpleBrief.includes(canary), "Agent brief is useful minimized Markdown");
-    check((await page.locator("#plan-explanation").textContent()).includes("None proves that a feature works now"), "Simple explanation keeps uncertainty visible");
+    check((await page.locator("#explanation-detail").textContent()).includes("None proves that a feature works now") && (await page.locator("#explanation-status").textContent()).includes("Partial evidence"), "Simple explanation keeps uncertainty and available evidence notes visible");
     for (const style of ["developer", "genz"]) {
       await page.selectOption("#brief-style", style);
       const changedBrief = await page.locator("#agent-brief").inputValue();

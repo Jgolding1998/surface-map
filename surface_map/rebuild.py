@@ -65,6 +65,22 @@ def plan_rebuild(artifacts, *, javascript_engine="auto", document_url=None, dead
     report = analyze(artifacts, javascript_engine=javascript_engine,
                      document_url=document_url, deadline=end)
     references = inventory_references(artifacts, document_url=document_url, deadline=end)
+    return _plan_from_report(report, references, deadline=end)
+
+
+def _plan_from_report(report, references, *, deadline=None, scope=SCOPE, coverage_extra=None):
+    """Project an internal analyzer report; never accepts client-supplied reports."""
+    end = time.monotonic() + WORK_SECONDS
+    if deadline is not None:
+        if type(deadline) not in (int, float) or not math.isfinite(deadline):
+            raise ArtifactError("Rebuild deadline must be a finite monotonic time")
+        end = min(end, deadline)
+
+    def tick():
+        if time.monotonic() >= end:
+            raise ArtifactError("Rebuild planning exceeded its work deadline")
+
+    tick()
     operations, pages = [], []
     excluded_cross_origin = 0
     for route in report["routes"]:
@@ -88,8 +104,11 @@ def plan_rebuild(artifacts, *, javascript_engine="auto", document_url=None, dead
             "unknowns": operation_unknowns(route.get("origin_relations"), route.get("assumptions", []))})
     unresolved = report.get("unresolved_operations", [])
     coverage = {key: report[key] for key in (
-        "sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context"
+        "sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context",
+        "capture", "capture_warnings"
     ) if key in report}
+    if coverage_extra:
+        coverage.update(coverage_extra)
     coverage.update({"retained_operation_groups": len(operations), "planned_operations": min(len(operations), MAX_OPERATIONS),
                      "omitted_operations": max(0, len(operations) - MAX_OPERATIONS),
                      "omitted_pages": max(0, len(pages) - MAX_PAGES),
@@ -101,7 +120,7 @@ def plan_rebuild(artifacts, *, javascript_engine="auto", document_url=None, dead
     plan = {"format": "surface-map-rebuild-v1", "operations": operations[:MAX_OPERATIONS],
             "pages": pages[:MAX_PAGES], "unresolved": unresolved[:MAX_OPERATIONS],
             "candidate_references": references, "coverage": coverage, "unknowns": list(UNKNOWNS),
-            "capture_guide": list(CAPTURE_GUIDE), "privacy": report["privacy"], "scope": SCOPE,
+            "capture_guide": list(CAPTURE_GUIDE), "privacy": report["privacy"], "scope": scope,
             "limits": {"operations": MAX_OPERATIONS, "pages": MAX_PAGES, "evidence_per_row": MAX_EVIDENCE}}
     if len(json.dumps(plan, ensure_ascii=True, allow_nan=False).encode("utf-8")) > MAX_PLAN_BYTES:
         raise ArtifactError("Rebuild plan exceeded its output limit; choose a narrower capture")

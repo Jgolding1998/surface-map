@@ -6,15 +6,23 @@
   const MAX_BYTES = 128 * 1024;
   const PREVIEW = Object.freeze({operations:20, pages:8, unresolved:8, evidence:2, warnings:3});
   const INTROS = Object.freeze({
-    simple:"We found clues in the files you picked, like pages you can visit and messages a website may send. Think of this as a map with some pieces still missing. A clue can tell us what to look at next, but it cannot show everything the app does. Before building, ask the app's owner about the missing pieces and check how the app actually behaves.",
+    simple:"We found clues in the pages and files you chose to inspect, like places you can visit and messages a website may send. Think of this as a map with some pieces still missing. A clue can tell us what to look at next, but it cannot show everything the app does. Before building, ask the app's owner about the missing pieces and check how the app actually behaves.",
     developer:"This report combines observed HAR traffic, declared HTML references, and supported static client-call hints from the supplied selection. It preserves provenance, origin context, assumptions, and unresolved methods. It does not execute the application, validate backend behavior, or establish a complete contract. Use it to scope the next capture and prepare an implementation plan whose behavior is independently verified.",
-    genz:"Here are the receipts from the files you supplied: recorded traffic, HTML declarations, and client-code hints. Some are stronger clues than others, so the evidence labels stay attached. Missing parts stay on the list instead of getting filled in with guesses. Use this map to choose what to check next before you ask an agent to build."
+    genz:"Here are the receipts from the evidence you chose to inspect: recorded traffic, HTML declarations, and client-code hints. Some are stronger clues than others, so the evidence labels stay attached. Missing parts stay on the list instead of getting filled in with guesses. Use this map to choose what to check next before you ask an agent to build."
   });
   const AXIOS_NOTE = "Browser-global Axios identity and prior configuration are assumed, not verified. Check both before relying on these calls.";
   const list = value => Array.isArray(value) ? value : [];
   const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
   const oneLine = value => String(value ?? "unknown").replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ");
   const quantity = (number, singular, plural = singular + "s") => `${number} ${number === 1 ? singular : plural}`;
+  const punctuation = text => /[.!?]$/.test(oneLine(text)) ? "" : ".";
+  const captureWarningPriority = warning => {
+    const text = oneLine(warning);
+    if (text.startsWith("Some fetched scripts were omitted from analysis")) return 0;
+    if (text.startsWith("Some selected external scripts could not be captured")) return 1;
+    if (text.startsWith("Script capture stopped")) return 2;
+    return text.startsWith("Static HTTPS capture only:") ? 9 : 3;
+  };
 
   function inline(value) {
     const text = oneLine(value);
@@ -54,10 +62,20 @@
       "Authentication, required inputs, backend logic, storage, side effects, and visual behavior still need decisions and independent tests."
     ];
     if (hasAssumption(rows)) lines.push(AXIOS_NOTE);
+    if (coverage.capture) {
+      const capture = coverage.capture;
+      lines.push(`Public HTTPS capture: ${quantity(count(capture.fetched), "artifact")} fetched, ${quantity(count(capture.scripts_fetched), "external script")} fetched, ${quantity(count(capture.scripts_skipped), "external script")} skipped, and ${quantity(count(capture.inline_scripts_skipped), "inline script")} not inspected. The page was not rendered; no forms or API operations were replayed.`);
+      lines.push("Browser security policies and runtime behavior were not simulated; an inferred call may never run.");
+      const captureWarnings = list(coverage.capture_warnings);
+      const prioritizedWarnings = captureWarnings.slice().sort((a, b) => captureWarningPriority(a) - captureWarningPriority(b));
+      for (const warning of prioritizedWarnings.slice(0, PREVIEW.warnings)) lines.push(`Capture limit: ${value(warning)}${punctuation(warning)}`);
+      if (captureWarnings.length > PREVIEW.warnings) lines.push(`${quantity(captureWarnings.length - PREVIEW.warnings, "additional capture warning")} omitted from this explanation; all retained capture warnings remain in the coverage metadata and Plan JSON.`);
+    }
+    if (coverage.reference_inventory_omission) lines.push("String and module references were not inventoried for this public-page plan. Zero retained candidates does not mean no references exist; inspect the capture coverage.");
     const warnings = list(coverage.warnings);
     if (warnings.length) {
-      lines.push(`Capture warnings: ${warnings.length}. Review the plan's coverage details before implementation.`);
-      for (const warning of warnings.slice(0, PREVIEW.warnings)) lines.push(`Capture warning${warning.source ? ` from ${value(warning.source)}` : ""}: ${value(warning.reason ?? warning)}.`);
+      lines.push(`Analysis warnings: ${warnings.length}. Review the plan's coverage details before implementation.`);
+      for (const warning of warnings.slice(0, PREVIEW.warnings)) lines.push(`Analysis warning${warning.source ? ` from ${value(warning.source)}` : ""}: ${value(warning.reason ?? warning)}${punctuation(warning.reason ?? warning)}`);
       if (warnings.length > PREVIEW.warnings) lines.push(`${quantity(warnings.length - PREVIEW.warnings, "additional warning")} omitted from this explanation; all retained warnings remain in Plan JSON and the brief's coverage metadata.`);
     }
     const scriptOmissions = list(coverage.script_omissions);

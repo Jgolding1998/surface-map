@@ -5,9 +5,11 @@ const token = $('meta[name="surface-token"]').content;
 let files = [], baselineFiles = [], current = null, diff = null, filter = "all", selected = null, busy = false;
 let sourceCurrent = null, sourceDiff = null, rebuildCurrent = null;
 let rebuildExample = false, rebuildEngine = "auto";
+let publicRoutesShown = false;
 let limits = null;
 const sourceMode = () => $("#analysis-mode").value === "source";
 const projectMode = () => $("#analysis-mode").value === "project";
+const publicMode = () => $("#analysis-mode").value === "url";
 const codeMode = () => sourceMode() || projectMode();
 const byteLabel = value => value >= 1024 * 1024 ? `${value / (1024 * 1024)} MiB` : `${value / 1024} KiB`;
 function base64Text(content) {
@@ -30,30 +32,47 @@ function notice(message, error = false) {
 
 function refresh() {
   const source = codeMode(), project = projectMode(), active = source ? sourceCurrent : current;
+  const publicPage = publicMode();
   const blocked = busy || !limits;
   $("#analysis-mode").disabled = blocked;
   $("#javascript-engine").disabled = blocked;
-  $("#files").disabled = blocked;
+  $("#files").disabled = blocked || publicPage;
+  $("#file-upload").hidden = publicPage;
+  $("#public-url-form").hidden = !publicPage;
+  $("#public-url").disabled = blocked;
+  $("#url-include-scripts").disabled = blocked;
+  $("#inspect-url").disabled = blocked || !$("#public-url").value.trim();
   $("#analyze").disabled = blocked || files.length === 0;
+  $("#analyze").hidden = publicPage;
   $("#demo").disabled = blocked || project;
-  $("#demo").hidden = project;
+  $("#demo").hidden = project || publicPage;
   $("#demo-plan").disabled = blocked;
-  $("#demo-plan").hidden = source;
-  $("#build-plan").hidden = source;
+  $("#demo-plan").hidden = source || publicPage;
+  $("#build-plan").hidden = source || publicPage;
   $("#build-plan").disabled = blocked || source || !files.length;
   $("#export-plan").disabled = busy || !rebuildCurrent;
-  $("#export-scaffold").disabled = busy || !rebuildCurrent;
+  $("#export-scaffold").disabled = busy || !rebuildCurrent || publicPage;
+  $("#export-scaffold").hidden = publicPage;
+  $("#public-plan-note").hidden = !publicPage;
+  $("#mock-plan-note").hidden = publicPage;
+  $("#view-public-routes").disabled = busy || !rebuildCurrent;
+  $("#view-public-routes").textContent = publicRoutesShown ? "Hide route inventory and exports" : "Show route inventory and exports";
+  $("#view-public-routes").setAttribute("aria-expanded", String(publicRoutesShown));
   $("#brief-style").disabled = busy || !rebuildCurrent;
   for (const id of ["copy-brief", "export-brief"]) $("#" + id).disabled = busy || !rebuildCurrent || !$("#agent-brief").value;
   $("#demo-diff").disabled = blocked;
-  $("#demo-diff").hidden = source;
+  $("#demo-diff").hidden = source || publicPage;
   const rejected = Boolean(source && active && active.sources.some(item => item.status !== "parsed"));
-  $(".baseline-box").hidden = project;
+  $(".baseline-box").hidden = project || publicPage;
   $("#baseline").disabled = busy || project || !active || rejected || files.length === 0;
   $("#compare").disabled = busy || project || !active || rejected || files.length === 0 || baselineFiles.length === 0;
   $("#clear").disabled = busy;
   for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = source || !current || busy;
   $("#export-source").disabled = !sourceCurrent || busy;
+  $("#network-label").textContent = publicPage ? "PUBLIC HTTPS ON REQUEST" : "OFFLINE FILE ANALYSIS";
+  $("#flow-input").textContent = publicPage ? "Fetched public artifacts" : "Saved artifacts";
+  $("#flow-scope").textContent = publicPage ? "No code execution or API replay" : "No execution or network retrieval";
+  $("#footer-scope").textContent = publicPage ? "No AI account · No telemetry · Public HTTPS fetched on request" : "No AI account · No telemetry · No external retrieval in file mode";
   if (limits) {
     const policy = project ? limits.project : limits.source;
     $("#upload-limits").textContent = source
@@ -125,7 +144,7 @@ function show(result, example = false) {
   sourceList(report.sources); table();
   if (routes.length) { selected = routes[0].id; details(routes[0]); table(); }
   const engines = [...new Set((report.javascript_analysis || []).map(item => item.engine))].join(", ");
-  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}No service was contacted. Exports discard body and query values.`);
+  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`);
   refresh();
 }
 
@@ -140,11 +159,11 @@ async function request(path, payload) {
   }
   let response;
   try {
-    response = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json", "X-Surface-Token":token}, body, signal:AbortSignal.timeout(limits.request_timeout_ms)});
+    response = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json", "X-Surface-Token":token}, body, signal:AbortSignal.timeout(path === "/api/public-url" ? limits.public_url.request_timeout_ms : limits.request_timeout_ms)});
   } catch (failure) {
     const error = new Error("Local request unavailable");
     error.safeMessage = failure.name === "TimeoutError" || failure.name === "AbortError"
-      ? `The request timed out after ${limits.request_timeout_ms / 1000} seconds. Try a smaller capture or check the local server.`
+      ? `The request timed out after ${(path === "/api/public-url" ? limits.public_url.request_timeout_ms : limits.request_timeout_ms) / 1000} seconds. Retry with a smaller selection or check the local server.`
       : "The local server could not be reached. Check that it is running and retry.";
     throw error;
   }
@@ -258,10 +277,22 @@ function updateHandoff() {
   $("#brief-status").textContent = "";
   $("#agent-brief").value = "";
   $("#plan-explanation").textContent = "";
+  $("#explanation-status").textContent = "";
+  $("#explanation-detail").textContent = "";
   if (!rebuildCurrent) return;
   const style = $("#brief-style").value;
   try {
-    $("#plan-explanation").textContent = SurfaceMapHandoff.explain(rebuildCurrent.plan, style);
+    const explanation = SurfaceMapHandoff.explain(rebuildCurrent.plan, style).split("\n\n");
+    $("#plan-explanation").textContent = explanation.slice(0, 2).join("\n\n");
+    $("#explanation-detail").textContent = explanation.slice(2).join("\n\n");
+    const coverage = rebuildCurrent.plan.coverage || {};
+    const status = [`Partial evidence: ${(coverage.warnings || []).length} analysis warnings; ${(coverage.capture_warnings || []).length} capture warnings. Review the evidence notes before implementation.`];
+    if ((coverage.javascript_analysis || []).some(row => row.engine === "basic")) status.push("JavaScript uses basic lexical hints; syntax and scope are not validated.");
+    if (!coverage.origin_classification_available) status.push("Origin scope remains unclassified.");
+    if ((coverage.script_omissions || []).length) status.push(`${coverage.script_omissions.length} fetched scripts were omitted from analysis.`);
+    if (coverage.reference_inventory_omission) status.push("String and module references were not inventoried.");
+    if ([...(rebuildCurrent.plan.operations || []), ...(rebuildCurrent.plan.unresolved || [])].some(row => row.assumptions?.length)) status.push("Client identity or configuration assumptions need verification.");
+    $("#explanation-status").textContent = status.join(" ");
     $("#agent-brief").value = SurfaceMapHandoff.markdown(rebuildCurrent.plan, style);
   } catch (_) {
     $("#brief-status").textContent = "The brief could not be prepared within its limits. Download Plan JSON to review the full retained plan.";
@@ -272,9 +303,13 @@ function clearPlan() {
   if (rebuildCurrent && !codeMode()) $("#workspace-mode").textContent = "WEB ARTIFACT INSPECTION";
   rebuildCurrent = null;
   rebuildExample = false;
+  publicRoutesShown = false;
   $("#plan-panel").hidden = true;
   $("#agent-brief").value = "";
   $("#plan-explanation").textContent = "";
+  $("#explanation-status").textContent = "";
+  $("#explanation-detail").textContent = "";
+  $("#explanation-notes").open = false;
   $("#brief-status").textContent = "";
   $("#brief-preview-details").open = false;
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = codeMode();
@@ -288,12 +323,13 @@ function showPlan(result, example = false) {
   const plan = result.plan, operations = plan.operations || [];
   const candidates = plan.candidate_references?.candidates || [];
   $("#plan-panel").hidden = false;
-  $("#workspace-mode").textContent = example ? "EXAMPLE AGENT BRIEF" : "YOUR REBUILD PLAN";
+  $("#workspace-mode").textContent = example ? "EXAMPLE AGENT BRIEF" : publicMode() ? "PUBLIC PAGE EVIDENCE" : "YOUR REBUILD PLAN";
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = true;
   const stubCount = operations.filter(operation => operation.stub === "not_implemented").length;
   const label = (count, name) => `${count} ${name}${count === 1 ? "" : "s"}`;
   const omitted = plan.coverage || {};
-  $("#plan-summary").textContent = `${label(operations.length, "operation group")} · ${label(stubCount, "planned stub")} · ${label((plan.pages || []).length, "page reference")} · ${label((plan.unresolved || []).length, "unresolved target")} · ${label(candidates.length, "string candidate")}. Omitted by plan limits: ${label(omitted.omitted_operations || 0, "operation group")}, ${label(omitted.omitted_pages || 0, "page reference")}, ${label(omitted.omitted_unresolved_targets || 0, "unresolved target")}.`;
+  const groups = [label(operations.length, "operation group"), ...(!publicMode() ? [label(stubCount, "planned stub")] : []), label((plan.pages || []).length, "page reference"), label((plan.unresolved || []).length, "unresolved target"), label(candidates.length, "string candidate")];
+  $("#plan-summary").textContent = `${groups.join(" · ")}. Omitted by plan limits: ${label(omitted.omitted_operations || 0, "operation group")}, ${label(omitted.omitted_pages || 0, "page reference")}, ${label(omitted.omitted_unresolved_targets || 0, "unresolved target")}.`;
   $("#plan-unknowns").replaceChildren();
   for (const item of plan.unknowns || []) $("#plan-unknowns").append(node("li", "", item));
   const rows = $("#plan-operations"); rows.replaceChildren();
@@ -301,7 +337,7 @@ function showPlan(result, example = false) {
     const row = node("div", "inventory-row");
     row.append(node("code", "", `${operation.method || "UNKNOWN"} ${operation.path}`),
       node("span", "inventory-confidence", operation.confidence || "unverified"),
-      node("span", "inventory-ecosystem", operation.stub === "not_implemented" ? "Not implemented" : "Scope review required"));
+      node("span", "inventory-ecosystem", operation.stub === "not_implemented" ? publicMode() ? "Behavior unverified" : "Not implemented" : "Scope review required"));
     row.append(node("p", "", (operation.evidence || []).map(item => `${item.source.replace("_", " ")} · ${item.location}`).join("; ") || "No source location retained."));
     if (operation.assumptions?.includes("unverified_global_axios")) row.append(node("p", "", "Client assumption: global Axios identity and prior configuration were not verified."));
     rows.append(row);
@@ -323,7 +359,7 @@ function showPlan(result, example = false) {
   if (plan.candidate_references?.limits?.truncated) coverage.append(node("p", "source-empty", "Some candidate references exceeded a limit or could not be resolved without a document base. Inspect the plan JSON for omission counts."));
   $("#plan-scope").textContent = plan.scope || "Reconstruction still requires your implementation and verification.";
   updateHandoff();
-  notice("Plan ready. Choose an explanation style, review the agent brief, and copy or download it. Check the unknowns before implementing behavior.");
+  notice(publicMode() ? "Public-page capture ready. Review capture limits and the brief before using it. A page and selected scripts were fetched; forms and APIs were not called." : "Plan ready. Choose an explanation style, review the agent brief, and copy or download it. Check the unknowns before implementing behavior.");
   refresh();
 }
 
@@ -414,6 +450,42 @@ function clearSourceView() {
   $("#project-omission-list").replaceChildren(); $("#project-graph-summary").textContent = ""; $("#project-graph-scope").textContent = "";
 }
 
+function resetWorkspace(clearURL = true) {
+  files=[]; baselineFiles=[]; current=null; diff=null; selected=null;
+  $("#files").value="";
+  if (clearURL) $("#public-url").value="";
+  $("#source-list").replaceChildren(); $("#diff-panel").hidden=true;
+  for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent="0";
+  $("#detail").replaceChildren(node("h3", "", "Session cleared."));
+  $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace.";
+  clearSourceView(); clearPlan(); table(); refresh();
+}
+
+for (const id of ["public-url", "url-include-scripts"]) $("#" + id).addEventListener(id === "public-url" ? "input" : "change", () => {
+  resetWorkspace(false);
+  notice("Public-page selection ready. Inspecting fetches the page and selected scripts; it does not contact discovered forms or APIs.");
+});
+$("#public-url-form").addEventListener("submit", event => {
+  event.preventDefault();
+  action(async () => {
+    if (!publicMode()) return;
+    const url = $("#public-url").value.trim(), includeScripts = $("#url-include-scripts").checked;
+    if (!url) return;
+    resetWorkspace(false);
+    notice("Fetching a bounded public HTTPS page and selected external scripts. Source code is not executed; discovered forms and APIs are not called.");
+    const result = await request("/api/public-url", {url, include_scripts:includeScripts});
+    show(result);
+    showPlan(result);
+    $("#plan-heading").focus();
+  });
+});
+$("#view-public-routes").addEventListener("click", () => {
+  if (!publicMode() || !current || !rebuildCurrent) return;
+  publicRoutesShown = !publicRoutesShown;
+  for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = !publicRoutesShown;
+  refresh();
+});
+
 $("#files").addEventListener("change", () => {
   clearPlan();
   clearSourceView();
@@ -483,7 +555,7 @@ $("#copy-brief").addEventListener("click", () => action(async () => {
   }
 }));
 $("#export-scaffold").addEventListener("click", () => action(async () => {
-  if (!rebuildCurrent) return;
+  if (!rebuildCurrent || publicMode()) return;
   if (!rebuildCurrent.files) {
     const input = rebuildExample ? {} : {artifacts:await read(files)};
     const result = await request(rebuildExample ? "/api/rebuild-demo" : "/api/rebuild", {...input, javascript_engine:rebuildEngine, include_scaffold:true});
@@ -499,8 +571,7 @@ $("#export-scaffold").addEventListener("click", () => action(async () => {
   download(rebuildCurrent.files, "mock-bundle");
 }));
 $("#export-source-diff").addEventListener("click", () => { if(sourceDiff) download(sourceDiff,"source-comparison"); });
-$("#clear").addEventListener("click", () => { files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value=""; $("#source-list").replaceChildren(); $("#diff-panel").hidden=true; for(const id of ["routes","observed","inferred","sources"]) $("#"+id+"-count").textContent="0"; $("#detail").replaceChildren(node("h3","","Session cleared.")); $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace."; table(); refresh(); notice("Session cleared. The server does not retain uploads or reports."); });
-$("#clear").addEventListener("click", () => {clearSourceView(); clearPlan(); refresh();});
+$("#clear").addEventListener("click", () => { resetWorkspace(); notice("Session cleared. The server does not retain uploads or reports."); });
 $("#analysis-mode").addEventListener("change", () => {
   $("#clear").click();
   const source = codeMode(), project = projectMode();
@@ -512,8 +583,8 @@ $("#analysis-mode").addEventListener("change", () => {
   $("#upload-title").textContent = project ? "Add selected project files" : source ? "Add selected source files" : "Add saved artifacts";
   $("#upload-formats").textContent = source ? "Manifests, Python, JS/TS, Rust or shell" : "HTML, HAR or JavaScript";
   $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.jsx,.mjs,.cjs,.ts,.tsx";
-  $("#workspace-mode").textContent = project ? "SELECTED PROJECT INSPECTION" : source ? "STATIC SOURCE INSPECTION" : "WEB ARTIFACT INSPECTION";
-  notice(project ? "Select individual project files to inspect. Literal relative imports can match another selected file; nested projects work best through the CLI with an explicit root." : source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example. Build a plan creates a mock starting point from your selected files.");
+  $("#workspace-mode").textContent = project ? "SELECTED PROJECT INSPECTION" : source ? "STATIC SOURCE INSPECTION" : publicMode() ? "PUBLIC HTTPS INSPECTION" : "WEB ARTIFACT INSPECTION";
+  notice(project ? "Select individual project files to inspect. Literal relative imports can match another selected file; nested projects work best through the CLI with an explicit root." : source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : publicMode() ? "Enter a public HTTPS page URL. Requests begin only when you select Inspect page + create brief. No login, browser rendering, form submission or API testing occurs." : "Select saved web artifacts, or load the synthetic example. Build a plan creates a mock starting point from your selected files.");
   refresh();
 });
 action(async () => {
