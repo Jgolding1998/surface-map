@@ -101,12 +101,30 @@ class HTTPTests(unittest.TestCase):
         result = self.request("/api/demo", "POST", {})
         self.assertEqual(result[0], 200)
         self.assertEqual(len(json.loads(result[2])["report"]["routes"]), 7)
-        for path in ["/app.js", "/styles.css", "/health"]:
+        for path in ["/app.js", "/handoff.js", "/styles.css", "/health"]:
             with self.subTest(path=path):
                 self.assertEqual(self.request(path)[0], 200)
         for path in ["/../server.py", "/%2e%2e/server.py", "/server.py", "/?private=value", "/api/demo"]:
             with self.subTest(path=path):
                 self.assertEqual(self.request(path)[0], 404)
+
+    def test_brief_demo_is_explicit_bounded_and_scaffold_is_opt_in(self):
+        from surface_map.rebuild import scaffold_files
+        with patch("surface_map.rebuild.scaffold_files", wraps=scaffold_files) as scaffold:
+            status, _, body = self.request("/api/rebuild-demo", "POST", {"javascript_engine": "basic"})
+            self.assertEqual(status, 200)
+            self.assertEqual(set(json.loads(body)), {"plan"})
+            self.assertTrue(json.loads(body)["plan"]["operations"])
+            scaffold.assert_not_called()
+            status, _, body = self.request("/api/rebuild-demo", "POST", {"javascript_engine": "basic", "include_scaffold": True})
+            self.assertEqual(status, 200)
+            self.assertIn("files", json.loads(body))
+            scaffold.assert_called_once()
+        for payload in ({"include_scaffold": "true"}, {"artifacts": []}, {"private": CANARY}):
+            with self.subTest(payload=payload):
+                status, _, body = self.request("/api/rebuild-demo", "POST", payload)
+                self.assertEqual(status, 422)
+                self.assertNotIn(CANARY, body.decode())
 
     def test_public_analyze_response_and_exports_never_include_planted_values(self):
         capture = entry(f"https://{CANARY}.invalid/api/customers/{EMAIL}?token={CANARY}", body={"token": CANARY, "email": EMAIL})

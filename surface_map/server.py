@@ -142,7 +142,7 @@ def make_server(port=8768):
             if self.path == "/":
                 body = (STATIC / "index.html").read_text(encoding="utf-8").replace("{{TOKEN}}", token).encode("utf-8")
                 self.reply(200, body, "text/html; charset=utf-8")
-            elif self.path in {"/app.js", "/styles.css"}:
+            elif self.path in {"/app.js", "/handoff.js", "/styles.css"}:
                 name = self.path[1:]
                 mime = "text/javascript; charset=utf-8" if name.endswith("js") else "text/css; charset=utf-8"
                 self.reply(200, (STATIC / name).read_bytes(), mime)
@@ -192,7 +192,7 @@ def make_server(port=8768):
         def do_POST(self):
             if not self.allowed(post=True):
                 return
-            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo", "/api/rebuild", "/api/project"}:
+            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo", "/api/rebuild", "/api/rebuild-demo", "/api/project"}:
                 self.reply(404, {"error": "Not found"})
                 return
             if not processing.acquire(blocking=False):
@@ -215,6 +215,15 @@ def make_server(port=8768):
                     result = bundle(analyze(artifacts(), javascript_engine=engine))
                 elif self.path == "/api/demo-diff" and not keys:
                     result = {"diff": compare(analyze(artifacts(), javascript_engine=engine), analyze(artifacts(2), javascript_engine=engine))}
+                elif self.path == "/api/rebuild-demo" and keys <= {"include_scaffold"}:
+                    from .rebuild import plan_rebuild, scaffold_files
+                    include_scaffold = document.get("include_scaffold", False)
+                    if type(include_scaffold) is not bool:
+                        raise ArtifactError("Scaffold selection must be a boolean")
+                    plan = plan_rebuild(artifacts(), javascript_engine=engine, deadline=deadline)
+                    result = {"plan": plan}
+                    if include_scaffold:
+                        result["files"] = scaffold_files(plan)
                 elif self.path == "/api/source" and keys == {"artifacts"}:
                     result = {"inventory": inspect_sources(document["artifacts"], javascript_engine=engine)}
                 elif self.path == "/api/source-compare" and keys == {"baseline", "candidate"}:

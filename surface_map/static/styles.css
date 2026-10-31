@@ -29,6 +29,13 @@
 .selection-note { margin:8px 0 16px; font-size:11px; line-height:1.7; color:#74816d; }
 .plan-panel { margin-bottom:24px; background:#fff; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
 .plan-body { padding:0 20px 22px; min-width:0; }
+.handoff-panel { background:#f7faf5; border:1px solid #dce7d8; border-radius:7px; padding:0 16px 4px; margin-bottom:18px; }
+.handoff-panel .mode-select { max-width:300px; margin-bottom:6px; background:#fff; }
+.plan-explanation { white-space:pre-wrap; overflow-wrap:anywhere; color:#315b4d; font-size:13px; line-height:1.8; }
+.handoff-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.handoff-actions .export-button { color:#315b4d; background:#fff; }
+.agent-brief { display:block; box-sizing:border-box; width:100%; max-width:100%; min-height:220px; resize:vertical; border:1px solid #cbd8cf; border-radius:5px; padding:12px; background:#fff; color:#315b4d; font:12px/1.7 ui-monospace,monospace; }
+.agent-brief:focus-visible { outline:3px solid #71a89e; outline-offset:3px; }
 .plan-body h3,.project-graph h3 { margin:18px 0 10px; font-size:13px; font-weight:600; color:#315c4c; }
 .plan-intro,.plan-body li { color:#64776a; font-size:12px; line-height:1.8; }
 .plan-body ul { padding-left:20px; margin:10px 0 18px; }

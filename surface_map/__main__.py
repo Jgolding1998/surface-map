@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+import webbrowser
 from pathlib import Path
 
 from .server import make_server
@@ -18,6 +19,8 @@ class Parser(argparse.ArgumentParser):
 def main(argv=None):
     parser = Parser(prog="surface-map", description="Explore saved web artifacts and selected source files. The optional MCP interface also supports bounded public HTTPS capture. Captured source is never executed.")
     parser.add_argument("--port", type=int, default=8768)
+    parser.add_argument("--open", action="store_true", dest="open_browser",
+                        help="Open the local workspace in your browser after the server starts")
     commands = parser.add_subparsers(dest="command")
     commands.add_parser("mcp", help="Run the optional MCP stdio interface for saved contents and public HTTPS pages")
     commands.add_parser("setup-js", help="Explicitly install the pinned optional JavaScript parser with lifecycle scripts disabled")
@@ -104,6 +107,13 @@ def main(argv=None):
     print(f"Surface Map: http://127.0.0.1:{args.port}")
     print("Offline artifact analysis only. Ctrl+C stops the server.")
     try:
+        if args.open_browser:
+            try:
+                opened = webbrowser.open(f"http://127.0.0.1:{args.port}", new=2)
+            except Exception:
+                opened = False
+            if not opened:
+                print(f"Browser could not open automatically. Open http://127.0.0.1:{args.port} yourself.")
         server.serve_forever(poll_interval=0.2)
     except KeyboardInterrupt:
         pass

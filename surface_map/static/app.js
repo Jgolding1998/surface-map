@@ -4,6 +4,7 @@ const $ = selector => document.querySelector(selector);
 const token = $('meta[name="surface-token"]').content;
 let files = [], baselineFiles = [], current = null, diff = null, filter = "all", selected = null, busy = false;
 let sourceCurrent = null, sourceDiff = null, rebuildCurrent = null;
+let rebuildExample = false, rebuildEngine = "auto";
 let limits = null;
 const sourceMode = () => $("#analysis-mode").value === "source";
 const projectMode = () => $("#analysis-mode").value === "project";
@@ -36,10 +37,14 @@ function refresh() {
   $("#analyze").disabled = blocked || files.length === 0;
   $("#demo").disabled = blocked || project;
   $("#demo").hidden = project;
+  $("#demo-plan").disabled = blocked;
+  $("#demo-plan").hidden = source;
   $("#build-plan").hidden = source;
   $("#build-plan").disabled = blocked || source || !files.length;
   $("#export-plan").disabled = busy || !rebuildCurrent;
-  $("#export-scaffold").disabled = busy || !rebuildCurrent?.files;
+  $("#export-scaffold").disabled = busy || !rebuildCurrent;
+  $("#brief-style").disabled = busy || !rebuildCurrent;
+  for (const id of ["copy-brief", "export-brief"]) $("#" + id).disabled = busy || !rebuildCurrent || !$("#agent-brief").value;
   $("#demo-diff").disabled = blocked;
   $("#demo-diff").hidden = source;
   const rejected = Boolean(source && active && active.sources.some(item => item.status !== "parsed"));
@@ -125,7 +130,7 @@ function show(result, example = false) {
 }
 
 async function request(path, payload) {
-  payload = {...payload, javascript_engine:$("#javascript-engine").value};
+  payload = {javascript_engine:$("#javascript-engine").value, ...payload};
   const body = JSON.stringify(payload), size = new TextEncoder().encode(body).length;
   const limit = path === "/api/project" ? limits.project_request_bytes : ["/api/analyze", "/api/compare", "/api/rebuild"].includes(path) ? limits.request_bytes : limits.source_request_bytes;
   if (size > limit) {
@@ -240,25 +245,50 @@ function showDiff(value) {
 }
 
 function download(value, suffix) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], {type:"application/json"}));
-  const link = node("a"); link.href = url; link.download = `surface-map-${suffix}.json`; document.body.append(link); link.click(); link.remove();
+  downloadText(JSON.stringify(value, null, 2), suffix, "json", "application/json");
+}
+
+function downloadText(value, suffix, extension, mime) {
+  const url = URL.createObjectURL(new Blob([value], {type:mime}));
+  const link = node("a"); link.href = url; link.download = `surface-map-${suffix}.${extension}`; document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function updateHandoff() {
+  $("#brief-status").textContent = "";
+  $("#agent-brief").value = "";
+  $("#plan-explanation").textContent = "";
+  if (!rebuildCurrent) return;
+  const style = $("#brief-style").value;
+  try {
+    $("#plan-explanation").textContent = SurfaceMapHandoff.explain(rebuildCurrent.plan, style);
+    $("#agent-brief").value = SurfaceMapHandoff.markdown(rebuildCurrent.plan, style);
+  } catch (_) {
+    $("#brief-status").textContent = "The brief could not be prepared within its limits. Download Plan JSON to review the full retained plan.";
+  }
 }
 
 function clearPlan() {
   if (rebuildCurrent && !codeMode()) $("#workspace-mode").textContent = "WEB ARTIFACT INSPECTION";
   rebuildCurrent = null;
+  rebuildExample = false;
   $("#plan-panel").hidden = true;
+  $("#agent-brief").value = "";
+  $("#plan-explanation").textContent = "";
+  $("#brief-status").textContent = "";
+  $("#brief-preview-details").open = false;
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = codeMode();
   for (const id of ["plan-summary", "plan-unknowns", "plan-operations", "plan-candidates", "plan-capture-guide", "plan-coverage", "plan-scope"]) $("#" + id).replaceChildren();
 }
 
-function showPlan(result) {
+function showPlan(result, example = false) {
   rebuildCurrent = result;
+  rebuildExample = example;
+  rebuildEngine = $("#javascript-engine").value;
   const plan = result.plan, operations = plan.operations || [];
   const candidates = plan.candidate_references?.candidates || [];
   $("#plan-panel").hidden = false;
-  $("#workspace-mode").textContent = "YOUR REBUILD PLAN";
+  $("#workspace-mode").textContent = example ? "EXAMPLE AGENT BRIEF" : "YOUR REBUILD PLAN";
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = true;
   const stubCount = operations.filter(operation => operation.stub === "not_implemented").length;
   $("#plan-summary").textContent = `${operations.length} operation groups · ${stubCount} planned stubs · ${(plan.pages || []).length} page references · ${candidates.length} string candidates`;
@@ -290,7 +320,8 @@ function showPlan(result) {
   coverage.append(node("pre", "plan-coverage-json", JSON.stringify(plan.coverage || {}, null, 2)));
   if (plan.candidate_references?.limits?.truncated) coverage.append(node("p", "source-empty", "Some candidate references exceeded a limit or could not be resolved without a document base. Inspect the plan JSON for omission counts."));
   $("#plan-scope").textContent = plan.scope || "Reconstruction still requires your implementation and verification.";
-  notice("Plan ready. Review the unknowns and source evidence before using the generated mock bundle. Nothing was installed or executed.");
+  updateHandoff();
+  notice("Plan ready. Choose an explanation style, review the agent brief, and copy or download it. Check the unknowns before implementing behavior.");
   refresh();
 }
 
@@ -400,7 +431,16 @@ $("#analyze").addEventListener("click", () => action(async () => {
 $("#build-plan").addEventListener("click", () => action(async () => {
   clearPlan();
   notice("Building a plan from your selected saved artifacts. Candidates remain separate from operation stubs.");
-  showPlan(await request("/api/rebuild", {artifacts:await read(files), include_scaffold:true}));
+  showPlan(await request("/api/rebuild", {artifacts:await read(files)}));
+}));
+$("#demo-plan").addEventListener("click", () => action(async () => {
+  clearPlan();
+  files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value="";
+  clearSourceView(); $("#diff-panel").hidden=true; $("#diff-list").replaceChildren();
+  $("#baseline-status").textContent="No baseline kept. Select and analyze artifacts to compare evidence.";
+  const result = await request("/api/rebuild-demo", {});
+  sourceList(result.plan.coverage.sources || []);
+  showPlan(result, true);
 }));
 $("#demo").addEventListener("click", () => action(async () => {
   clearPlan();
@@ -422,7 +462,40 @@ for (const name of ["report","openapi","contract"]) $("#export-"+name).addEventL
 $("#export-diff").addEventListener("click", () => { if(diff) download(diff,"diff"); });
 $("#export-source").addEventListener("click", () => { if(sourceCurrent) download(sourceCurrent,projectMode() ? "project-inventory" : "source-inventory"); });
 $("#export-plan").addEventListener("click", () => { if(rebuildCurrent) download(rebuildCurrent.plan,"rebuild-plan"); });
-$("#export-scaffold").addEventListener("click", () => { if(rebuildCurrent?.files) download(rebuildCurrent.files,"mock-bundle"); });
+$("#brief-style").addEventListener("change", () => { updateHandoff(); refresh(); });
+$("#export-brief").addEventListener("click", () => {
+  if (rebuildCurrent && $("#agent-brief").value) downloadText($("#agent-brief").value, "agent-brief", "md", "text/markdown;charset=utf-8");
+});
+$("#copy-brief").addEventListener("click", () => action(async () => {
+  const text = $("#agent-brief").value;
+  if (!rebuildCurrent || !text) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(text);
+    $("#brief-status").textContent = "Agent brief copied. Review it before sharing it with your agent.";
+  } catch (_) {
+    $("#brief-preview-details").open = true;
+    $("#agent-brief").focus();
+    $("#agent-brief").select();
+    $("#brief-status").textContent = "Clipboard access is unavailable. The brief is selected below; use your device's copy command or download the Markdown file.";
+  }
+}));
+$("#export-scaffold").addEventListener("click", () => action(async () => {
+  if (!rebuildCurrent) return;
+  if (!rebuildCurrent.files) {
+    const input = rebuildExample ? {} : {artifacts:await read(files)};
+    const result = await request(rebuildExample ? "/api/rebuild-demo" : "/api/rebuild", {...input, javascript_engine:rebuildEngine, include_scaffold:true});
+    if (JSON.stringify(result.plan) !== JSON.stringify(rebuildCurrent.plan)) {
+      const example = rebuildExample, engine = rebuildEngine;
+      showPlan(result, example);
+      rebuildEngine = engine;
+      notice("The plan changed while preparing mock files. The explanation and brief have been updated. Review the new evidence, then select Mock files again to download.");
+      return;
+    }
+    rebuildCurrent.files = result.files;
+  }
+  download(rebuildCurrent.files, "mock-bundle");
+}));
 $("#export-source-diff").addEventListener("click", () => { if(sourceDiff) download(sourceDiff,"source-comparison"); });
 $("#clear").addEventListener("click", () => { files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value=""; $("#source-list").replaceChildren(); $("#diff-panel").hidden=true; for(const id of ["routes","observed","inferred","sources"]) $("#"+id+"-count").textContent="0"; $("#detail").replaceChildren(node("h3","","Session cleared.")); $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace."; table(); refresh(); notice("Session cleared. The server does not retain uploads or reports."); });
 $("#clear").addEventListener("click", () => {clearSourceView(); clearPlan(); refresh();});

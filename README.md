@@ -4,6 +4,16 @@ Inspect saved web artifacts and selected source files without running them. Buil
 
 For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). The optional interface can also inspect a public HTTPS URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
 
+**Try it without an AI account or paid service:** start the local workspace,
+select **Basic lexical hints**, then **Try an example agent brief**. Read an
+explanation in simple, developer, or Gen Z style and copy or download a Markdown
+handoff for your coding agent. These are local templates over the same facts,
+warnings and unknowns. No model API call or telemetry is involved.
+
+The [five-minute trial guide](docs/TRY_IT.md) covers setup and a small real task.
+The [pilot guide](docs/PILOT.md) identifies likely early users, recruitment venues,
+and how to measure useful results. Setup time is separate from the trial.
+
 ![Surface Map workspace](docs/dashboard.png)
 
 ## Run
@@ -11,10 +21,13 @@ For Claude, Codex and other local MCP clients, use the [MCP installation guide](
 Python 3.11 or later. No third-party Python packages or AI account are required.
 
 ```sh
-python -m surface_map
+python -m surface_map --open
 ```
 
-Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose `--port 9000` if needed.
+The optional `--open` flag opens **http://127.0.0.1:8768** in your browser. A
+synthetic example loads automatically. Choose `--port 9000` if needed; leave off
+`--open` to open the printed URL yourself. Keep the terminal running and press
+**Ctrl+C** to stop.
 
 For syntax and scope analysis of JavaScript, JSX and TypeScript, install Node.js 24.22.1 or later in the 24.x line, then explicitly install the pinned parser:
 
@@ -45,7 +58,7 @@ Saved-artifact analysis executes no source, replays no traffic, and fetches no U
 
 ## Inspect selected source files
 
-For an implementation starting point, choose **Build a plan** in web mode. It separates operations, navigation, unresolved targets and broader script-string references, then lists missing behavior. Download the plan or mock file bundle. The generated Python starter uses no dependencies and returns 501 for every known operation until implemented; its checks verify the starter, not equivalence to a real service. See the [rebuild workflow and synthetic example](docs/REBUILD.md).
+For an implementation starting point, choose **Build a plan** in web mode. It separates operations, navigation, unresolved targets and broader script-string references, then lists missing behavior. Choose an explanation style and review **Copy agent brief** or download **Agent brief (.md)**. The brief is a bounded preview with explicit omissions; obtain Plan JSON for full retained request/response shapes. Mock files are generated only when requested and reused for later downloads. The generated Python starter uses no dependencies and returns 501 for every known operation until implemented; its checks verify the starter, not equivalence to a real service. See the [rebuild workflow and synthetic example](docs/REBUILD.md).
 
 Choose **Selected project files** to inventory up to 24 explicit source files and map literal imports between them. Relative paths are used internally for exact matching; reports retain generic source IDs. Package resolution, extension guessing and runtime loading are not inferred. For nested selections, use:
 

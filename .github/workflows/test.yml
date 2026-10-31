@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.22.1'
+      - name: Verify local explanations and agent handoffs
+        run: node tests/handoff.cjs
       - run: npm ci --ignore-scripts --bin-links=false
         working-directory: analyzers/javascript
       - run: python -c "from surface_map.js_parser import available; ready, reason = available(); assert ready, reason"

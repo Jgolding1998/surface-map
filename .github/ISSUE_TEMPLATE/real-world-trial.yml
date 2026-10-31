@@ -1,0 +1,47 @@
+name: Real-world trial feedback
+description: Tell us what a local trial got wrong, missed, or made easier.
+title: "[Trial] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Surface Map. Public feedback does not need your capture.
+        Do not include client names, private URLs, credentials, source or raw HARs.
+        Share a reviewed synthetic reproduction if one is useful. See docs/TRY_IT.md.
+  - type: textarea
+    id: task
+    attributes:
+      label: What job were you trying to do?
+      description: Describe one flow or handoff and your usual workflow, without identifying the private app.
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup and environment
+      description: Tested commit, OS, Python version, parser mode, setup time and help needed. Leave private paths out.
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Could you complete the task?
+      options:
+        - Completed without help
+        - Completed with help or corrections
+        - Could not complete
+        - Inconclusive or incomplete capture
+    validations:
+      required: true
+  - type: textarea
+    id: corrections
+    attributes:
+      label: What was wrong, missing or unclear?
+      description: Describe incorrect claims, missed interactions, misleading confidence or confusing controls. No private data needed.
+    validations:
+      required: true
+  - type: textarea
+    id: usefulness
+    attributes:
+      label: What changed in your work?
+      description: Time, receiving developer or agent corrections, what it made easier, and whether you would use it on another project.
