@@ -24,7 +24,7 @@ check(brief.includes("Full request/response shapes") && brief.includes("passing 
 
 for (const style of ["simple","developer","genz"]) {
   const text = explain(plan,style);
-  check(text.includes("Retained evidence: 1 operation group, 1 navigation reference, 1 target with an unknown method, and 1 string candidate"), `${style} explanation retains grammatical evidence counts`);
+  check(text.includes("Included in this plan: 1 operation group, 1 navigation reference, 1 target with an unknown method, and 1 string candidate"), `${style} explanation retains grammatical evidence counts`);
   check(text.includes("None proves that a feature works now") && text.includes("Origin scope is unclassified"), `${style} explanation keeps uncertainty`);
   check(text.split("\n\n")[0].split(/[.!?]\s|[.!?]$/).filter(Boolean).length >= 4, `${style} provides a substantive explanatory introduction`);
 }

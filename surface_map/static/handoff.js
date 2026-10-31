@@ -47,7 +47,7 @@
     const {operations, pages, unresolved, coverage, references} = data;
     const rows = [...operations, ...pages, ...unresolved];
     const lines = [
-      `Retained evidence: ${quantity(operations.length, "operation group")}, ${quantity(pages.length, "navigation reference")}, ${quantity(unresolved.length, "target with an unknown method", "targets with unknown methods")}, and ${quantity(list(references.candidates).length, "string candidate")}.`,
+      `Included in this plan: ${quantity(operations.length, "operation group")}, ${quantity(pages.length, "navigation reference")}, ${quantity(unresolved.length, "target with an unknown method", "targets with unknown methods")}, and ${quantity(list(references.candidates).length, "string candidate")}.`,
       `Plan-limit omissions: ${[ ["omitted_operations", "operation group"], ["omitted_pages", "navigation reference"], ["omitted_unresolved_targets", "unresolved target"] ].map(([key, name]) => Object.hasOwn(coverage, key) ? quantity(count(coverage[key]), name) : `${name} count not reported`).join(", ")}. These are reported omissions, not a measurement of whole-site coverage.`,
       "Observed means a request appeared in a saved HAR. Declared means HTML lists a link or form. Inferred means selected client code suggests a call. None proves that a feature works now.",
       "These counts describe the supplied selection, not whole-site coverage. A target with an unknown method stays unresolved; navigation and string candidates are not API operations.",

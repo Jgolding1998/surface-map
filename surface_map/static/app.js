@@ -291,7 +291,9 @@ function showPlan(result, example = false) {
   $("#workspace-mode").textContent = example ? "EXAMPLE AGENT BRIEF" : "YOUR REBUILD PLAN";
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = true;
   const stubCount = operations.filter(operation => operation.stub === "not_implemented").length;
-  $("#plan-summary").textContent = `${operations.length} operation groups · ${stubCount} planned stubs · ${(plan.pages || []).length} page references · ${candidates.length} string candidates`;
+  const label = (count, name) => `${count} ${name}${count === 1 ? "" : "s"}`;
+  const omitted = plan.coverage || {};
+  $("#plan-summary").textContent = `${label(operations.length, "operation group")} · ${label(stubCount, "planned stub")} · ${label((plan.pages || []).length, "page reference")} · ${label((plan.unresolved || []).length, "unresolved target")} · ${label(candidates.length, "string candidate")}. Omitted by plan limits: ${label(omitted.omitted_operations || 0, "operation group")}, ${label(omitted.omitted_pages || 0, "page reference")}, ${label(omitted.omitted_unresolved_targets || 0, "unresolved target")}.`;
   $("#plan-unknowns").replaceChildren();
   for (const item of plan.unknowns || []) $("#plan-unknowns").append(node("li", "", item));
   const rows = $("#plan-operations"); rows.replaceChildren();
@@ -489,7 +491,7 @@ $("#export-scaffold").addEventListener("click", () => action(async () => {
       const example = rebuildExample, engine = rebuildEngine;
       showPlan(result, example);
       rebuildEngine = engine;
-      notice("The plan changed while preparing mock files. The explanation and brief have been updated. Review the new evidence, then select Mock files again to download.");
+      notice("The plan changed while preparing mock files. Review the updated evidence and copy or download the brief again; earlier copies may be out of date. Then select Mock files again to download.");
       return;
     }
     rebuildCurrent.files = result.files;
