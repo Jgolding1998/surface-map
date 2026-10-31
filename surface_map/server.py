@@ -15,6 +15,8 @@ from .export import compare, contract, openapi
 from .samples import artifacts
 from .source_io import compare_sources, inspect_sources, source_examples
 from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES
+from .project import (MAX_FILES as PROJECT_FILES, MAX_TOTAL_BYTES as PROJECT_BYTES,
+                      WORK_SECONDS as PROJECT_SECONDS, inspect_project)
 
 STATIC = Path(__file__).parent / "static"
 MAX_REQUEST = 16 * 1024 * 1024 + 64 * 1024
@@ -151,7 +153,14 @@ def make_server(port=8768):
                                         "other_file_bytes": MAX_FILE_BYTES, "total_bytes": MAX_TOTAL_BYTES},
                                  "source": {"max_artifacts": MAX_ARTIFACTS, "file_bytes": SOURCE_FILE_BYTES,
                                             "total_bytes": SOURCE_TOTAL_BYTES},
+                                 "project": {"max_files": PROJECT_FILES, "max_artifacts": PROJECT_FILES,
+                                             "file_bytes": SOURCE_FILE_BYTES, "total_bytes": PROJECT_BYTES,
+                                             "work_seconds": PROJECT_SECONDS},
+                                 "rebuild": {"max_artifacts": MAX_ARTIFACTS, "html_bytes": MAX_HTML_BYTES,
+                                             "other_file_bytes": MAX_FILE_BYTES, "total_bytes": MAX_TOTAL_BYTES,
+                                             "scope": "Saved evidence and optional inert scaffold text; no network or code execution."},
                                  "request_bytes": MAX_REQUEST, "source_request_bytes": MAX_SOURCE_REQUEST,
+                                 "project_request_bytes": MAX_REQUEST, "rebuild_request_bytes": MAX_REQUEST,
                                  "response_bytes": MAX_RESPONSE, "analysis_seconds": ANALYSIS_BUDGET,
                                  "request_timeout_ms": CLIENT_TIMEOUT_MS})
             else:
@@ -161,7 +170,7 @@ def make_server(port=8768):
             if self.headers.get("Transfer-Encoding") is not None:
                 raise ArtifactError("Transfer encoding is unsupported")
             length = self.headers.get("Content-Length", "")
-            limit = MAX_REQUEST if self.path in {"/api/analyze", "/api/compare"} else MAX_SOURCE_REQUEST
+            limit = MAX_REQUEST if self.path in {"/api/analyze", "/api/compare", "/api/rebuild", "/api/project"} else MAX_SOURCE_REQUEST
             if not re.fullmatch(r"[0-9]{1,10}", length) or not 1 <= int(length) <= limit:
                 raise ArtifactError(f"Request must include Content-Length and fit within {limit:,} encoded JSON bytes. Use a smaller capture or comparison.")
             if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
@@ -177,12 +186,13 @@ def make_server(port=8768):
                     raise ArtifactError("Incomplete HTTP body")
                 chunks.append(block)
                 remaining -= len(block)
-            return strict_json(b"".join(chunks).decode("utf-8"), depth=6, nodes=100, prescan=False)
+            return strict_json(b"".join(chunks).decode("utf-8"), depth=6,
+                               nodes=160 if self.path == "/api/project" else 100, prescan=False)
 
         def do_POST(self):
             if not self.allowed(post=True):
                 return
-            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo"}:
+            if self.path not in {"/api/analyze", "/api/compare", "/api/demo", "/api/demo-diff", "/api/source", "/api/source-compare", "/api/source-demo", "/api/rebuild", "/api/project"}:
                 self.reply(404, {"error": "Not found"})
                 return
             if not processing.acquire(blocking=False):
@@ -211,11 +221,24 @@ def make_server(port=8768):
                     result = {"diff": compare_sources(inspect_sources(document["baseline"], javascript_engine=engine), inspect_sources(document["candidate"], javascript_engine=engine))}
                 elif self.path == "/api/source-demo" and not keys:
                     result = {"inventory": inspect_sources(source_examples(), javascript_engine=engine)}
+                elif self.path == "/api/project" and keys == {"files"}:
+                    result = {"inventory": inspect_project(document["files"], javascript_engine=engine, deadline=deadline)}
+                elif self.path == "/api/rebuild" and "artifacts" in keys and keys <= {"artifacts", "document_url", "include_scaffold"}:
+                    from .rebuild import plan_rebuild, scaffold_files
+                    include_scaffold = document.get("include_scaffold", False)
+                    if type(include_scaffold) is not bool:
+                        raise ArtifactError("Scaffold selection must be a boolean")
+                    plan = plan_rebuild(document["artifacts"], javascript_engine=engine,
+                                        document_url=document.get("document_url"), deadline=deadline)
+                    result = {"plan": plan}
+                    if include_scaffold:
+                        result["files"] = scaffold_files(plan)
                 else:
                     raise ArtifactError("Unsupported request shape")
                 self.reply(200, result)
             except ArtifactError as error:
-                self.reply(422, {"error": str(error)})
+                self.reply(422, {"error": "Selection rejected: unsupported, malformed or over limit. No input text or paths are returned."
+                                 if self.path in {"/api/rebuild", "/api/project"} else str(error)})
             except (UnicodeError, TypeError, ValueError, RecursionError, OverflowError):
                 self.reply(422, {"error": "Artifact rejected: unsupported, malformed or over limit. No source text is returned."})
             except (OSError, TimeoutError):
@@ -223,6 +246,10 @@ def make_server(port=8768):
                     self.reply(408, {"error": "Upload disconnected or exceeded its deadline"})
                 except OSError:
                     pass
+            except Exception:
+                if self.path not in {"/api/rebuild", "/api/project"}:
+                    raise
+                self.reply(500, {"error": "Selection processing failed. No input text or paths are returned."})
             finally:
                 processing.release()
 

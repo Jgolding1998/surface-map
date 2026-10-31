@@ -4,7 +4,9 @@ import sys
 from pathlib import Path
 
 from .server import make_server
-from .source_io import capture_sources, inspect_sources, selected_sources
+from .source_io import capture_sources, inspect_sources, selected_sources, read_ordinary
+from .analyze import strict_json
+from .project import inspect_project, selected_project
 
 
 class Parser(argparse.ArgumentParser):
@@ -24,6 +26,14 @@ def main(argv=None):
     inputs = inspect.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--capture", type=Path, help="Source capture JSON with an artifacts array")
     inputs.add_argument("--files", nargs="+", type=Path, help="1 to 6 explicit local manifests or supported source files")
+    project = commands.add_parser("project", help="Inspect explicitly selected project files without walking directories")
+    project.add_argument("--root", type=Path, required=True, help="Explicit local root containing the selected files")
+    project.add_argument("--files", nargs="+", type=Path, required=True, help="1 to 24 files; relative names are resolved within root")
+    project.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
+    rebuild = commands.add_parser("rebuild", help="Plan a rebuild from saved evidence, optionally write a new local scaffold")
+    rebuild.add_argument("--capture", type=Path, required=True, help="Local JSON containing only an artifacts array")
+    rebuild.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
+    rebuild.add_argument("--scaffold", type=Path, help="Create a new directory for scaffold files; existing directories are refused")
     args = parser.parse_args(argv)
     if args.command == "mcp":
         from .mcp_server import main as mcp_main
@@ -39,6 +49,23 @@ def main(argv=None):
             return 0
         except (OSError, ValueError, TypeError, UnicodeError, RecursionError, OverflowError):
             print("Source inspection rejected: unsupported, malformed, or over limit. No source text or paths are returned.", file=sys.stderr)
+            return 2
+    if args.command in {"project", "rebuild"}:
+        try:
+            if args.command == "project":
+                report = inspect_project(selected_project(args.files, root=args.root), javascript_engine=args.javascript_engine)
+            else:
+                from .rebuild import plan_rebuild, write_scaffold
+                document = strict_json(read_ordinary(args.capture, 16 * 1024 * 1024), depth=6, nodes=100)
+                if not isinstance(document, dict) or set(document) != {"artifacts"}:
+                    raise ValueError
+                report = plan_rebuild(document["artifacts"], javascript_engine=args.javascript_engine)
+                if args.scaffold is not None:
+                    write_scaffold(report, args.scaffold)
+            print(json.dumps(report, ensure_ascii=True, allow_nan=False, separators=(",", ":")))
+            return 0
+        except Exception:
+            print("Selection rejected: unsupported, malformed, over limit, or destination already exists. No input text or paths are returned.", file=sys.stderr)
             return 2
     if not 1 <= args.port <= 65535:
         parser.error("Port must be between 1 and 65535")

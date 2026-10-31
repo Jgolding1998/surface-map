@@ -26,6 +26,21 @@
 .inventory-confidence,.inventory-ecosystem { padding:3px 5px; background:#f0f5ec; color:#64825e; border-radius:4px; font-size:9px; }
 .inventory-ecosystem { background:#f4f4f1; color:#788071; }
 .source-empty { margin:0; color:#74836c; font-size:11px; line-height:1.8; overflow-wrap:anywhere; }
+.selection-note { margin:8px 0 16px; font-size:11px; line-height:1.7; color:#74816d; }
+.plan-panel { margin-bottom:24px; background:#fff; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+.plan-body { padding:0 20px 22px; min-width:0; }
+.plan-body h3,.project-graph h3 { margin:18px 0 10px; font-size:13px; font-weight:600; color:#315c4c; }
+.plan-intro,.plan-body li { color:#64776a; font-size:12px; line-height:1.8; }
+.plan-body ul { padding-left:20px; margin:10px 0 18px; }
+.plan-body details,.project-graph details { border-top:1px solid var(--line); margin:12px 0; padding-top:4px; }
+.plan-body summary,.project-graph summary { padding:12px 0; cursor:pointer; color:#315c4c; font-size:12px; min-height:44px; }
+.plan-body summary:focus-visible,.project-graph summary:focus-visible { outline:3px solid #71a89e; outline-offset:3px; }
+.plan-coverage-json { margin:0 0 12px; padding:12px; background:#f7faf5; color:#64776a; font-size:11px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.project-graph { margin:0 20px 22px; padding:0 16px 14px; border:1px solid #e3eadd; border-radius:7px; }
+.plan-panel code,.project-graph code { overflow-wrap:anywhere; }
+.project-graph .source-empty + .source-empty { margin-top:8px; }
+.plan-panel[hidden],.project-graph[hidden],.selection-note[hidden],.button[hidden],.baseline-box[hidden] { display:none; }
+@media(max-width:700px) { .plan-body{padding:0 14px 16px;} .project-graph{margin:0 14px 14px;padding:0 12px 12px;} .plan-body .inventory-row{align-items:flex-start;} }
 .source-diff { padding:20px; border-top:1px solid var(--line); font-size:12px; }
 .source-diff h3 { margin:0 0 12px; font-size:14px; }
 .source-diff-list { overflow-wrap:anywhere; }

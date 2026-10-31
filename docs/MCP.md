@@ -1,6 +1,10 @@
 # Surface Map over MCP
 
-Surface Map provides six read-only tools over stdio using the [official Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk). A client such as Claude or Codex starts a local process and calls the tools. No HTTP listener, account, API key or global registration is required. `analyze_url` contacts a public website; the other five tools work on supplied or bundled content without network access.
+Surface Map provides eight read-only tools over stdio using the [official Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk). A client such as Claude or Codex starts a local process and calls the tools. No HTTP listener, account, API key or global registration is required. `analyze_url` contacts a public website; the other seven tools work on supplied or bundled content without network access.
+
+`plan_rebuild` accepts the saved artifacts used by `analyze_capture`. It returns a bounded implementation plan, possible script references, evidence and unknowns. With `include_scaffold: true`, it returns `{plan, files}`: fixed mock files as text, without writing or running them. An agent can save and test these in a new directory. The generated handlers return 501 until implemented; their tests do not establish parity with the original app. [Workflow and example](REBUILD.md).
+
+`inspect_project` accepts `files`, an array of `{kind, content, logical_path}` objects (up to 24 files, 512 KiB each, 4 MiB combined). Paths must be portable and relative, such as `src/app.js`, and match the supplied kind. They are used transiently to link exact relative imports between selected JavaScript/TypeScript files. Output has generic IDs, curated dependency labels, graph links and omission counts. It never reads the indicated paths, walks directories, resolves packages or fetches imports.
 
 ## Install the optional interface
 

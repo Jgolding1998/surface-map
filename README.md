@@ -45,6 +45,16 @@ Saved-artifact analysis executes no source, replays no traffic, and fetches no U
 
 ## Inspect selected source files
 
+For an implementation starting point, choose **Build a plan** in web mode. It separates operations, navigation, unresolved targets and broader script-string references, then lists missing behavior. Download the plan or mock file bundle. The generated Python starter uses no dependencies and returns 501 for every known operation until implemented; its checks verify the starter, not equivalence to a real service. See the [rebuild workflow and synthetic example](docs/REBUILD.md).
+
+Choose **Selected project files** to inventory up to 24 explicit source files and map literal imports between them. Relative paths are used internally for exact matching; reports retain generic source IDs. Package resolution, extension guessing and runtime loading are not inferred. For nested selections, use:
+
+```sh
+python -m surface_map project --root ./example --files package.json src/app.js src/api.js
+```
+
+Project inspection never walks the folder or fetches missing imports. Unsupported syntax and unmatched references remain explicit coverage limits.
+
 Choose **Selected source files** in the workspace. Add saved `requirements.txt`, `pyproject.toml`, `package.json`, `Cargo.toml`, or supported Python, JavaScript/TypeScript, Rust and POSIX shell files. Analyze, inspect each generic source location, and export **Inventory JSON**. A synthetic source example is available in this mode. Keep a source selection as a baseline to compare added, absent, and changed static evidence in another selection.
 
 The source view separates manifest declarations from inferred import hints. It recognizes a curated vocabulary of public libraries and their usual roles, such as HTTP frameworks, audio I/O or desktop frameworks. A dependency declaration, import, or installer hint does not prove that the application uses that library at runtime or implements its associated feature. Unknown dependency names are omitted and counted. Versions, project names, maintainers, source paths, command text and snippets are never exported.
@@ -72,7 +82,7 @@ Each source reports `parsed` or `rejected`. Unsupported syntax or structural lim
 
 ## Use from an agent with MCP
 
-The optional [MCP stdio interface](docs/MCP.md) exposes `analyze_url`, `analyze_capture`, `compare_captures`, `inspect_sources`, `demo`, and `limits` through the official Python MCP SDK. Install `requirements-mcp.txt` in a virtual environment, then configure Claude or Codex using the linked guide. The default CLI and browser app still need no third-party Python packages.
+The optional [MCP stdio interface](docs/MCP.md) exposes `analyze_url`, `analyze_capture`, `compare_captures`, `inspect_sources`, `inspect_project`, `plan_rebuild`, `demo`, and `limits` through the official Python MCP SDK. Install `requirements-mcp.txt` in a virtual environment, then configure Claude or Codex using the linked guide. The default CLI and browser app still need no third-party Python packages.
 
 See the [verified Claude agent demonstration](docs/AGENT_DEMO.md) for real tool calls and the resulting explanation.
 

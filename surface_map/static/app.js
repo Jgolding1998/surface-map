@@ -3,9 +3,11 @@
 const $ = selector => document.querySelector(selector);
 const token = $('meta[name="surface-token"]').content;
 let files = [], baselineFiles = [], current = null, diff = null, filter = "all", selected = null, busy = false;
-let sourceCurrent = null, sourceDiff = null;
+let sourceCurrent = null, sourceDiff = null, rebuildCurrent = null;
 let limits = null;
 const sourceMode = () => $("#analysis-mode").value === "source";
+const projectMode = () => $("#analysis-mode").value === "project";
+const codeMode = () => sourceMode() || projectMode();
 const byteLabel = value => value >= 1024 * 1024 ? `${value / (1024 * 1024)} MiB` : `${value / 1024} KiB`;
 function base64Text(content) {
   const bytes = new TextEncoder().encode(content);
@@ -26,24 +28,31 @@ function notice(message, error = false) {
 }
 
 function refresh() {
-  const source = sourceMode(), active = source ? sourceCurrent : current;
+  const source = codeMode(), project = projectMode(), active = source ? sourceCurrent : current;
   const blocked = busy || !limits;
   $("#analysis-mode").disabled = blocked;
   $("#javascript-engine").disabled = blocked;
   $("#files").disabled = blocked;
   $("#analyze").disabled = blocked || files.length === 0;
-  $("#demo").disabled = blocked;
+  $("#demo").disabled = blocked || project;
+  $("#demo").hidden = project;
+  $("#build-plan").hidden = source;
+  $("#build-plan").disabled = blocked || source || !files.length;
+  $("#export-plan").disabled = busy || !rebuildCurrent;
+  $("#export-scaffold").disabled = busy || !rebuildCurrent?.files;
   $("#demo-diff").disabled = blocked;
   $("#demo-diff").hidden = source;
   const rejected = Boolean(source && active && active.sources.some(item => item.status !== "parsed"));
-  $("#baseline").disabled = busy || !active || rejected || files.length === 0;
-  $("#compare").disabled = busy || !active || rejected || files.length === 0 || baselineFiles.length === 0;
+  $(".baseline-box").hidden = project;
+  $("#baseline").disabled = busy || project || !active || rejected || files.length === 0;
+  $("#compare").disabled = busy || project || !active || rejected || files.length === 0 || baselineFiles.length === 0;
   $("#clear").disabled = busy;
   for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = source || !current || busy;
   $("#export-source").disabled = !sourceCurrent || busy;
   if (limits) {
+    const policy = project ? limits.project : limits.source;
     $("#upload-limits").textContent = source
-      ? `Up to ${limits.source.max_artifacts} sources; ${byteLabel(limits.source.file_bytes)} each, ${byteLabel(limits.source.total_bytes)} combined`
+      ? `Up to ${policy.max_artifacts || policy.max_files} sources; ${byteLabel(policy.file_bytes)} each, ${byteLabel(policy.total_bytes)} combined`
       : `HTML up to ${byteLabel(limits.web.html_bytes)}; HAR/JS/TS up to ${byteLabel(limits.web.other_file_bytes)} each. Up to ${limits.web.max_artifacts} sources, ${byteLabel(limits.web.total_bytes)} combined; work limits apply.`;
   }
 }
@@ -97,6 +106,7 @@ function table() {
 }
 
 function show(result, example = false) {
+  clearPlan();
   current = result; selected = null;
   const report = result.report;
   const routes = allRoutes(report);
@@ -116,7 +126,7 @@ function show(result, example = false) {
 async function request(path, payload) {
   payload = {...payload, javascript_engine:$("#javascript-engine").value};
   const body = JSON.stringify(payload), size = new TextEncoder().encode(body).length;
-  const limit = ["/api/analyze", "/api/compare"].includes(path) ? limits.request_bytes : limits.source_request_bytes;
+  const limit = path === "/api/project" ? limits.project_request_bytes : ["/api/analyze", "/api/compare", "/api/rebuild"].includes(path) ? limits.request_bytes : limits.source_request_bytes;
   if (size > limit) {
     const error = new Error("Request too large");
     error.safeMessage = `This capture needs ${size.toLocaleString()} encoded JSON bytes; the request limit is ${limit.toLocaleString()}. Analyze fewer files or a smaller comparison.`;
@@ -148,7 +158,7 @@ async function request(path, payload) {
 }
 
 function kind(file) {
-  if (sourceMode()) {
+  if (codeMode()) {
     const manifests = new Map([["requirements.txt","requirements"], ["pyproject.toml","pyproject"], ["package.json","package"], ["cargo.toml","cargo"]]);
     const filename = file.name.toLowerCase();
     const extensions = new Map([["py","python"], ["ts","typescript"], ["tsx","typescript"], ["js","javascript"], ["jsx","javascript"], ["mjs","javascript"], ["cjs","javascript"], ["rs","rust"], ["sh","shell"], ["bash","shell"]]);
@@ -161,14 +171,15 @@ function kind(file) {
 }
 
 async function read(selection) {
-  const policy = sourceMode() ? limits.source : limits.web;
+  const policy = projectMode() ? limits.project : sourceMode() ? limits.source : limits.web;
   const reject = message => { const error = new Error("Unsupported selection"); error.safeMessage = message; throw error; };
-  if (!selection.length || selection.length > policy.max_artifacts) reject(`Choose between 1 and ${policy.max_artifacts} files.`);
+  const maxFiles = policy.max_artifacts || policy.max_files;
+  if (!selection.length || selection.length > maxFiles) reject(`Choose between 1 and ${maxFiles} files.`);
   let total = 0;
   for (const file of selection) {
     const format = kind(file);
     if (!format) reject("Choose supported UTF-8 artifacts for the selected analysis mode.");
-    const cap = sourceMode() ? policy.file_bytes : format === "html" ? policy.html_bytes : policy.other_file_bytes;
+    const cap = codeMode() ? policy.file_bytes : format === "html" ? policy.html_bytes : policy.other_file_bytes;
     if (file.size > cap) reject(`${format.toUpperCase()} input is ${file.size.toLocaleString()} bytes; its limit is ${cap.toLocaleString()} bytes. Use a smaller artifact.`);
     total += file.size;
   }
@@ -177,7 +188,8 @@ async function read(selection) {
   for (const file of selection) {
     const bytes = await file.arrayBuffer();
     const content = new TextDecoder("utf-8", {fatal:true}).decode(bytes);
-    result.push(sourceMode() ? {kind:kind(file), content} : {kind:kind(file), text_b64:base64Text(content)});
+    result.push(projectMode() ? {kind:kind(file), content, logical_path:file.webkitRelativePath || file.name}
+      : sourceMode() ? {kind:kind(file), content} : {kind:kind(file), text_b64:base64Text(content)});
   }
   return result;
 }
@@ -232,6 +244,54 @@ function download(value, suffix) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function clearPlan() {
+  if (rebuildCurrent && !codeMode()) $("#workspace-mode").textContent = "WEB ARTIFACT INSPECTION";
+  rebuildCurrent = null;
+  $("#plan-panel").hidden = true;
+  for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = codeMode();
+  for (const id of ["plan-summary", "plan-unknowns", "plan-operations", "plan-candidates", "plan-capture-guide", "plan-coverage", "plan-scope"]) $("#" + id).replaceChildren();
+}
+
+function showPlan(result) {
+  rebuildCurrent = result;
+  const plan = result.plan, operations = plan.operations || [];
+  const candidates = plan.candidate_references?.candidates || [];
+  $("#plan-panel").hidden = false;
+  $("#workspace-mode").textContent = "YOUR REBUILD PLAN";
+  for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = true;
+  const stubCount = operations.filter(operation => operation.stub === "not_implemented").length;
+  $("#plan-summary").textContent = `${operations.length} operation groups · ${stubCount} planned stubs · ${(plan.pages || []).length} page references · ${candidates.length} string candidates`;
+  $("#plan-unknowns").replaceChildren();
+  for (const item of plan.unknowns || []) $("#plan-unknowns").append(node("li", "", item));
+  const rows = $("#plan-operations"); rows.replaceChildren();
+  for (const operation of operations) {
+    const row = node("div", "inventory-row");
+    row.append(node("code", "", `${operation.method || "UNKNOWN"} ${operation.path}`),
+      node("span", "inventory-confidence", operation.confidence || "unverified"),
+      node("span", "inventory-ecosystem", operation.stub === "not_implemented" ? "Not implemented" : "Scope review required"));
+    row.append(node("p", "", (operation.evidence || []).map(item => `${item.source.replace("_", " ")} · ${item.location}`).join("; ") || "No source location retained."));
+    rows.append(row);
+  }
+  if (!operations.length) rows.append(node("p", "source-empty", "No known-method operations were retained. A string candidate alone does not define an operation."));
+  $("#plan-candidate-summary").textContent = `String references (${candidates.length})`;
+  const candidateRows = $("#plan-candidates"); candidateRows.replaceChildren();
+  for (const candidate of candidates) {
+    const row = node("div", "inventory-row");
+    row.append(node("code", "", candidate.path), node("span", "inventory-confidence", "String candidate"),
+      node("p", "", (candidate.evidence || []).map(item => `${item.source.replace("_", " ")} · ${item.location}`).join("; ")));
+    candidateRows.append(row);
+  }
+  if (!candidates.length) candidateRows.append(node("p", "source-empty", "No supported strings were retained."));
+  const guide = $("#plan-capture-guide"); guide.replaceChildren();
+  for (const step of plan.capture_guide || []) guide.append(node("li", "", step));
+  const coverage = $("#plan-coverage"); coverage.replaceChildren();
+  coverage.append(node("pre", "plan-coverage-json", JSON.stringify(plan.coverage || {}, null, 2)));
+  if (plan.candidate_references?.limits?.truncated) coverage.append(node("p", "source-empty", "Some candidate references exceeded a limit or could not be resolved without a document base. Inspect the plan JSON for omission counts."));
+  $("#plan-scope").textContent = plan.scope || "Reconstruction still requires your implementation and verification.";
+  notice("Plan ready. Review the unknowns and source evidence before using the generated mock bundle. Nothing was installed or executed.");
+  refresh();
+}
+
 function showSource(inventory, example = false) {
   sourceCurrent = inventory;
   $("#workspace-mode").textContent = example ? "SYNTHETIC SOURCE EXAMPLE" : "STATIC SOURCE EVIDENCE";
@@ -265,6 +325,33 @@ function showSource(inventory, example = false) {
   refresh();
 }
 
+function showProject(inventory) {
+  showSource(inventory);
+  $("#workspace-mode").textContent = "SELECTED PROJECT EVIDENCE";
+  $("#project-graph").hidden = false;
+  const graph = inventory.graph || {}, edges = graph.edges || [];
+  $("#project-graph-summary").textContent = `${edges.length} candidate links between explicitly selected files. A link does not prove runtime loading.`;
+  const list = $("#project-graph-list"); list.replaceChildren();
+  const relationNames = {static_import:"Literal import", static_reexport:"Literal re-export", dynamic_import_literal:"Literal dynamic import"};
+  for (const edge of edges) {
+    const row = node("div", "inventory-row");
+    row.append(node("code", "", `${edge.source.replace("_", " ")} → ${edge.target.replace("_", " ")}`),
+      node("span", "inventory-confidence", relationNames[edge.relation] || "Candidate link"),
+      node("p", "", `Source line ${edge.line}`));
+    list.append(row);
+  }
+  if (!edges.length) list.append(node("p", "source-empty", "No supported literal imports matched another selected file. Missing files and unsupported syntax can leave gaps."));
+  const omissions = $("#project-omission-list"); omissions.replaceChildren();
+  const omissionNames = {outside_root:"Outside the selected root", missing_selected_target:"Target file not selected", external_or_package:"External or package reference", unsupported_reference:"Unsupported reference", edge_limit:"Link limit reached", unparsed_sources:"Unparsed sources", work_limit:"Sources beyond the work limit", inventory_evidence_limit:"Inventory evidence limit reached", superseded_evidence:"Lower-confidence evidence replaced", warning_limit:"Warning limit reached"};
+  for (const [category, value] of Object.entries({...inventory.omissions, ...graph.omissions})) {
+    if (value) omissions.append(node("p", "source-empty", `${omissionNames[category] || "Other omitted evidence"}: ${value}`));
+  }
+  if (!omissions.children.length) omissions.append(node("p", "source-empty", "No counted omissions. Unsupported syntax may still be absent without a count."));
+  $("#project-graph-scope").textContent = graph.scope || "Only relationships between supplied files are considered.";
+  notice(`Project inspection complete. ${inventory.sources.length} selected files, ${edges.length} candidate file links.${inventory.coverage?.partial ? " Coverage is partial; inspect omissions." : ""} Input names are used transiently for matching; results contain generic source IDs. No code was run.`);
+  refresh();
+}
+
 function showSourceDiff(value) {
   sourceDiff = value;
   $("#source-diff").hidden = false;
@@ -288,9 +375,12 @@ function clearSourceView() {
   for (const name of ["language", "dependency", "capability"]) $("#" + name + "-count").textContent = "0";
   $("#source-inventory").replaceChildren(node("p", "source-empty", "Select manifests or source files, then analyze."));
   $("#source-diff").hidden = true; $("#source-diff-list").replaceChildren();
+  $("#project-graph").hidden = true; $("#project-graph-list").replaceChildren();
+  $("#project-omission-list").replaceChildren(); $("#project-graph-summary").textContent = ""; $("#project-graph-scope").textContent = "";
 }
 
 $("#files").addEventListener("change", () => {
+  clearPlan();
   clearSourceView();
   files = Array.from($("#files").files); current = null; selected = null; diff = null; $("#diff-panel").hidden = true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent = "0";
@@ -299,10 +389,19 @@ $("#files").addEventListener("change", () => {
   table(); notice("Selection ready. Analyze artifacts to build a fresh evidence map."); refresh();
 });
 $("#analyze").addEventListener("click", () => action(async () => {
-  const result = await request(sourceMode() ? "/api/source" : "/api/analyze", {artifacts:await read(files), javascript_engine:$("#javascript-engine").value});
-  if (sourceMode()) showSource(result.inventory); else show(result);
+  clearPlan();
+  const selectedFiles = await read(files);
+  const result = await request(projectMode() ? "/api/project" : sourceMode() ? "/api/source" : "/api/analyze",
+    projectMode() ? {files:selectedFiles} : {artifacts:selectedFiles});
+  if (projectMode()) showProject(result.inventory); else if (sourceMode()) showSource(result.inventory); else show(result);
+}));
+$("#build-plan").addEventListener("click", () => action(async () => {
+  clearPlan();
+  notice("Building a plan from your selected saved artifacts. Candidates remain separate from operation stubs.");
+  showPlan(await request("/api/rebuild", {artifacts:await read(files), include_scaffold:true}));
 }));
 $("#demo").addEventListener("click", () => action(async () => {
+  clearPlan();
   files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value="";
   clearSourceView(); $("#diff-panel").hidden=true; $("#diff-list").replaceChildren();
   $("#baseline-status").textContent="No baseline kept. Select and analyze artifacts to compare evidence.";
@@ -319,20 +418,25 @@ for (const button of document.querySelectorAll("[data-filter]")) button.addEvent
 $("#search").addEventListener("input", table);
 for (const name of ["report","openapi","contract"]) $("#export-"+name).addEventListener("click", () => { if(current) download(current[name], name); });
 $("#export-diff").addEventListener("click", () => { if(diff) download(diff,"diff"); });
-$("#export-source").addEventListener("click", () => { if(sourceCurrent) download(sourceCurrent,"source-inventory"); });
+$("#export-source").addEventListener("click", () => { if(sourceCurrent) download(sourceCurrent,projectMode() ? "project-inventory" : "source-inventory"); });
+$("#export-plan").addEventListener("click", () => { if(rebuildCurrent) download(rebuildCurrent.plan,"rebuild-plan"); });
+$("#export-scaffold").addEventListener("click", () => { if(rebuildCurrent?.files) download(rebuildCurrent.files,"mock-bundle"); });
 $("#export-source-diff").addEventListener("click", () => { if(sourceDiff) download(sourceDiff,"source-comparison"); });
 $("#clear").addEventListener("click", () => { files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value=""; $("#source-list").replaceChildren(); $("#diff-panel").hidden=true; for(const id of ["routes","observed","inferred","sources"]) $("#"+id+"-count").textContent="0"; $("#detail").replaceChildren(node("h3","","Session cleared.")); $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace."; table(); refresh(); notice("Session cleared. The server does not retain uploads or reports."); });
-$("#clear").addEventListener("click", () => {clearSourceView(); refresh();});
+$("#clear").addEventListener("click", () => {clearSourceView(); clearPlan(); refresh();});
 $("#analysis-mode").addEventListener("change", () => {
   $("#clear").click();
-  const source = sourceMode();
+  const source = codeMode(), project = projectMode();
   for (const selector of [".stats-grid", ".evidence-flow", ".map-panel", ".bottom-grid"]) $(selector).hidden = source;
   $("#source-panel").hidden = !source;
-  $("#upload-title").textContent = source ? "Add selected source files" : "Add saved artifacts";
+  $("#source-heading").textContent = project ? "Selected project inventory" : "Static source inventory";
+  $("#source-description").textContent = project ? "Inspect selected files and literal links between them. No code is run." : "Declared dependencies and inferred import hints, with generic source locations. No code is run.";
+  $("#project-input-note").hidden = !project;
+  $("#upload-title").textContent = project ? "Add selected project files" : source ? "Add selected source files" : "Add saved artifacts";
   $("#upload-formats").textContent = source ? "Manifests, Python, JS/TS, Rust or shell" : "HTML, HAR or JavaScript";
   $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.jsx,.mjs,.cjs,.ts,.tsx";
-  $("#workspace-mode").textContent = source ? "STATIC SOURCE INSPECTION" : "WEB ARTIFACT INSPECTION";
-  notice(source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example.");
+  $("#workspace-mode").textContent = project ? "SELECTED PROJECT INSPECTION" : source ? "STATIC SOURCE INSPECTION" : "WEB ARTIFACT INSPECTION";
+  notice(project ? "Select individual project files to inspect. Literal relative imports can match another selected file; nested projects work best through the CLI with an explicit root." : source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : "Select saved web artifacts, or load the synthetic example. Build a plan creates a mock starting point from your selected files.");
   refresh();
 });
 action(async () => {

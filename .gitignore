@@ -8,6 +8,7 @@ package-lock.json
 !/analyzers/javascript/package-lock.json
 captures/
 *.har
+!/examples/rebuild-demo/session.har
 *.zip
 *.apk
 *.exe
