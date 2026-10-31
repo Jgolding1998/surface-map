@@ -269,6 +269,30 @@ class GitComparisonTests(unittest.TestCase):
         with self.assertRaises(git_compare.GitCompareError):
             git_compare.compare_git(linked, base, base, javascript_engine="basic")
 
+    def test_checkout_sparse_cleanup_inactive_worktree_config_is_ignored(self):
+        base = self.commit({"page.html": '<a href="/dashboard">Home</a>'})
+        head = self.commit({"page.html": '<a href="/reports">Reports</a>'})
+        self.git("sparse-checkout", "init", "--cone")
+        self.git("sparse-checkout", "disable")
+        self.git("config", "--local", "--unset-all", "extensions.worktreeConfig")
+        inactive = self.repo / ".git/config.worktree"
+        self.assertTrue(inactive.is_file())
+        # This deliberately invalid inactive configuration would make Git fail
+        # if it were parsed. Its contents must stay unread and unexported.
+        inactive.write_text(CANARY + " is not valid Git configuration\n", encoding="utf-8")
+        result = self.compare(base, head)
+        self.assertTrue(result["analysis_performed"])
+        self.assertEqual(result["evidence_comparison"]["comparison"]["added"][0]["path"], "/reports")
+        self.assertNotIn(CANARY, ci.json_output(result) + git_compare.markdown(result))
+        # Any primary declaration of the extension remains unsupported, even
+        # false, before the untrusted Git directory is selected.
+        config = self.repo / ".git/config"
+        ordinary = config.read_text(encoding="utf-8")
+        for value in ("true", "false"):
+            config.write_text(ordinary + "\n[extensions] worktreeConfig = " + value + "\n", encoding="utf-8")
+            self.rejected(base, head)
+        config.write_text(ordinary, encoding="utf-8")
+
     def test_alternates_and_include_config_are_rejected_without_following(self):
         base = self.commit({"page.html": "before"})
         alternates = self.repo / ".git/objects/info/alternates"

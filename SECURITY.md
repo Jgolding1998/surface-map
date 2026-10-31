@@ -53,7 +53,10 @@ replacement objects, optional locks, lazy fetching, filesystem monitors and
 external helpers. Git config includes, alternates, partial/promisor repositories,
 metadata symlinks/reparse points, worktree redirects and selected symlink/gitlink
 entries are rejected. These restrictions intentionally exclude some normal Git
-setups. An installed Git supporting `--no-lazy-fetch` remains trusted software;
+setups. An ordinary inactive `config.worktree` file left by checkout setup is
+permitted only while the primary configuration does not enable per-worktree
+settings; enabled per-worktree configuration is refused before object reads.
+An installed Git supporting `--no-lazy-fetch` remains trusted software;
 this is not a sandbox against a malicious replacement Git binary or native Git
 vulnerability.
 

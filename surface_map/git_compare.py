@@ -72,7 +72,7 @@ def _metadata(repo, deadline):
     for name in ("HEAD", "config"):
         _ordinary(gitdir / name)
     _ordinary(gitdir / "objects", directory=True)
-    for name in ("commondir", "config.worktree", "info/grafts", "shallow",
+    for name in ("commondir", "info/grafts", "shallow",
                  "objects/info/alternates", "objects/info/http-alternates"):
         value = gitdir / name
         if value.exists() or value.is_symlink():
@@ -184,6 +184,10 @@ class _Git:
                     or key in {"extensions.partialclone", "extensions.worktreeconfig", "core.worktree"}
                     or key.startswith("remote.") and key.endswith(".promisor")):
                 raise GitCompareError
+        # checkout/sparse-checkout can leave an ordinary config.worktree file
+        # after removing extensions.worktreeConfig from the primary config.
+        # The metadata walk above still rejects links or nonordinary entries;
+        # only absence of the parsed extension key permits this inactive file.
         self.prefix.append("--git-dir=" + str(self.gitdir))
 
     def run(self, *arguments, limit=MAX_LIST_BYTES):
