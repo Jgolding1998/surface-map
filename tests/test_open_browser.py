@@ -63,9 +63,9 @@ class OpenBrowserTests(unittest.TestCase):
     def test_failed_bind_does_not_open_browser_or_expose_exception(self):
         with patch("surface_map.__main__.make_server", side_effect=OSError("PRIVATE_BIND_CANARY")), \
                 patch("surface_map.__main__.webbrowser.open") as browser, \
-                contextlib.redirect_stderr(io.StringIO()) as errors, self.assertRaises(SystemExit) as caught:
-            main(["--open"])
-        self.assertEqual(caught.exception.code, 2)
+                contextlib.redirect_stderr(io.StringIO()) as errors:
+            code = main(["--open"])
+        self.assertEqual(code, 2)
         browser.assert_not_called()
         self.assertNotIn("PRIVATE_BIND_CANARY", errors.getvalue())
 

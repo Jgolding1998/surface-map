@@ -49,6 +49,33 @@ class GitCompareError(ValueError):
         super().__init__(_ERROR)
 
 
+class GitSelectionLimitError(GitCompareError):
+    """A known count limit, with no selected names or raw failure details."""
+
+    def __init__(self, count, mode):
+        if (type(count) is not int or not MAX_FILES < count <= MAX_LIST_BYTES or type(mode) is not str
+                or mode not in {"changed_web_files", "explicit_files"}):
+            raise GitCompareError
+        self.count, self.mode = count, mode
+        super().__init__()
+
+
+def selection_limit_message(error, *, action=False):
+    """Project only validated counts and fixed recovery text for a refusal."""
+    if (type(error) is not GitSelectionLimitError or type(action) is not bool
+            or type(getattr(error, "count", None)) is not int
+            or not MAX_FILES < error.count <= MAX_LIST_BYTES
+            or type(getattr(error, "mode", None)) is not str
+            or getattr(error, "mode", None) not in {"changed_web_files", "explicit_files"}):
+        return _ERROR
+    scope = ("Changed supported web files: " if error.mode == "changed_web_files"
+             else "Explicit selection entries: ")
+    recovery = ("Choose up to six exact repository-relative paths in the Action files input."
+                if action else "Choose up to six exact repository-relative paths with --files.")
+    return ("Git comparison rejected: " + scope + str(error.count) + ". Limit: six files per comparison. "
+            + recovery + " Nothing was analyzed or silently truncated. No input text or paths are returned.")
+
+
 def _ordinary(path, *, directory=False):
     path = Path(path).absolute()
     if os.name == "nt" and (not _windows_local_path(os.fspath(path))
@@ -309,15 +336,17 @@ def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", f
         excluded = len(changed) - len(supported)
         explicit = files is not None
         if explicit:
-            if type(files) not in {list, tuple} or not 1 <= len(files) <= MAX_FILES:
+            if type(files) not in {list, tuple} or not files:
                 raise GitCompareError
+            if len(files) > MAX_FILES:
+                raise GitSelectionLimitError(len(files), "explicit_files")
             paths = [_safe_path(path) for path in files]
             if len(set(paths)) != len(paths) or any(PurePosixPath(path).suffix.lower() not in _KINDS for path in paths):
                 raise GitCompareError
         else:
             paths = [_safe_path(value.decode("utf-8")) for value in supported]
             if len(paths) > MAX_FILES:
-                raise GitCompareError
+                raise GitSelectionLimitError(len(paths), "changed_web_files")
         paths = sorted(paths)
         selection = {"mode": "explicit_files" if explicit else "changed_web_files",
                      "selected_files": len(paths), "unsupported_changed_files": excluded,
@@ -389,6 +418,8 @@ def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", f
             result["policy"] = {"fail_on": policies, "matched": ["incomplete"], "passed": False, "status": "failed"}
             ci.json_output(result)
         return result
+    except GitSelectionLimitError:
+        raise
     except Exception:
         raise GitCompareError from None
 

@@ -14,6 +14,8 @@ CATEGORIES = ("endpoint", "form_field", "script", "navigation", "tracking", "doc
 APIS = frozenset({"gtag_event", "posthog_capture", "analytics_track", "mixpanel_track",
                   "fbq_track", "fbq_track_custom", "data_layer_event", "navigator_send_beacon",
                   "gtag_config", "fbq_init", "analytics_page"})
+NAVIGATION_APIS = frozenset({"location_assign", "location_replace", "location_href",
+                             "location_assignment", "window_open"})
 ROOTS = frozenset({"gtag", "posthog", "analytics", "mixpanel", "fbq", "dataLayer", "navigator"})
 _SOURCE = re.compile(r"source_[1-6]\Z")
 _LOCATION = re.compile(r"line [1-9][0-9]{0,8}\Z")
@@ -25,7 +27,7 @@ _ATTRS = {
     "input_type": {"hidden", "text", "email", "password", "number", "checkbox", "radio", "submit",
                    "button", "file", "search", "tel", "url", "date", "datetime-local", "time", "month",
                    "week", "color", "range", "reset", "image", "textarea", "select", "unknown", "mixed"},
-    "api": APIS,
+    "api": APIS | NAVIGATION_APIS,
 }
 _BASELINE_LIMITS = {"tracking_static_syntax_only", "tracking_wrappers_and_aliases_not_resolved",
                     "document_path_unknown", "first_party_origin_unknown", "scheme_relative_origin_unclassified",
@@ -147,7 +149,7 @@ def _index(records, aliases, *, site_origin, deadline):
         assumptions = record.get("assumptions", [])
         if (type(assumptions) is not list or any(value not in {
                 "unverified_global_tracking_sdk", "declared_tracking_import", "static_queue_shim_only",
-                "unverified_global_axios"} for value in assumptions)):
+                "unverified_global_axios", "unverified_global_navigation"} for value in assumptions)):
             raise ValueError
         row = groups[category].setdefault(key, {
             "id": identifier, "count": 0, "attributes": [], "evidence": [],
@@ -222,6 +224,9 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
         source_counts = []
         tracking_engines = set()
         axios_state = {"global_axios_modified": False, "global_axios_lexical": False}
+        navigation_mutated = set()
+        navigation_partial = set()
+        navigation_has_omissions = False
         omissions = []
 
         def warn(side, source, reason):
@@ -229,12 +234,16 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
             if warning not in warnings:
                 warnings.append(warning)
 
-        def mark_incomplete(source, categories, reason):
-            entry = incomplete.setdefault(source, {"source": source, "categories": set(), "reasons": set()})
+        def mark_incomplete(source, categories, reason, *, javascript_navigation_only=False):
+            entry = incomplete.setdefault(source, {"source": source, "categories": set(), "reasons": set(),
+                                                    "full_navigation_exclusion": False})
             entry["categories"].update(categories)
             entry["reasons"].add(reason)
+            if "navigation" in categories and not javascript_navigation_only:
+                entry["full_navigation_exclusion"] = True
 
         def scope_limits(collected, side, source, reason):
+            nonlocal navigation_has_omissions
             limitations = collected.get("limitations", [])
             if type(limitations) is not list:
                 raise ValueError
@@ -242,6 +251,8 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 if item in _BASELINE_LIMITS:
                     if item not in notes:
                         notes.append(item)
+                elif type(item) is str and item.startswith("navigation_"):
+                    warn(side, source, "navigation_static_coverage_partial")
                 else:
                     warn(side, source, reason)
             if collected.get("omitted_count", 0):
@@ -250,11 +261,16 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 if item in _BASELINE_LIMITS and item not in notes:
                     notes.append(item)
             for key, category in (("tracking_identity_uncertain", "tracking"),
-                                  ("axios_identity_uncertain", "endpoint")):
+                                  ("axios_identity_uncertain", "endpoint"),
+                                  ("navigation_identity_uncertain", "navigation")):
                 if collected.get(key):
-                    mark_incomplete(source, (category,), "global_client_identity_uncertain")
+                    mark_incomplete(source, (category,), "global_client_identity_uncertain",
+                                    javascript_navigation_only=category == "navigation")
                     warn(side, source, "global_client_identity_uncertain")
-            counts = {key: collected.get(key, 0) for key in ("omitted_count", "endpoint_omitted_count")}
+            if collected.get("navigation_target_unresolved"):
+                navigation_has_omissions = True
+                warn(side, source, "navigation_target_unresolved")
+            counts = {key: collected.get(key, 0) for key in ("omitted_count", "endpoint_omitted_count", "navigation_omitted_count")}
             if any(type(count) is not int or not 0 <= count <= MAX_RECORDS * 2 for count in counts.values()):
                 raise ValueError
             if any(counts.values()):
@@ -265,6 +281,14 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                                            deadline=deadline, module_mode=module_mode)
             for key in axios_state:
                 axios_state[key] |= bool(collected.get(key))
+            for root in collected.get("navigation_mutated_roots", []):
+                if root not in {"location", "open"}:
+                    raise ValueError
+                navigation_mutated.add(root)
+            for root in collected.get("navigation_partial_roots", []):
+                if root not in {"location", "open"}:
+                    raise ValueError
+                navigation_partial.add(root)
             tracking_engines.add(collected.get("engine", "unavailable"))
             for root in collected.get("mutated_roots", []):
                 if root not in ROOTS:
@@ -290,6 +314,21 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                              "assumptions": call.get("assumptions", []),
                              "assumed_global_axios": "unverified_global_axios" in call.get("assumptions", []),
                              "assumed_bare_axios": bool(call.get("assumed_bare"))})
+            for call in collected.get("navigation_calls", []):
+                api, family = call.get("api"), call.get("navigation_root")
+                if api not in NAVIGATION_APIS or family not in {"location", "open"}:
+                    raise ValueError
+                target = canonical_target(call.get("url"), site_origin=origin)
+                if target is None:
+                    collected.setdefault("limitations", []).append("unsupported_navigation_target")
+                    collected["navigation_target_unresolved"] = True
+                    collected["navigation_omitted_count"] = collected.get("navigation_omitted_count", 0) + 1
+                    continue
+                rows.append({"category": "navigation", "identity": ("javascript_navigation", api, target["identity"]),
+                             "target": target["identity"], "origin": target["origin"], "path": target["path"],
+                             "attrs": {"method": "GET", "origin_relation": target["origin_relation"], "api": api},
+                             "evidence": call["evidence"], "confidence": "inferred",
+                             "assumptions": ["unverified_global_navigation"], "navigation_root": family})
             if collected.get("endpoint_omitted_count", 0):
                 collected.setdefault("limitations", []).append("endpoint_static_coverage_partial")
             if offset:
@@ -322,7 +361,8 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                             inline = collect_tracking(script["text"], source, "javascript", script["module_mode"],
                                                       script["line_offset"])
                         except Exception:
-                            mark_incomplete(source, ("tracking", "endpoint"), "inline_javascript_uninspected")
+                            mark_incomplete(source, ("tracking", "endpoint", "navigation"), "inline_javascript_uninspected",
+                                            javascript_navigation_only=True)
                             warn(side_name, source, "inline_javascript_uninspected")
                             tracking_engines.add("unavailable")
                             continue
@@ -335,7 +375,8 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                         _tick(deadline)
                         collected = collect_tracking(artifact["text"], source, kind, source in module_sources)
                     except Exception:
-                        mark_incomplete(source, ("tracking", "endpoint"), "javascript_uninspected")
+                        mark_incomplete(source, ("tracking", "endpoint", "navigation"), "javascript_uninspected",
+                                        javascript_navigation_only=True)
                         warn(side_name, source, "javascript_uninspected")
                         tracking_engines.add("unavailable")
                         continue
@@ -367,6 +408,14 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 sides[index] = filtered
         for index, records in enumerate(sides):
             for row in records:
+                if row.get("category") == "navigation" and row.get("navigation_root") in navigation_partial:
+                    source = _evidence(row["evidence"])["source"]
+                    navigation_has_omissions = True
+                    warn("before" if index == 0 else "after", source, "navigation_static_coverage_partial")
+                if row.get("category") == "navigation" and row.get("navigation_root") in navigation_mutated:
+                    source = _evidence(row["evidence"])["source"]
+                    mark_incomplete(source, ("navigation",), "global_navigation_identity_uncertain", javascript_navigation_only=True)
+                    warn("before" if index == 0 else "after", source, "global_navigation_identity_uncertain")
                 if row.get("category") == "endpoint" and row.get("assumed_global_axios") and (
                         axios_state["global_axios_modified"] or
                         axios_state["global_axios_lexical"] and row.get("assumed_bare_axios")):
@@ -376,8 +425,14 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
         # One-sided parse/limit failures must never fabricate disappearances.
         # Suppress the affected category for that source on BOTH sides.
         for index, records in enumerate(sides):
-            sides[index] = [row for row in records if row.get("category") not in
-                            incomplete.get(_evidence(row["evidence"])["source"], {}).get("categories", set())]
+            filtered = []
+            for row in records:
+                entry = incomplete.get(_evidence(row["evidence"])["source"], {})
+                if row.get("category") not in entry.get("categories", set()) or (
+                        row.get("category") == "navigation" and not entry.get("full_navigation_exclusion")
+                        and row.get("navigation_root") is None):
+                    filtered.append(row)
+            sides[index] = filtered
         aliases = _Aliases()
         # Indexing has a separate bounded reserve after a collection deadline.
         old, new = [_index(records, aliases, site_origin=origin, deadline=time.monotonic() + 3.0) for records in sides]
@@ -406,13 +461,20 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
             changes[category] = {"added": added, "removed": absent, "changed": changed,
                                  "unchanged_count": len(a.keys() & b.keys()) - len(changed)}
         incomplete_sources = [{"source": source, "categories": sorted(entry["categories"] | {"origin"}),
-                               "reasons": sorted(entry["reasons"])} for source, entry in sorted(incomplete.items())]
+                               "reasons": sorted(entry["reasons"]),
+                               **({"navigation_scope": "javascript_only"} if "navigation" in entry["categories"]
+                                  and not entry["full_navigation_exclusion"] else {})}
+                              for source, entry in sorted(incomplete.items())]
         tracking_incomplete = any("tracking" in entry["categories"] for entry in incomplete_sources)
+        navigation_incomplete = any("navigation" in entry["categories"] for entry in incomplete_sources) or navigation_has_omissions
         result = {"format": "surface-map-pr-review-signals-v1", "comparison": changes,
                   "coverage": {"before": source_counts[0], "after": source_counts[1],
                                "site_origin_supplied": origin is not None,
                                "tracking_analysis": ("not_applicable" if not tracking_engines and not tracking_incomplete else
                                    "enhanced_static_hints" if tracking_engines == {"enhanced"} and not tracking_incomplete else
+                                   "unavailable_or_partial"),
+                               "javascript_navigation_analysis": ("not_applicable" if not tracking_engines and not navigation_incomplete else
+                                   "enhanced_static_hints" if tracking_engines == {"enhanced"} and not navigation_incomplete else
                                    "unavailable_or_partial"),
                                "warnings": warnings, "scope_notes": sorted(notes),
                                "omissions": omissions,
@@ -444,6 +506,7 @@ def incomplete_signals(source_count, *, site_origin_supplied=False):
                            for category in CATEGORIES},
             "coverage": {"before": {}, "after": {}, "site_origin_supplied": site_origin_supplied,
                          "tracking_analysis": "unavailable_or_partial", "scope_notes": [],
+                         "javascript_navigation_analysis": "unavailable_or_partial",
                          "warnings": [{"side": "both", "source": "selection", "reason": "review_unavailable"}],
                          "incomplete_sources": [{"source": "source_" + str(index), "categories": list(CATEGORIES),
                                                  "reasons": ["review_unavailable"]}
@@ -456,9 +519,11 @@ def markdown(result):
         raise ValueError("Invalid static review signals.")
     lines = ["## Static changes to review", "", SCOPE, "",
              "Site-origin classification context supplied: " + str(result["coverage"]["site_origin_supplied"]).lower() + ".",
-             "Tracking coverage: " + ci._cell(result["coverage"]["tracking_analysis"]) + ".", ""]
+             "Tracking coverage: " + ci._cell(result["coverage"]["tracking_analysis"]) + ".",
+             "JavaScript navigation coverage: " + ci._cell(result["coverage"].get("javascript_navigation_analysis", "unavailable_or_partial")) + ".", ""]
     if result["coverage"].get("incomplete_sources"):
-        lines.extend(["**Incomplete comparison.** Affected source categories were excluded on both versions. "
+        lines.extend(["**Incomplete comparison.** Uninspected evidence was excluded on both versions; "
+                      "independent supported declarations can remain. "
                       "Their absence is unknown; the combined check cannot pass. Origin changes are also withheld "
                       "because origins are shared across sources.", ""])
     for category in CATEGORIES:

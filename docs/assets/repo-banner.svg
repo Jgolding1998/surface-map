@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-labelledby="title description">
+<title id="title">Surface Map evidence workspace</title>
+<desc id="description">HTML, HAR, and source evidence connect to reviewable facts and explicit unknowns.</desc>
+<rect x="1" y="1" width="1198" height="278" rx="24" fill="#f4f7f2" stroke="#d8e2d6" stroke-width="2"/>
+<path d="M0 220H1200M0 100H1200M180 0V280M1020 0V280" stroke="#e6ede3"/>
+<rect x="58" y="46" width="52" height="52" rx="14" fill="#203f39"/>
+<path d="M71 79V64H84V78H97V63M71 78H97" fill="none" stroke="#e5f1d2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="71" cy="64" r="4" fill="#dab883"/><circle cx="97" cy="63" r="4" fill="#dab883"/>
+<text x="130" y="78" font-family="Segoe UI,Arial,sans-serif" font-size="16" letter-spacing="3" fill="#526c61">LOCAL TOOLS. CHECKABLE EVIDENCE.</text>
+<text x="58" y="153" font-family="Georgia,serif" font-size="43" fill="#203f39">See the surface.</text>
+<text x="58" y="205" font-family="Georgia,serif" font-size="43" fill="#667a67">Keep the unknowns visible.</text>
+<path d="M764 78H826V140H913M764 200H826V140M913 140H1000V80H1090M1000 140V200H1090" fill="none" stroke="#95ad96" stroke-width="3"/>
+<rect x="678" y="55" width="113" height="48" rx="12" fill="#fff" stroke="#cedbcb"/>
+<text x="734" y="85" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#38554a">HTML · HAR</text>
+<rect x="678" y="176" width="113" height="48" rx="12" fill="#fff" stroke="#cedbcb"/>
+<text x="734" y="206" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#38554a">JS · source</text>
+<circle cx="913" cy="140" r="37" fill="#203f39"/>
+<path d="M900 140h26M913 127v26" stroke="#e5f1d2" stroke-width="3" stroke-linecap="round"/>
+<circle cx="1090" cy="80" r="10" fill="#6b8b6c"/><circle cx="1090" cy="200" r="10" fill="#dab883"/>
+<text x="1010" y="53" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#38554a">Evidence</text>
+<text x="1010" y="238" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#76644a">Unknowns</text>
+</svg>

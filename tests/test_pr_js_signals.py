@@ -460,5 +460,154 @@ mp.track('e'); metrics.track('f'); log('g');
             self.assertNotIn(CANARY, str(caught.exception))
 
 
+class NavigationSyntaxTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        ready, reason = js_parser.available()
+        if not ready:
+            raise unittest.SkipTest("Optional reviewed syntax parser unavailable: " + reason)
+
+    collect = TrackingSyntaxTests.collect
+
+    def test_literal_browser_navigation_is_private_inferred_source_evidence(self):
+        result = self.collect("location.assign('/one');\nlocation.replace('/two');\n"
+                              "window.location.href='/three';\nwindow.open('/four','_blank');\n"
+                              "document.location='/five';\nlocation='/six';", source="source_2")
+        calls = result["navigation_calls"]
+        self.assertEqual([row["api"] for row in calls], ["location_assign", "location_replace", "location_href",
+                                                         "window_open", "location_assignment", "location_assignment"])
+        self.assertEqual([row["evidence"] for row in calls],
+                         [{"source": "source_2", "location": "line " + str(i)} for i in range(1, 7)])
+        self.assertTrue(all(row["assumptions"] == ["unverified_global_navigation"] for row in calls))
+        self.assertEqual(result["endpoint_calls"], [])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+
+    def test_computed_literal_and_optional_members_remain_conditional_hints(self):
+        result = self.collect("window['location']['assign']('/a');self.location?.replace?.('/b');globalThis?.open?.('/c');")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/a", "/b", "/c"])
+
+    def test_typescript_wrappers_and_plain_template_literals_are_still_literals(self):
+        result = self.collect("window.location.href=('/typed' as string);location.assign(`/plain`);"
+                              "window.open('/asserted' as const);", kind="typescript")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/typed", "/plain", "/asserted"])
+        dynamic = self.collect("location.assign(`/users/${id}`);")
+        self.assertEqual(dynamic["navigation_calls"], [])
+        self.assertTrue(dynamic["navigation_target_unresolved"])
+
+    def test_local_roots_comments_and_strings_do_not_invent_navigation(self):
+        sources = ["function f(window){window.open('/x')}", "function f(location){location.assign('/x')}",
+                   "function f(document){document.location='/x'}", "const text=\"location.assign('/x')\";",
+                   "// window.open('/x')\n/* location.href='/y' */",
+                   "import location from 'custom';location.assign('/x');"]
+        for source in sources:
+            with self.subTest(source=source[:20]):
+                result = self.collect(source)
+                self.assertEqual(result["navigation_calls"], [])
+                self.assertFalse(result["navigation_identity_uncertain"])
+
+    def test_dynamic_targets_and_method_wrappers_are_explicitly_unresolved(self):
+        for source in ("location.assign(destination)", "window.open('/path/'+id)", "location[method]('/x')",
+                       "location.assign.call(location,'/x')", "location.href += '/next'",
+                       "const url='/x';location.assign(url)"):
+            with self.subTest(source=source[:30]):
+                result = self.collect(source)
+                self.assertEqual(result["navigation_calls"], [])
+                self.assertTrue(result["navigation_target_unresolved"])
+                self.assertEqual(result["navigation_omitted_count"], 1)
+
+    def test_global_property_writes_and_alias_escapes_invalidate_hints(self):
+        for prefix, call, family in (("window.open=custom;", "window.open('/x')", "open"),
+                                     ("open=custom;", "window.open('/x')", "open"),
+                                     ("location.assign=custom;", "location.assign('/x')", "location"),
+                                     ("const win=window;win.open=custom;", "window.open('/x')", "open"),
+                                     ("const nav=location;nav.assign=custom;", "location.assign('/x')", "location"),
+                                     ("this.open=custom;", "window.open('/x')", "open"),
+                                     ("document.defaultView.open=custom;", "window.open('/x')", "open")):
+            with self.subTest(prefix=prefix):
+                result = self.collect(prefix + call)
+                self.assertEqual(result["navigation_calls"], [])
+                self.assertIn(family, result["navigation_mutated_roots"])
+                self.assertTrue(result["navigation_identity_uncertain"])
+
+    def test_shadowed_bare_open_write_does_not_replace_the_window_method(self):
+        result = self.collect("function f(open){open=custom;}window.open('/real');")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/real"])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+
+    def test_unknown_this_api_writes_are_uncertain_but_callback_escapes_are_quiet(self):
+        result = self.collect("function mutate(){this.open=custom;}mutate();window.open('/x');")
+        self.assertEqual(result["navigation_calls"], [])
+        self.assertTrue(result["navigation_identity_uncertain"])
+        result = self.collect("element.addEventListener('click',function(){$(this).hide();});window.open('/x');")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/x"])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+        result = self.collect("const modal={show(){this.open=custom;}};"
+                              "class Dialog{show(){this.open=custom;}}window.open('/real');")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/real"])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+
+    def test_readonly_values_and_shadowed_mutators_leave_real_globals_usable(self):
+        source = ("Object.keys(window);const url=location.href;const origin=window.location.origin;"
+                  "function f(window,location){window.open=custom;location.assign=custom;}"
+                  "window.open('/real');location.assign('/real2');")
+        result = self.collect(source)
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/real", "/real2"])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+
+    def test_normal_location_reads_url_construction_and_hash_writes_do_not_taint_methods(self):
+        prefixes = ("const {pathname}=window.location;", "new URL(window.location);", "new URL(location);",
+                    "location.hash='#x';", "window.location.pathname='/next';", "const nav=location;")
+        for prefix in prefixes:
+            with self.subTest(prefix=prefix):
+                result = self.collect(prefix + "location.assign('/a');")
+                self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/a"])
+                self.assertEqual(result["navigation_mutated_roots"], [])
+                self.assertEqual(result["navigation_partial_roots"], [])
+                self.assertFalse(result["navigation_identity_uncertain"])
+
+    def test_known_alias_method_writes_still_invalidate_the_original_api(self):
+        prefixes = ("const nav=location;nav.assign=custom;",
+                    "const {location:nav}=window;nav.assign=custom;",
+                    "const first=location;const next=first;next.assign=custom;")
+        for prefix in prefixes:
+            with self.subTest(prefix=prefix):
+                result = self.collect(prefix + "location.assign('/a');")
+                self.assertEqual(result["navigation_calls"], [])
+                self.assertIn("location", result["navigation_mutated_roots"])
+                self.assertTrue(result["navigation_identity_uncertain"])
+
+    def test_opaque_location_escape_keeps_hints_with_only_partial_scope_metadata(self):
+        result = self.collect("inspect(location);location.assign('/a');")
+        self.assertEqual([row["url"] for row in result["navigation_calls"]], ["/a"])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+        self.assertEqual(result["navigation_partial_roots"], ["location"])
+        self.assertFalse(result["navigation_identity_uncertain"])
+
+    def test_computed_global_navigation_context_warns_without_guessing_a_target(self):
+        result = self.collect("window[key].assign('/b');")
+        self.assertEqual(result["navigation_calls"], [])
+        self.assertTrue(result["navigation_target_unresolved"])
+        self.assertEqual(result["navigation_omitted_count"], 1)
+
+    def test_normal_reference_reads_without_navigation_candidates_are_quiet(self):
+        result = self.collect("const {pathname}=window.location;new URL(window.location);location.hash='#x';")
+        self.assertEqual(result["navigation_calls"], [])
+        self.assertEqual(result["navigation_mutated_roots"], [])
+        self.assertFalse(any(reason.startswith('navigation_') for reason in result["limitations"]))
+
+    def test_dynamic_code_does_not_silently_keep_ambient_navigation(self):
+        for prefix in ("eval(source);", "Function(source);", "with(settings){location.href='/x';}"):
+            result = self.collect(prefix + "window.open('/x');")
+            self.assertTrue(result["navigation_identity_uncertain"])
+            self.assertIn("open", result["navigation_mutated_roots"])
+            self.assertEqual(result["navigation_calls"], [])
+
+    def test_navigation_record_limits_reject_with_a_fixed_private_error(self):
+        with patch.object(pr_js_signals, "MAX_RECORDS", 1):
+            with self.assertRaises(ValueError) as caught:
+                self.collect("window.open('/" + CANARY + "');window.open('/other');")
+        self.assertEqual(str(caught.exception), pr_js_signals._ERROR)
+
+
 if __name__ == "__main__":
     unittest.main()
