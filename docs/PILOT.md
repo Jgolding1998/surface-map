@@ -2,15 +2,16 @@
 
 The first product hypothesis is a useful developer handoff from unfamiliar web
 evidence. Test this on actual work before adding integrations or a hosted service.
-No participants have been recruited or contacted by this change. Audience fit
-below is a hypothesis, not demonstrated demand.
+The existing PostHog discussion has received follow-up replies inviting feedback.
+No completed participant trials have been recorded. Audience fit below remains
+a hypothesis, not demonstrated demand.
 
 ## People to approach first
 
 | Priority | Audience | Real job to test | Possible venue |
 | --- | --- | --- | --- |
 | 1 | Developers and small agencies inheriting a client web app | Document one unfamiliar form/request flow for a teammate | Personal professional contacts and a practical project post on [DEV #showdev](https://dev.to/t/showdev/) |
-| 2 | Existing PostHog commenters building with coding agents | Check three claims, identify one unknown, and try the agent handoff | Reply personally in the existing Surface Map thread on [PostHog Questions](https://posthog.com/questions) |
+| 2 | Existing PostHog commenters building with coding agents | Check three claims, identify one unknown, and try the agent handoff | Continue the existing [Surface Map discussion](https://posthog.com/forum/p/i-built-an-mcp-to-help-my-agents-separate-website-evidence-from-guesses) |
 | 3 | QA engineers using saved browser captures | Compare two corresponding captures and explain a change plus its coverage limits | [Playwright community](https://playwright.dev/community/welcome); check the Discord channel's current rules before recruiting |
 | 4 | Open-source maintainers and technical founders | Produce a reviewable brief for one owned app flow | [Show HN](https://news.ycombinator.com/showhn.html), after the working trial is easy to run |
 
@@ -31,7 +32,7 @@ Check venue rules again when posting. Sources were checked on 2026-10-31.
 - Brittany asked for broader, more diverse evidence. The existing 30/30 result is
   a development/regression result on examined examples, not an unseen accuracy
   estimate or evidence that the tool improves real work.
-- Rik asked about PR CI. The draft PR supplies an offline capture comparison
+- Rik asked about PR CI. The merged update supplies an offline capture comparison
   Action; users must provide comparable captures. It does not establish complete
   runtime API compatibility.
 - The free local trial now includes a file-free synthetic agent-brief example,
@@ -41,7 +42,7 @@ Check venue rules again when posting. Sources were checked on 2026-10-31.
 - Ask for one owned flow, one incorrect claim, one missed interaction, and whether
   it improved a handoff. Captures can stay private.
 - Link [PR #1](https://github.com/Jgolding1998/surface-map/pull/1) and
-  [the tested branch's trial guide](https://github.com/Jgolding1998/surface-map/blob/feat/pr-evidence-evaluation/docs/TRY_IT.md).
+  [the trial guide on main](https://github.com/Jgolding1998/surface-map/blob/main/docs/TRY_IT.md).
 
 ## Developer/agency invitation draft
 
@@ -51,7 +52,7 @@ Check venue rules again when posting. Sources were checked on 2026-10-31.
 > setup, could you try one flow and tell me what it got wrong, missed, or made
 > easier? Captures can stay local; corrections or aggregate feedback are enough.
 > It doesn't reproduce the app or verify its security. The trial instructions are
-> here: https://github.com/Jgolding1998/surface-map/blob/feat/pr-evidence-evaluation/docs/TRY_IT.md
+> here: https://github.com/Jgolding1998/surface-map/blob/main/docs/TRY_IT.md
 
 This draft has not been sent. Adapt it to your own experience and the venue.
 
@@ -59,9 +60,9 @@ This draft has not been sent. Adapt it to your own experience and the venue.
 
 Start with 8-12 participants as a discovery pilot, not a statistically sufficient
 sample for broad claims. Record setup friction separately from task performance.
-Use private notes or the existing **Project feedback** link under **Issues → New
-issue** with reviewed, non-sensitive feedback. The new local trial issue form is
-part of this branch and becomes selectable after merging to the default branch.
+Use private notes or the **Real-world trial feedback** form under **Issues → New
+issue** with reviewed, non-sensitive feedback. The form is available on the
+default branch.
 
 Give each person a concrete task, such as preparing a handoff for one order form.
 Compare their normal developer/agent workflow with a Surface Map assisted

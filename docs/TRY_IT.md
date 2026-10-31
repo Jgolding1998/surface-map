@@ -5,10 +5,9 @@ handoff with source evidence and unknowns. Start with one form or request flow.
 The local trial needs no signup, AI account, API key, Node.js or paid service.
 Python 3.11 or later is required. Installation time is separate from the trial.
 
-While these improvements are in [PR #1](https://github.com/Jgolding1998/surface-map/pull/1),
-use the `feat/pr-evidence-evaluation` branch. Main may not contain this workflow.
-You can [download the trial branch ZIP](https://github.com/Jgolding1998/surface-map/archive/refs/heads/feat/pr-evidence-evaluation.zip)
-and extract it, or check out that branch with Git. Open a terminal in the folder
+You can [download the latest version (ZIP)](https://github.com/Jgolding1998/surface-map/archive/refs/heads/main.zip)
+and extract it, or clone the repository with Git. If you already have a checkout,
+switch to `main` and pull the latest changes. Open a terminal in the folder
 containing `surface_map` and this README.
 
 ## Start locally
@@ -83,9 +82,8 @@ visible; neither should be treated as a complete app inventory.
 
 ## Report useful feedback
 
-Keep these answers privately or use the repository's existing **Project
-feedback** link under **Issues → New issue**. The new **Real-world trial
-feedback** form becomes available after this branch reaches the default branch:
+Keep these answers privately or use the **Real-world trial feedback** form under
+**Issues → New issue** in the repository:
 
 1. What job were you trying to do, and what was your normal workflow?
 2. How long did setup take? Could you finish the task without help?
