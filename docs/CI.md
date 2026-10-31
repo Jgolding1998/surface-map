@@ -144,3 +144,32 @@ is preserved in JSON, contract/OpenAPI exports, compact review and rebuild plans
 The pinned Action is for comparing an application's captures. The project's own
 test/evaluation workflows also run proposed analyzer changes, as normal test CI;
 those jobs are not a trusted independent verdict on arbitrary hostile changes.
+
+## Browser workflow checks
+
+The project's [browser workflow](../.github/workflows/browser.yml) checks the
+actual local interface on PRs, pushes to `main`, and manual dispatch. It uses a
+standard Ubuntu runner, pinned Playwright 1.62.1 and Chromium. It does not upload
+artifacts or create a dependency/browser cache. Running only on PRs and main
+avoids a duplicate browser job for a feature-branch push with an open PR.
+
+These development checks cover file-mode handoffs, clipboard fallback, downloads,
+assumption metadata, mobile layout, public-URL mode, stale-result clearing and
+private-target rejection. Public transport is simulated; browser checks make no
+external requests. They are regressions, not evidence of general accuracy across
+websites. The pinned browser driver is not a user-facing runtime dependency.
+
+After the supported Node version and optional syntax parser are installed,
+developers can run the same checks locally:
+
+```sh
+npm ci --ignore-scripts --bin-links=false --prefix tests/browser
+node tests/browser/node_modules/playwright/cli.js install chromium
+python tests/run_browser_checks.py
+```
+
+Use `npm.cmd` on Windows if PowerShell blocks `npm.ps1`. On Linux, the browser
+may also need its system dependencies; the CI job installs those explicitly.
+The runner starts a temporary loopback server on an available port, bounds each
+test process, and shuts the server down on completion or failure. Regular users
+can keep using the Python-only workspace without this development setup.

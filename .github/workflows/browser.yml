@@ -1,0 +1,32 @@
+name: Browser workflow checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.22.1'
+      - name: Install the pinned optional syntax parser
+        run: npm ci --ignore-scripts --bin-links=false
+        working-directory: analyzers/javascript
+      - name: Install the pinned development browser driver
+        run: npm ci --ignore-scripts --bin-links=false
+        working-directory: tests/browser
+      - name: Install Chromium and its system dependencies
+        run: node tests/browser/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Check the local browser workflows
+        run: python tests/run_browser_checks.py
