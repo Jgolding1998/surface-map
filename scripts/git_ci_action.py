@@ -14,6 +14,7 @@ def main(environ=None):
     try:
         from surface_map.ci import json_output, parse_fail_on
         from surface_map.git_compare import compare_git, markdown
+        from surface_map.source_io import read_ordinary
         from scripts.ci_action import _ordinary_components, _workspace_path, _write_report
 
         raw_workspace = env.get("GITHUB_WORKSPACE", "")
@@ -33,9 +34,14 @@ def main(environ=None):
         files = selected.splitlines() if selected else None
         if files is not None and any(not path for path in files):
             raise ValueError
+        origin_file = env.get("SURFACE_MAP_SITE_ORIGIN_FILE", "")
+        site_origin = None
+        if origin_file:
+            metadata = _workspace_path(origin_file, workspace)
+            site_origin = read_ordinary(metadata, 4096).strip("\t\r\n ")
         result = compare_git(repository, env.get("SURFACE_MAP_BASE", ""), env.get("SURFACE_MAP_HEAD", ""),
                              files=files, javascript_engine=env.get("SURFACE_MAP_ENGINE", "enhanced"),
-                             fail_on=parse_fail_on(env.get("SURFACE_MAP_FAIL_ON", "")))
+                             fail_on=parse_fail_on(env.get("SURFACE_MAP_FAIL_ON", "")), site_origin=site_origin)
         rendered = json_output(result), markdown(result)
         destination.mkdir(parents=True, exist_ok=False)
         paths = destination / "comparison.json", destination / "comparison.md"

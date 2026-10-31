@@ -20,6 +20,9 @@ inputs:
   fail-on:
     description: Optional comma-separated added, absent, changed, unresolved, warnings policies. Empty is advisory.
     default: ''
+  site-origin-file:
+    description: Optional workspace-relative ordinary UTF-8 file containing a first-party origin for classification only. Its value is not printed or fetched.
+    default: ''
   output-directory:
     description: New workspace-relative directory for minimized reports; existing directories are refused.
     default: surface-map-pr-results
@@ -64,5 +67,6 @@ runs:
         SURFACE_MAP_FILES: ${{ inputs.files }}
         SURFACE_MAP_ENGINE: ${{ inputs.javascript-engine }}
         SURFACE_MAP_FAIL_ON: ${{ inputs.fail-on }}
+        SURFACE_MAP_SITE_ORIGIN_FILE: ${{ inputs.site-origin-file }}
         SURFACE_MAP_OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
       run: python -I -S "$GITHUB_ACTION_PATH/../scripts/git_ci_action.py"

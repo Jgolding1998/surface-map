@@ -2,7 +2,7 @@
 
 Surface Map can analyze saved web captures without starting a server, using MCP,
 or calling an AI model. The same analyzer powers the browser, MCP and CI paths.
-CI compares supplied, normalized evidence. It does not test endpoints or prove
+CI compares supplied static evidence. It does not test endpoints or prove
 that a deployed API is compatible.
 
 ## Automatic static source comparison
@@ -27,7 +27,8 @@ older Git fails with a fixed error rather than permitting an implicit fetch.
 Enhanced JavaScript analysis uses the optional pinned parser described in the
 [setup guide](../README.md#run). Add `--javascript-engine basic` for a Python-only
 run with substantially fewer recognized JavaScript patterns. Basic mode still
-requires Git. A selected-file or parser failure is an error, not an all-clear.
+requires Git. Tracking inspection requires the enhanced parser. A selected-file
+or parser failure is never an all-clear.
 
 Automatic selection is bounded to six changed supported files, with 4 MiB per
 HTML file, 512 KiB per script, and 4 MiB combined per side. Larger selections are
@@ -43,7 +44,9 @@ server behavior and browser interactions are not automatically checked. Empty
 or unsupported-only selections return `analysis_performed: false` and
 `policy.status: not_applicable`, with no passing verdict. Exit 0 in that case
 means no analysis applied, not that the app is unchanged. Explicit policy matches
-exit 1, and rejected/incomplete work exits 2.
+exit 1. Incomplete supplemental review also exits 1, retaining the older evidence
+report and withholding affected categories on both versions. Rejected Git inputs
+or an unavailable required legacy analysis exit 2.
 
 ### Add it to PRs
 
@@ -88,24 +91,78 @@ request write permission or build/run the app. Do not add head-code execution to
 this job or move it to `pull_request_target`. Existing browser-test captures can
 still use the original saved-capture Action below in a separate trusted job.
 
-### What the first version checks
+### Checks requested in the PR feedback
 
 | Example from PR feedback | Supported result | Important limit |
 | --- | --- | --- |
-| Form destination or GET/POST changes | Added/absent normalized operations from literal HTML; inferred supported request patterns | No server acceptance check; private target renames can normalize to the same path |
-| Added or absent form field, including a hidden input | Changes to declared field sets; a hidden input is reported only as an added field | Values and visibility/type are not exported; unknown field renames can be hidden by aliases |
-| New or absent script/stylesheet reference | Added/absent retained normalized asset references | Domains are discarded; a domain-only swap can be invisible; dynamic loaders are uninspected |
-| A static navigation link disappears | Prior link evidence is no longer found in the selected source | Framework routing and browser navigation are not proved; absent evidence is not a broken-link verdict |
-| A tracking request disappears | A supported literal Fetch/XHR/Axios request may be absent | No general analytics SDK or event-coverage detection; wrappers and `gtag` calls alone are not supported |
+| Form destination or GET/POST changes | Literal form targets and inferred Fetch/XHR/Axios targets, including domain-only changes and unknown methods | Static hints; no server acceptance check. Missing or fragment-only actions use a current-document identity; non-web targets retain fields with an explicit unresolved-target warning. |
+| Added or absent form field, including a hidden input | Field identity, input type, hidden declaration, duplicate count and association with a form target/method | Values are discarded. Indistinguishable forms sharing a target remain aggregated. |
+| New or absent script/stylesheet reference or domain | Resource and origin identities, including a same-path CDN swap | Classifying an origin as external requires optional site-origin context. Dynamic loaders are outside general coverage. |
+| A static navigation link disappears | Page-local literal links, including parent-relative references, plus separate document-base declarations | Framework routing and actual navigation are not tested. Relative paths stay literal when document context is unknown; relative base changes are flagged separately. |
+| A tracking call disappears | Supported direct SDK calls, selected PostHog/Mixpanel imports, the classic gtag queue shim, Fetch/XHR/Axios and sendBeacon hints | Inferred syntax only. Opaque loaders, SDK mutation, aliases, dynamic calls and arbitrary wrappers can prevent a comparable tracking result. No delivery check. |
 
-Every asset summary states the domain and alias limits, including when no asset
-changes are found. These checks identify evidence for review; they do not claim
-to detect all third-party domains, tracking regressions or security flaws.
-Real Git fixtures exercise the requested examples and unchanged controls in
+The Git wrapper is `surface-map-git-comparison-v2`. Its new `review_signals`
+section assigns opaque IDs jointly to the two versions. Original domains, paths,
+field names and event names remain only in memory; no raw identifiers or hashes
+are exported. A private field rename or same-path domain swap can therefore be
+detected without publishing the names. IDs are local to one comparison and are
+not durable cross-run identifiers. Source IDs correspond to sorted selected
+paths, which remain local. Lost evidence is labelled base-side; gained evidence
+is head-side. Counts and source positions can still reveal application facts.
+
+The original normalized `evidence_comparison` is retained unchanged under a
+collapsed compatibility section. Its aliases can still merge distinct names and
+origins. Saved-capture v1 and opt-in v2 formats are unchanged.
+Fixed legacy scope warnings about inline scripts, actionless forms and missing
+page context stay in that compatibility view. The combined Git warnings policy
+uses the supplemental coverage for those cases; other legacy warnings still
+count. The combined policy status at the top is the overall verdict.
+
+To classify HTTP(S) origins, optionally pass `--site-origin https://your-site.example`.
+This is metadata only and causes no fetch. HTTP is accepted for local development.
+In the Action, use `site-origin-file: config/site-origin.txt`, an ordinary UTF-8
+workspace-relative file containing just that origin. Using a file keeps the
+origin value out of automatically echoed workflow input/environment values.
+The filename may appear in workflow logs; source data and metadata still need
+appropriate repository access controls. Only an origin is accepted, without user
+information, an application path, a query or a fragment.
+
+Simple scope facts, such as missing first-party context, are `scope_notes`, not
+policy warnings. Omitted evidence, unavailable tracking analysis and uncertainty
+are warnings. Supplemental syntax, count or work failures mark
+`coverage.incomplete_sources`: affected categories are withheld for that source
+on **both** versions, so a parse failure cannot invent removed calls. Origin
+changes are withheld when any source is incomplete because origins form a shared
+union. The report survives, but an `incomplete` policy match forces exit 1 even
+in advisory mode. This does not turn partial evidence into a passing check.
+
+Supplemental review has a shared cooperative 30-second collection budget,
+4,096 private HTML records per source, 64 executable inline scripts and 512 KiB
+combined inline source per HTML artifact, and 256 tracking/endpoint records per
+script. The two versions each have an 8,192-record review cap. Evidence locations
+are capped at 32 per row while counts remain intact. Parser and indexing work
+have additional bounded deadlines; these are not a hard wall-clock sandbox.
+Unrendered template JavaScript may be uninspectable. These limits and supported
+syntax are explicit coverage boundaries, not promises about every application.
+
+Real Git fixtures exercise the requests, adverse cases and quiet controls in
+[`test_rik_acceptance.py`](../tests/test_rik_acceptance.py) and
 [`test_pr_feedback_cases.py`](../tests/test_pr_feedback_cases.py). The integration
 workflow also compares two selected files across Surface Map's actual source
 history. Both are developer verification, not evidence of customer benefit or
 unseen-site accuracy.
+
+After installing the pinned parser, run the feedback acceptance checks locally:
+
+```sh
+python -c "from surface_map.js_parser import available; ready, reason = available(); assert ready, reason"
+python -m unittest discover -s tests -p test_rik_acceptance.py -v
+```
+
+These create temporary synthetic Git histories, inspect immutable objects and
+verify minimized output. They include private-value canaries, incomplete-source
+controls and frozen byte comparisons against the previous saved-capture formats.
+They do not contact analytics vendors, execute fixture JavaScript or call a model.
 
 ## Try the local example
 
@@ -144,7 +201,8 @@ Policies are comma-separated: `added`, `absent`, `changed`, `unresolved`, and
 targets as well as known operations. The original saved-capture Action keeps its
 v1 route-policy behavior. The Git companion opts into v2 reports, where `added`
 and `absent` also cover retained normalized asset references. The saved-capture
-CLI can opt in with `compare --include-assets`. Domain-only swaps can still be invisible.
+CLI can opt in with `compare --include-assets`. That normalized view alone can
+miss domain-only swaps; Git review signals compare private identities as well.
 `absent` refers to the comparator's `removed` evidence list, not
 proven service removal. `unresolved` fails when either capture contains any
 unknown-method target, including unchanged targets. `warnings` checks either

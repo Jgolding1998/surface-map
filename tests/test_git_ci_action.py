@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from surface_map.__main__ import main as cli_main
 
@@ -132,6 +133,78 @@ class GitActionTests(unittest.TestCase):
             code = cli_main(arguments)
         self.assertEqual(code, 2)
         self.assertNotIn(CANARY, err.getvalue())
+
+    def test_origin_file_classifies_without_exporting_origin_in_any_channel(self):
+        base = self.commit('<script src="/static/app.js"></script>')
+        head = self.commit('<script src="https://cdn-' + CANARY.lower() + '.invalid/static/app.js"></script>')
+        metadata = self.workspace / "origin.txt"
+        metadata.write_text(" https://first-" + CANARY.lower() + ".invalid:443\n", encoding="utf-8")
+        code, stdout, stderr = self.invoke(SURFACE_MAP_BASE=base, SURFACE_MAP_HEAD=head,
+                                           SURFACE_MAP_SITE_ORIGIN_FILE="origin.txt")
+        self.assertEqual((code, stderr), (0, ""))
+        result = json.loads((self.workspace / "reports/comparison.json").read_text())
+        self.assertTrue(result["review_signals"]["coverage"]["site_origin_supplied"])
+        script = result["review_signals"]["comparison"]["script"]["added"][0]
+        self.assertEqual(script["attributes"][0]["origin_relation"], "cross_origin")
+        channels = stdout + stderr + "".join(path.read_text() for path in (
+            self.workspace / "reports/comparison.json", self.workspace / "reports/comparison.md",
+            self.workspace / "outputs", self.workspace / "summary"))
+        self.assertNotIn(CANARY.lower(), channels.lower())
+        self.assertNotIn("origin.txt", channels)
+
+    def test_domain_only_swap_triggers_policy_when_legacy_view_is_quiet(self):
+        template = '<script src="https://{}.invalid/static/app.js"></script>'
+        base, head = self.commit(template.format("first")), self.commit(template.format("second"))
+        code, _, stderr = self.invoke(SURFACE_MAP_BASE=base, SURFACE_MAP_HEAD=head, SURFACE_MAP_FAIL_ON="absent")
+        self.assertEqual((code, stderr), (1, ""))
+        result = json.loads((self.workspace / "reports/comparison.json").read_text())
+        self.assertEqual(result["evidence_comparison"]["policy"]["matched"], [])
+        self.assertEqual(result["policy"]["matched"], ["absent"])
+        self.assertIn("Combined policy status: **failed**", (self.workspace / "summary").read_text())
+
+    def test_origin_file_rejects_private_bad_contents_without_outputs(self):
+        for contents in ("https://user:" + CANARY + "@site.invalid", "https://site.invalid/" + CANARY,
+                         CANARY * 300, "https://site.invalid\n" + CANARY, ""):
+            with self.subTest(length=len(contents)):
+                (self.workspace / "origin.txt").write_text(contents, encoding="utf-8")
+                code, stdout, stderr = self.invoke(SURFACE_MAP_SITE_ORIGIN_FILE="origin.txt")
+                self.assertEqual((code, stdout), (2, ""))
+                self.assertNotIn(CANARY, stderr)
+                for target in ("reports", "summary", "outputs"):
+                    self.assertFalse((self.workspace / target).exists())
+
+    def test_origin_file_refuses_escape_missing_and_directory(self):
+        (self.workspace / "directory").mkdir()
+        for name in ("../" + CANARY, str(self.workspace / CANARY), "missing", "directory"):
+            with self.subTest(kind=name[:10]):
+                code, stdout, stderr = self.invoke(SURFACE_MAP_SITE_ORIGIN_FILE=name)
+                self.assertEqual((code, stdout), (2, ""))
+                self.assertNotIn(CANARY, stderr)
+                self.assertFalse((self.workspace / "reports").exists())
+
+    def test_origin_file_refuses_symbolic_link(self):
+        target = self.workspace / "origin.txt"
+        target.write_text("https://" + CANARY.lower() + ".invalid", encoding="utf-8")
+        link = self.workspace / "linked.txt"
+        try:
+            link.symlink_to(target)
+        except OSError:
+            self.skipTest("Symbolic link creation unavailable")
+        code, stdout, stderr = self.invoke(SURFACE_MAP_SITE_ORIGIN_FILE="linked.txt")
+        self.assertEqual((code, stdout), (2, ""))
+        self.assertNotIn(CANARY.lower(), stderr.lower())
+        self.assertFalse((self.workspace / "reports").exists())
+
+    def test_supplemental_failure_retains_report_and_cannot_pass(self):
+        with patch("surface_map.pr_html_signals.collect_html", side_effect=ValueError(CANARY)):
+            code, stdout, stderr = self.invoke()
+        self.assertEqual((code, stderr), (1, ""))
+        result = json.loads((self.workspace / "reports/comparison.json").read_text())
+        self.assertTrue(result["evidence_comparison"])
+        self.assertEqual(result["policy"]["matched"], ["incomplete"])
+        self.assertTrue(result["review_signals"]["coverage"]["incomplete_sources"])
+        channels = stdout + stderr + (self.workspace / "summary").read_text() + json.dumps(result)
+        self.assertNotIn(CANARY, channels)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """User-requested PR review scenarios through real, local Git commits.
 
 These are transparent fixtures, not customer trials or an accuracy estimate.
-They deliberately cover two changes privacy normalization cannot distinguish.
+They preserve the older normalization limits and check their supplemental fixes.
 """
 import os
 from pathlib import Path
@@ -147,14 +147,15 @@ class PRFeedbackCaseTests(unittest.TestCase):
             '<script src="/assets/app.js"></script>\n')
         self.assert_no_review_change(report)
 
-    def test_unknown_field_rename_is_invisible_and_must_not_be_claimed_detected(self):
+    def test_unknown_field_rename_is_visible_in_supplemental_review(self):
         template = '<form action="/api/orders" method="post"><input name="{}"></form>'
         report = self.compare_text(template.format("private_first_" + CANARY),
                                    template.format("private_second_" + CANARY))
         self.assert_no_review_change(report)
-        self.assertIn("Privacy normalization can hide route or field renames", report["scope"])
+        fields = report["review_signals"]["comparison"]["form_field"]
+        self.assertEqual((len(fields["added"]), len(fields["removed"])), (1, 1))
 
-    def test_same_path_script_domain_swap_is_invisible_and_explicitly_scoped(self):
+    def test_same_path_script_domain_swap_is_visible_in_supplemental_review(self):
         report = self.compare_text(
             '<script src="https://' + PRIVATE_DOMAIN + '/assets/app.js"></script>',
             '<script src="https://second-' + PRIVATE_DOMAIN + '/assets/app.js"></script>')
@@ -162,6 +163,8 @@ class PRFeedbackCaseTests(unittest.TestCase):
         assets = report["evidence_comparison"]["asset_comparison"]
         self.assertEqual(assets["unchanged_count"], 1)
         self.assertIn("domain-only swaps", assets["scope"])
+        origins = report["review_signals"]["comparison"]["origin"]
+        self.assertEqual((len(origins["added"]), len(origins["removed"])), (1, 1))
 
 
 if __name__ == "__main__":
