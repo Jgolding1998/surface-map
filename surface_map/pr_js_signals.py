@@ -21,6 +21,8 @@ QUALIFIERS = frozenset({"window", "globalThis", "self", "global", "parent", "top
 _SOURCE = re.compile(r"source_[1-6]\Z")
 _ERROR = "Tracking syntax inspection rejected: invalid, unsupported, unavailable or over limit."
 ASSUMPTION = "unverified_global_tracking_sdk"
+NAVIGATION_ASSUMPTION = "unverified_global_navigation"
+NAVIGATION_ROOTS = frozenset({"location", "open"})
 _OMITTED = object()
 
 
@@ -502,6 +504,260 @@ def _mutations(analyzer, limitations, check, shim):
     return mutated
 
 
+def _navigation_parts(path, *, mutation=False):
+    """A narrow browser-navigation surface, independent of SDK recognition."""
+    if path is None:
+        return None
+    root, properties, _ = path
+    if root == "location":
+        return "location", properties
+    if root == "document" and properties[:1] == ("location",):
+        return "location", properties[1:]
+    if root in {"window", "globalThis", "self"} or mutation:
+        qualified = _global_properties(path) if mutation else properties
+        if qualified and qualified[0] in NAVIGATION_ROOTS:
+            return qualified[0], qualified[1:]
+    return None
+
+
+def _navigation_unknown_function_this(analyzer, index):
+    """Plain functions may receive window; known method/class receivers don't."""
+    for _ in range(256):
+        typ = analyzer.typ(index)
+        if typ in {"FunctionDeclaration", "FunctionExpression"}:
+            return True
+        if (typ in FUNCTIONS and typ != "ArrowFunctionExpression"
+                or typ in {"Program", "ClassBody", "ClassProperty", "ClassPrivateProperty", "StaticBlock"}):
+            return False
+        index = analyzer.parents.get(index, (None, None))[0]
+        if index is None:
+            return False
+    raise ValueError
+
+
+def _navigation_signals(analyzer, source, limitations, check):
+    """Return PRIVATE literal hints; never resolve a dynamic destination."""
+    candidates, navigation_writes, blocked, partial = [], set(), set(), set()
+    omitted, identity_uncertain, target_unresolved = 0, False, False
+
+    def ambient(path, *, safe=False, allow_unknown_this=False):
+        if path is None:
+            return False
+        root, _, node = path
+        scope = analyzer.context.get(node, 0)
+        if (analyzer.lookup(root, scope) is not None
+                or root == "this" and not _classic_global_this(analyzer, node)
+                and not (allow_unknown_this and _navigation_unknown_function_this(analyzer, node))):
+            return False
+        return not safe or not (analyzer._dynamic(scope)
+                                or analyzer.tracking_unsafe_globals & {"*", root})
+
+    def resolve_alias(path):
+        # Resolve only explicit local references/destructuring for mutation
+        # guards. This does not promote alias calls to navigation evidence.
+        seen = set()
+        for _ in range(12):
+            check()
+            if path is None:
+                return None
+            root, properties, node = path
+            binding = analyzer.lookup(root, analyzer.context.get(node, 0))
+            if binding is None:
+                return path
+            if binding in seen:
+                return None
+            seen.add(binding)
+            item = analyzer.bindings[binding]
+            origin = _path(analyzer, item.init)
+            if (origin is None or item.duplicate or any(type(key) is not str for key in item.path)
+                    or len(origin[1]) + len(item.path) + len(properties) > 12):
+                return None
+            path = origin[0], origin[1] + item.path + properties, origin[2]
+        return None
+
+    def readonly_call(index):
+        if _readonly_global_call(analyzer, index):
+            return True
+        if analyzer.typ(index) != "NewExpression":
+            return False
+        callee = _path(analyzer, analyzer.c(index, "callee"))
+        if not ambient(callee, safe=True) or analyzer.global_mutated & {"URL", "*"}:
+            return False
+        root, properties, _ = callee
+        return root == "URL" and not properties or root in {"window", "globalThis", "self"} and properties == ("URL",)
+
+    # Candidate recognition does not execute an expression or reconstruct a
+    # browser. A conditional/optional call remains a syntactic inferred hint.
+    for index in analyzer.context:
+        check()
+        typ = analyzer.typ(index)
+        path, expression, api = None, None, None
+        if typ in CALLS:
+            path = _path(analyzer, analyzer.c(index, "callee"))
+            parts = _navigation_parts(path)
+            alias = False
+            if parts is None and path is not None:
+                resolved = resolve_alias(path)
+                parts = _navigation_parts(resolved)
+                if parts is not None and resolved != path:
+                    path, alias = resolved, True
+                elif (path[0] in {"window", "globalThis", "self"} and None in path[1]
+                      and path[1][-1:] in {("assign",), ("replace",), ("open",)}):
+                    # A computed global receiver could be a Location object.
+                    # Count the uninspected syntax without inventing a target.
+                    if ambient(path):
+                        target_unresolved = True
+                        omitted += 1
+                    continue
+            if parts is None:
+                continue
+            family, properties = parts
+            if alias:
+                api = "unresolved"
+            elif family == "open" and not properties:
+                api = "window_open"
+            elif family == "location" and properties in {("assign",), ("replace",)}:
+                api = "location_" + properties[0]
+            elif (family == "location" and properties and
+                  (properties[0] is None or properties[0] in {"assign", "replace"})
+                  or family == "open" and properties):
+                # Unknown computed methods and .call/.bind wrappers are not
+                # promoted to browser operations or silently called absent.
+                api = "unresolved"
+            else:
+                continue
+            arguments = analyzer.c(index, "arguments") or []
+            expression = arguments[0] if arguments else None
+        elif typ == "AssignmentExpression":
+            target = analyzer.c(index, "left")
+            path = _path(analyzer, target)
+            parts = _navigation_parts(path)
+            if parts is None or parts[0] != "location" or parts[1] not in {(), ("href",)}:
+                continue
+            api = "location_href" if parts[1] else "location_assignment"
+            expression = analyzer.c(index, "right") if analyzer.f(index, "operator") == "=" else None
+            navigation_writes.add(target)
+        else:
+            continue
+        if not ambient(path):
+            continue
+        candidates.append((index, path, expression, api))
+
+    def affect(path, *, escape=False):
+        # An opaque function can receive the global object as its receiver.
+        # Direct navigation-API writes through it are uncertain; ordinary local
+        # callback receiver escapes such as $(this) remain unrelated.
+        # A local variable assignment rebinds that variable, not its original
+        # global referent. Member writes through a known alias do affect it.
+        if path is not None and path[1]:
+            path = resolve_alias(path)
+        elif escape:
+            path = resolve_alias(path)
+        if not ambient(path, allow_unknown_this=not escape):
+            return
+        root, properties, _ = path
+        if root == "open" and not properties:
+            (partial if escape else blocked).add("open")
+            return
+        parts = _navigation_parts(path, mutation=True)
+        if parts is not None:
+            family, rest = parts
+            # These are primitive URL properties, not an escaped mutable
+            # Location object or navigation function.
+            if family == "location" and len(rest) == 1 and rest[0] in {
+                    "href", "pathname", "hash", "search", "host", "hostname", "port", "protocol", "origin"}:
+                return
+            (partial if escape else blocked).add(family)
+        else:
+            global_properties = _global_properties(path)
+            if global_properties is not None and (not global_properties or global_properties[0] is None):
+                (partial if escape else blocked).update(NAVIGATION_ROOTS)
+            elif root == "document" and not properties:
+                (partial if escape else blocked).add("location")
+
+    # Alias escapes and property writes can invalidate hints in peer scripts.
+    # Direct URL assignments are navigation candidates rather than API writes.
+    for index in analyzer.context:
+        check()
+        typ = analyzer.typ(index)
+        values = _escape_inputs(analyzer, index)
+        if typ == "VariableDeclarator" and _path(analyzer, analyzer.c(index, "init")) is not None:
+            # A direct reference or primitive destructuring is a read. Known
+            # subsequent member writes are caught by resolve_alias above.
+            values = []
+        for value in values:
+            for path in _escape_paths(analyzer, value, check):
+                affect(path, escape=True)
+        targets = []
+        if typ == "AssignmentExpression":
+            targets = list(analyzer._written_names(analyzer.c(index, "left")))
+        elif typ == "UpdateExpression" or typ == "UnaryExpression" and analyzer.f(index, "operator") == "delete":
+            targets = list(analyzer._written_names(analyzer.c(index, "argument")))
+        elif typ in {"ForInStatement", "ForOfStatement"}:
+            targets = list(analyzer._written_names(analyzer.c(index, "left")))
+        for target in targets:
+            if target not in navigation_writes:
+                affect(_path(analyzer, target))
+        if typ in CALLS | {"NewExpression"} and not readonly_call(index):
+            for value in analyzer.c(index, "arguments") or []:
+                for path in _escape_paths(analyzer, value, check):
+                    affect(path, escape=True)
+    if (analyzer.tracking_unsafe_globals & ({"*"} | QUALIFIERS)
+            or any(scope.dynamic or scope.kind == "with" for scope in analyzer.scopes)):
+        blocked.update(NAVIGATION_ROOTS)
+    if not analyzer.explicit_module:
+        declared = set(analyzer.scopes[0].bindings)
+        if declared & (QUALIFIERS | {"document"}):
+            blocked.update(NAVIGATION_ROOTS)
+        if "location" in declared:
+            blocked.add("location")
+        binding = analyzer.scopes[0].bindings.get("open")
+        if binding is not None and analyzer.bindings[binding].kind in {"var", "function"}:
+            blocked.add("open")
+    calls = []
+    for index, path, expression, api in candidates:
+        check()
+        family, _ = _navigation_parts(path)
+        if api == "unresolved":
+            target_unresolved = True
+            omitted += 1
+            continue
+        if family in blocked or not ambient(path, safe=True):
+            identity_uncertain = True
+            omitted += 1
+            continue
+        # Literal strings only: constants, concatenation and URL construction
+        # remain outside this deliberately small source-navigation feature.
+        for _ in range(12):
+            if analyzer.typ(expression) not in WRAPPERS:
+                break
+            expression = analyzer.c(expression, "expression")
+        value = analyzer.f(expression, "value") if analyzer.typ(expression) == "StringLiteral" else None
+        if analyzer.typ(expression) == "TemplateLiteral" and not analyzer.c(expression, "expressions"):
+            quasis = analyzer.c(expression, "quasis") or []
+            if len(quasis) == 1:
+                # Babel stores the decoded template value in a validated field.
+                value = analyzer.f(quasis[0], "cooked")
+        if type(value) is not str or not value or len(value) > MAX_EVENT:
+            target_unresolved = True
+            omitted += 1
+            continue
+        if len(calls) >= MAX_RECORDS:
+            raise ValueError
+        calls.append({"url": value, "api": api, "navigation_root": family,
+                      "evidence": {"source": source, "location": "line " + str(analyzer.node(index)["line"])},
+                      "confidence": "inferred", "assumptions": [NAVIGATION_ASSUMPTION]})
+    if blocked and candidates:
+        limitations.add("navigation_global_identity_uncertain")
+    if identity_uncertain:
+        limitations.add("navigation_identity_uncertain")
+    if target_unresolved:
+        limitations.add("navigation_target_unresolved")
+    return {"navigation_calls": calls, "navigation_omitted_count": omitted,
+            "navigation_identity_uncertain": identity_uncertain, "navigation_target_unresolved": target_unresolved,
+            "navigation_mutated_roots": sorted(blocked), "navigation_partial_roots": sorted(partial)}
+
+
 def collect_javascript(text, source="source_1", *, kind="javascript", engine="enhanced", deadline=None, module_mode=False):
     """Collect PRIVATE tracking-call identities and fixed scope metadata.
 
@@ -526,7 +782,10 @@ def collect_javascript(text, source="source_1", *, kind="javascript", engine="en
         limitations = {"tracking_static_syntax_only", "tracking_wrappers_and_aliases_not_resolved"}
         metadata = {"tracking_identity_uncertain": False, "axios_identity_uncertain": False,
                     "global_axios_modified": False, "global_axios_lexical": False,
-                    "global_axios_uncertain": False}
+                    "global_axios_uncertain": False,
+                    "navigation_calls": [], "navigation_omitted_count": 0,
+                    "navigation_identity_uncertain": False, "navigation_target_unresolved": False,
+                    "navigation_mutated_roots": [], "navigation_partial_roots": []}
         if engine == "basic":
             limitations.add("tracking_requires_enhanced_parser")
             return {"records": [], "limitations": sorted(limitations), "engine": "basic", "mutated_roots": [], "omitted_count": 0, "endpoint_calls": [], "endpoint_omitted_count": 0, **metadata}
@@ -541,6 +800,7 @@ def collect_javascript(text, source="source_1", *, kind="javascript", engine="en
         check()
         analyzer = _TrackingAnalyzer(document, module_mode, end)
         check()
+        metadata.update(_navigation_signals(analyzer, source, limitations, check))
         imports = _declared_imports(analyzer, check)
         invalid_imports = _import_mutations(analyzer, imports, limitations, check)
         shim = _classic_queue_shim(analyzer, check)

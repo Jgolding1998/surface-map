@@ -11,9 +11,12 @@ sys.path.insert(0, str(ROOT))
 
 def main(environ=None):
     env = os.environ if environ is None else environ
+    # Import failures must stay inside the fixed generic error boundary too.
+    selection_errors = ()
     try:
         from surface_map.ci import json_output, parse_fail_on
-        from surface_map.git_compare import compare_git, markdown
+        from surface_map.git_compare import compare_git, markdown, GitSelectionLimitError, selection_limit_message
+        selection_errors = GitSelectionLimitError
         from surface_map.source_io import read_ordinary
         from scripts.ci_action import _ordinary_components, _workspace_path, _write_report
 
@@ -62,6 +65,9 @@ def main(environ=None):
                 handle.write(rendered[1] + "\n")
         print("Surface Map Git comparison complete: " + status + ".")
         return 1 if status == "failed" else 0
+    except selection_errors as error:
+        print(selection_limit_message(error, action=True), file=sys.stderr)
+        return 2
     except Exception:
         print("Surface Map Git comparison rejected: invalid or unavailable Git inputs, unsupported selection, incomplete evidence, or report destination. No input text or paths are returned.", file=sys.stderr)
         return 2

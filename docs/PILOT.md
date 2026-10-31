@@ -32,16 +32,18 @@ Check venue rules again when posting. Sources were checked on 2026-10-31.
 - Brittany asked for broader, more diverse evidence. The existing 30/30 result is
   a development/regression result on examined examples, not an unseen accuracy
   estimate or evidence that the tool improves real work.
-- Rik asked about PR CI. The merged update supplies an offline capture comparison
-  Action; users must provide comparable captures. It does not establish complete
-  runtime API compatibility.
+- Rik asked about PR CI. The merged automatic Git comparison reads selected
+  source directly from base/head commits and checks supported endpoint, field,
+  resource/domain, navigation and tracking changes. Screenshots and manually
+  prepared captures are not required for that workflow. The original saved-
+  capture Action remains available. Neither establishes runtime API compatibility.
 - The free local trial now includes a file-free synthetic agent-brief example,
   simple/developer/Gen Z introductions, Markdown handoffs, and an explicit public
   HTTPS URL mode. Public inspection fetches a page and selected scripts once;
   it does not render or exercise the application. It uses no model API calls.
 - Ask for one owned flow, one incorrect claim, one missed interaction, and whether
   it improved a handoff. Captures can stay private.
-- Link [PR #1](https://github.com/Jgolding1998/surface-map/pull/1) and
+- Link [the PR coverage guide](https://github.com/Jgolding1998/surface-map/blob/main/docs/CI.md) and
   [the trial guide on main](https://github.com/Jgolding1998/surface-map/blob/main/docs/TRY_IT.md).
 
 ## Developer/agency invitation draft

@@ -34,7 +34,10 @@ Automatic selection is bounded to six changed supported files, with 4 MiB per
 HTML file, 512 KiB per script, and 4 MiB combined per side. Larger selections are
 refused; narrow the task with `--files src/page.html src/client.js` using exact
 repository-relative paths. Explicit selection can include unchanged files for
-context. Glob patterns, absolute paths, symlinks, submodules, Git LFS pointers,
+context. Known file-count refusals now include a count and fixed selection
+guidance in CLI/Action errors. They still exit 2 and produce no successful report;
+source names and exception details stay private. Other Git/input failures keep
+their generic diagnostics. Glob patterns, absolute paths, symlinks, submodules, Git LFS pointers,
 NUL-containing or non-UTF-8 source, config includes, alternates, shallow or partial
 clones, grafts and worktree Gitfile redirects are refused. An added or absent file uses an empty
 artifact on its missing side; this is stated in the report.
@@ -98,7 +101,7 @@ still use the original saved-capture Action below in a separate trusted job.
 | Form destination or GET/POST changes | Literal form targets and inferred Fetch/XHR/Axios targets, including domain-only changes and unknown methods | Static hints; no server acceptance check. Missing or fragment-only actions use a current-document identity; non-web targets retain fields with an explicit unresolved-target warning. |
 | Added or absent form field, including a hidden input | Field identity, input type, hidden declaration, duplicate count and association with a form target/method | Values are discarded. Indistinguishable forms sharing a target remain aggregated. |
 | New or absent script/stylesheet reference or domain | Resource and origin identities, including a same-path CDN swap | Classifying an origin as external requires optional site-origin context. Dynamic loaders are outside general coverage. |
-| A static navigation link disappears | Page-local literal links, including parent-relative references, plus separate document-base declarations | Framework routing and actual navigation are not tested. Relative paths stay literal when document context is unknown; relative base changes are flagged separately. |
+| A static navigation link disappears | Page-local literal HTML links, document-base declarations, and supported literal JavaScript location/window.open hints | Framework routing and actual navigation are not tested. Relative paths stay literal when document context is unknown; relative base changes are flagged separately. |
 | A tracking call disappears | Supported direct SDK calls, selected PostHog/Mixpanel imports, the classic gtag queue shim, Fetch/XHR/Axios and sendBeacon hints | Inferred syntax only. Opaque loaders, SDK mutation, aliases, dynamic calls and arbitrary wrappers can prevent a comparable tracking result. No delivery check. |
 
 The Git wrapper is `surface-map-git-comparison-v2`. Its new `review_signals`
@@ -144,6 +147,26 @@ are capped at 32 per row while counts remain intact. Parser and indexing work
 have additional bounded deadlines; these are not a hard wall-clock sandbox.
 Unrendered template JavaScript may be uninspectable. These limits and supported
 syntax are explicit coverage boundaries, not promises about every application.
+
+Enhanced Git review also recognizes literal, unshadowed `location.assign`,
+`location.replace`, `location.href` or direct-location assignments, and
+`window.open`, including supported global/document location receivers. These are
+**inferred navigation hints**, not observed requests or HTTP endpoint evidence.
+They carry `unverified_global_navigation`; source, URLs and values are never
+executed or exported. Dynamic destinations, aliases, wrappers and framework
+routing are outside this deliberately small feature.
+
+When JavaScript navigation is uninspectable or its global identity is uncertain,
+the paired exclusion can be `navigation_scope: javascript_only`. JavaScript
+navigation hints for that source are withheld on both versions, while independent
+HTML links on the same page remain comparable. The comparison is still incomplete
+and cannot pass. A full HTML parse/limit failure continues to withhold all affected
+declarations. Basic mode explicitly lacks syntax-based navigation inspection.
+
+Unresolved dynamic destinations are warnings and omissions, like dynamic request
+targets. They do not by themselves fail an advisory comparison; use `warnings`
+in `fail-on` to make those gaps block your check. Known global API writes and
+parse/worker/limit failures still require paired exclusions and a non-pass.
 
 Real Git fixtures exercise the requests, adverse cases and quiet controls in
 [`test_rik_acceptance.py`](../tests/test_rik_acceptance.py) and

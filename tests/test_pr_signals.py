@@ -198,5 +198,113 @@ class TrackingReviewIntegrationTests(unittest.TestCase):
         self.assertIn("Incomplete comparison", pr_signals.markdown(result))
 
 
+@unittest.skipUnless(js_parser.available()[0], "Pinned syntax parser unavailable")
+class NavigationReviewIntegrationTests(unittest.TestCase):
+    setUp = ReviewIdentityTests.setUp
+    compare = ReviewIdentityTests.compare
+    quiet = ReviewIdentityTests.quiet
+
+    def js(self, before, after, **options):
+        return self.compare(capture(("javascript", before)), capture(("javascript", after)),
+                            javascript_engine="enhanced", **options)
+
+    def test_literal_navigation_loss_is_not_an_http_operation(self):
+        result = self.js("location.assign('/" + self.canary + "');", "const ready=true;")
+        group = result["comparison"]["navigation"]
+        self.assertEqual(len(group["removed"]), 1)
+        row = group["removed"][0]
+        self.assertEqual(row["attributes"][0]["method"], "GET")
+        self.assertEqual(row["confidence"], "inferred")
+        self.assertEqual(row["assumptions"], ["unverified_global_navigation"])
+        self.assertEqual(result["comparison"]["endpoint"]["removed"], [])
+        self.assertEqual(result["coverage"]["javascript_navigation_analysis"], "enhanced_static_hints")
+
+    def test_navigation_domain_swap_is_detected_without_exporting_domains(self):
+        template = "window.open('https://{}-" + self.canary + ".invalid/private?token=" + self.canary + "');"
+        result = self.js(template.format("one"), template.format("two"))
+        group = result["comparison"]["navigation"]
+        self.assertEqual((len(group["added"]), len(group["removed"])), (1, 1))
+        self.assertNotEqual(group["added"][0]["origin_id"], group["removed"][0]["origin_id"])
+        self.assertEqual(group["added"][0]["path_id"], group["removed"][0]["path_id"])
+
+    def test_navigation_values_fragments_and_formatting_are_quiet(self):
+        self.quiet(self.js("location.replace('/next?token=" + self.canary + "#one');",
+                           "// format\nlocation.replace( '/next?token=other#two' );"))
+
+    def test_inline_navigation_has_html_line_positions_and_separate_link_evidence(self):
+        before = '<a href="/dashboard">Home</a>\n<script>\nlocation.assign("/next");\n</script>'
+        after = '<a href="/dashboard">Home</a>'
+        result = self.compare(capture(("html", before)), capture(("html", after)), javascript_engine="enhanced")
+        group = result["comparison"]["navigation"]
+        self.assertEqual(len(group["removed"]), 1)
+        self.assertEqual(group["removed"][0]["evidence"], [{"source": "source_1", "location": "line 3"}])
+        self.assertEqual(group["unchanged_count"], 1)
+
+    def test_dynamic_navigation_warns_while_known_literal_source_changes_remain(self):
+        before = '<a href="/old">Home</a><script>window.open("/next");</script>'
+        after = '<a href="/new">Home</a><script>window.open(destination);</script>'
+        result = self.compare(capture(("html", before)), capture(("html", after)), javascript_engine="enhanced")
+        group = result["comparison"]["navigation"]
+        self.assertEqual((len(group["added"]), len(group["removed"])), (1, 2))
+        self.assertEqual({row["confidence"] for row in group["removed"]}, {"declared", "inferred"})
+        self.assertFalse(pr_signals.policy_hits(result)["incomplete"])
+        self.assertTrue(pr_signals.policy_hits(result)["warnings"])
+        self.assertEqual(result["coverage"]["javascript_navigation_analysis"], "unavailable_or_partial")
+
+    def test_cross_file_navigation_mutation_cannot_fabricate_a_disappearance(self):
+        before = capture(("javascript", "window.open('/next');"), ("javascript", "window.open=custom;"),
+                         ("html", '<a href="/old">Home</a>'))
+        after = capture(("javascript", ""), ("javascript", "window.open=custom;"),
+                        ("html", '<a href="/new">Home</a>'))
+        result = self.compare(before, after, javascript_engine="enhanced")
+        group = result["comparison"]["navigation"]
+        self.assertEqual((len(group["added"]), len(group["removed"])), (1, 1))
+        self.assertTrue(all(row["evidence"][0]["source"] == "source_3" for row in group["added"] + group["removed"]))
+        self.assertTrue(pr_signals.policy_hits(result)["incomplete"])
+
+    def test_inline_syntax_failure_withholds_js_navigation_without_hiding_html_links(self):
+        before = '<a href="/old">Home</a><script>location.assign("/next");</script>'
+        after = '<a href="/new">Home</a><script>location.assign("/next"</script>'
+        result = self.compare(capture(("html", before)), capture(("html", after)), javascript_engine="enhanced")
+        group = result["comparison"]["navigation"]
+        self.assertEqual((len(group["added"]), len(group["removed"])), (1, 1))
+        self.assertTrue(all(row["confidence"] == "declared" for row in group["added"] + group["removed"]))
+        self.assertTrue(pr_signals.policy_hits(result)["incomplete"])
+
+    def test_non_web_navigation_target_is_not_exported_as_an_http_link(self):
+        result = self.js("window.open('javascript:" + self.canary + "');", "")
+        self.assertEqual(result["comparison"]["navigation"]["removed"], [])
+        self.assertFalse(pr_signals.policy_hits(result)["incomplete"])
+        self.assertTrue(result["coverage"]["warnings"])
+
+    def test_identical_dynamic_helper_warns_without_forcing_an_incomplete_comparison(self):
+        source = "function go(url){location.href=url;}location.assign('/known');"
+        result = self.js(source, source)
+        self.quiet(result)
+        self.assertEqual(result["comparison"]["navigation"]["unchanged_count"], 1)
+        self.assertEqual(result["coverage"]["incomplete_sources"], [])
+        self.assertFalse(pr_signals.policy_hits(result)["incomplete"])
+        self.assertTrue(pr_signals.policy_hits(result)["warnings"])
+        self.assertEqual(result["coverage"]["javascript_navigation_analysis"], "unavailable_or_partial")
+
+    def test_readonly_location_use_keeps_identical_navigation_fully_comparable(self):
+        for prefix in ("const {pathname}=window.location;", "new URL(window.location);", "location.hash='#x';"):
+            with self.subTest(prefix=prefix):
+                source = prefix + "location.assign('/a');"
+                result = self.js(source, source)
+                self.quiet(result)
+                self.assertEqual(result["comparison"]["navigation"]["unchanged_count"], 1)
+                self.assertEqual(result["coverage"]["warnings"], [])
+                self.assertEqual(result["coverage"]["incomplete_sources"], [])
+
+    def test_opaque_escape_is_partial_without_a_default_incomplete_failure(self):
+        source = "inspect(location);location.assign('/known');"
+        result = self.js(source, source)
+        self.quiet(result)
+        self.assertEqual(result["comparison"]["navigation"]["unchanged_count"], 1)
+        self.assertTrue(pr_signals.policy_hits(result)["warnings"])
+        self.assertFalse(pr_signals.policy_hits(result)["incomplete"])
+
+
 if __name__ == "__main__":
     unittest.main()

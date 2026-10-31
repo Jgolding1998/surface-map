@@ -65,12 +65,15 @@ def main(argv=None):
         return setup()
     if args.command == "compare-git":
         from . import ci
-        from .git_compare import compare_git, markdown
+        from .git_compare import compare_git, markdown, GitSelectionLimitError, selection_limit_message
         try:
             report = compare_git(args.repo, args.base, args.head, files=args.files,
                                  javascript_engine=args.javascript_engine, fail_on=args.fail_on,
                                  site_origin=args.site_origin)
             output = markdown(report) if args.format == "markdown" else ci.json_output(report)
+        except GitSelectionLimitError as error:
+            print(selection_limit_message(error), file=sys.stderr)
+            return 2
         except Exception:
             print("Git comparison rejected: invalid or unavailable Git inputs, unsupported selection, incomplete evidence, or parser. No input text or paths are returned.", file=sys.stderr)
             return 2
@@ -127,9 +130,12 @@ def main(argv=None):
     try:
         server = make_server(args.port)
     except OSError:
-        parser.error("Could not bind the local port; select another port")
+        print("Could not bind the local workspace port. Choose an unused port, for example: "
+              "python -m surface_map --port 9000 --open", file=sys.stderr)
+        return 2
     print(f"Surface Map: http://127.0.0.1:{args.port}")
-    print("Offline artifact analysis only. Ctrl+C stops the server.")
+    print("Saved-file analysis stays offline. Public HTTPS mode fetches a page and selected scripts when requested.")
+    print("Ctrl+C stops the server.")
     try:
         if args.open_browser:
             try:
