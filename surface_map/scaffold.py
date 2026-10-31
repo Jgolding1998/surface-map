@@ -220,6 +220,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from pathlib import Path
 import re
+import socket
+import time
 from urllib.parse import unquote
 
 METHODS = {'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'}
@@ -313,6 +315,20 @@ def make_server(port=0, contract=None):
             self.end_headers()
             if self.command != 'HEAD':
                 self.wfile.write(payload)
+            # Send the response before a bounded best-effort drain. Closing a
+            # socket with an unread request body can abort the response on Windows.
+            try:
+                self.wfile.flush()
+                self.connection.shutdown(socket.SHUT_WR)
+                self.connection.settimeout(0.05)
+                remaining, deadline = 16 * 1024, time.monotonic() + 0.1
+                while remaining > 0 and time.monotonic() < deadline:
+                    block = self.connection.recv(min(4096, remaining))
+                    if not block:
+                        break
+                    remaining -= len(block)
+            except OSError:
+                pass
 
         def send_error(self, code, message=None, explain=None):
             self._send(code, {'implemented': False, 'error': 'invalid_request'})

@@ -65,4 +65,7 @@ jobs:
           assert result['policy']['status'] == 'advisory'
           evidence = result['evidence_comparison']
           assert evidence['comparison']['added'] or evidence['asset_comparison']['added']
+          assert result['format'] == 'surface-map-git-comparison-v2'
+          assert result['review_signals']['format'] == 'surface-map-pr-review-signals-v1'
+          assert not result['review_signals']['coverage']['incomplete_sources']
           PY

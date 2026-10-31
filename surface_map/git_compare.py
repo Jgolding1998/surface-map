@@ -39,7 +39,8 @@ SCOPE = ("Static evidence from selected Git files only. The effective base is th
          "are never checked. A missing Git file is compared with an empty "
          "artifact; absent evidence does not prove removal from the application. "
          "Source text, repository paths and original filenames are not returned. "
-         "Privacy normalization can hide route or field renames. Findings are changes "
+         "The normalized compatibility view can hide route or field renames; the "
+         "separate comparison-local review signals distinguish supported literal identities. Findings are changes "
          "for review, not proven bugs, a security audit or a complete app inventory.")
 
 
@@ -275,7 +276,7 @@ class _Git:
         return text
 
 
-def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", fail_on=()):
+def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", fail_on=(), site_origin=None):
     """Compare selected static files against the unique PR merge base.
 
     Added/deleted paths receive an empty artifact on their missing side. Filenames
@@ -322,9 +323,13 @@ def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", f
                      "selected_files": len(paths), "unsupported_changed_files": excluded,
                      "supported_changed_files_not_selected": len(set(supported) - {path.encode("utf-8") for path in paths}),
                      "missing_base_files": 0, "missing_head_files": 0}
-        result = {"format": "surface-map-git-comparison-v1", "requested_base_commit": requested_base,
+        if site_origin is not None:
+            from .pr_html_signals import validate_site_origin
+            site_origin = validate_site_origin(site_origin)
+        result = {"format": "surface-map-git-comparison-v2", "requested_base_commit": requested_base,
                   "base_commit": base, "head_commit": head, "selection": selection,
                   "analysis_performed": bool(paths), "evidence_comparison": None,
+                  "review_signals": None,
                   "policy": {"fail_on": policies, "matched": [], "passed": None, "status": "not_applicable"},
                   "scope": SCOPE}
         if paths:
@@ -346,8 +351,43 @@ def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", f
                     captures[index]["artifacts"].append({"kind": kind, "text": value})
             evidence = ci.compare_captures(*captures, javascript_engine=javascript_engine,
                                            fail_on=policies, include_assets=True)
-            result["evidence_comparison"], result["policy"] = evidence, evidence["policy"]
-        ci.json_output(result)
+            from .pr_signals import compare_signals, policy_hits, incomplete_signals
+            modules = {"source_" + str(index) for index, path in enumerate(paths, 1)
+                       if PurePosixPath(path).suffix.lower() in {".mjs", ".cjs"}}
+            try:
+                signals = compare_signals(*captures, javascript_engine=javascript_engine,
+                                          site_origin=site_origin, module_sources=modules)
+            except Exception:
+                signals = incomplete_signals(len(paths), site_origin_supplied=site_origin is not None)
+            hits = policy_hits(signals)
+            # These fixed legacy scope warnings describe limitations addressed
+            # by the supplemental view. Preserve them in compatibility output,
+            # without treating them as lost evidence in the combined policy.
+            superseded = {
+                "HTML analysis reads links, forms and asset references. Inline scripts and embedded JSON are not analyzed; add JavaScript or HAR evidence for those.",
+                "A form without an action was omitted because its page URL is unknown",
+                "A relative URL was omitted because the page URL is unknown",
+            }
+            legacy_matched = set(evidence["policy"]["matched"])
+            if not any(warning["reason"] not in superseded for side in ("before", "after")
+                       for warning in evidence[side]["warnings"]):
+                legacy_matched.discard("warnings")
+            matched = [name for name in policies if name in legacy_matched or hits.get(name, False)]
+            if hits["incomplete"]:
+                matched.append("incomplete")
+            result["evidence_comparison"], result["review_signals"] = evidence, signals
+            result["policy"] = {"fail_on": policies, "matched": matched, "passed": not matched,
+                                "status": "failed" if matched else "advisory" if not policies else "passed"}
+        try:
+            ci.json_output(result)
+        except ci.CIError:
+            # Keep a bounded compatibility report if the supplemental projection
+            # leaves insufficient room in the combined output envelope.
+            if not paths:
+                raise
+            result["review_signals"] = incomplete_signals(len(paths), site_origin_supplied=site_origin is not None)
+            result["policy"] = {"fail_on": policies, "matched": ["incomplete"], "passed": False, "status": "failed"}
+            ci.json_output(result)
         return result
     except Exception:
         raise GitCompareError from None
@@ -355,7 +395,7 @@ def compare_git(repo, base, head, *, files=None, javascript_engine="enhanced", f
 
 def markdown(result):
     """Render only validated fixed metadata and the existing minimized report."""
-    if type(result) is not dict or result.get("format") != "surface-map-git-comparison-v1":
+    if type(result) is not dict or result.get("format") not in {"surface-map-git-comparison-v1", "surface-map-git-comparison-v2"}:
         raise GitCompareError
     try:
         for key in ("requested_base_commit", "base_commit", "head_commit"):
@@ -376,10 +416,21 @@ def markdown(result):
                  + str(selection["supported_changed_files_not_selected"]) + ".",
                  "Files missing at base/head: " + str(selection["missing_base_files"]) + "/"
                  + str(selection["missing_head_files"]) + ".", ""]
+        policy = result["policy"]
+        if policy["status"] not in {"advisory", "passed", "failed", "not_applicable"}:
+            raise GitCompareError
+        lines.extend(["Combined policy status: **" + policy["status"] + "**.", ""])
         if not result["analysis_performed"]:
             lines.append("Not applicable: no supported changed web files were selected. No application evidence was analyzed; this is not an all-clear result.")
         else:
-            lines.append(ci.markdown(result["evidence_comparison"]))
+            if result.get("review_signals") is not None:
+                from .pr_signals import markdown as review_markdown
+                lines.append(review_markdown(result["review_signals"]))
+                lines.extend(["", "<details><summary>Normalized compatibility evidence</summary>", "",
+                              "This older normalized view may merge private names or origins. Use the comparison-local IDs above for the additional static review checks.", "",
+                              ci.markdown(result["evidence_comparison"]), "", "</details>"])
+            else:
+                lines.append(ci.markdown(result["evidence_comparison"]))
         output = "\n".join(lines) + "\n"
         if len(output.encode("utf-8")) > ci.MAX_OUTPUT_BYTES:
             raise GitCompareError

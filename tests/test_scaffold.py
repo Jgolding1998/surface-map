@@ -5,10 +5,11 @@ import io
 import json
 import os
 from pathlib import Path
+import socket
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 import zipfile
 
 from surface_map.analyze import ArtifactError, shape
@@ -252,6 +253,91 @@ class ScaffoldTests(unittest.TestCase):
                     self.assertIsNone(module.match_operation('GET', target, rows))
             self.assertEqual(module.match_operation('GET', '/api/orders?url=%2Forders', rows), 'route_1')
             self.assertEqual(module.match_operation('GET', '/api/%6Frders', rows), 'route_1')
+
+
+class ScaffoldResponseDrainTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        destination = write_scaffold(fixture(), Path(temporary.name) / 'mock')
+        self.module = load_module(destination / 'mock_app.py', 'generated_drain_mock')
+        self.server = self.module.make_server(contract=self.module.load_contract())
+        self.addCleanup(self.server.server_close)
+
+    def handler(self, method='POST'):
+        handler = object.__new__(self.server.RequestHandlerClass)
+        handler.command = method
+        handler.connection = Mock(spec=socket.socket)
+        handler.wfile = Mock(spec=io.BufferedIOBase)
+        handler.send_response = Mock()
+        handler.send_header = Mock()
+        handler.end_headers = Mock()
+        return handler
+
+    def test_response_flush_and_half_close_precede_drain_capped_at_16_kib(self):
+        handler = self.handler()
+        handler.connection.recv.return_value = b'x' * 4096
+        events = Mock()
+        events.attach_mock(handler.wfile, 'response')
+        events.attach_mock(handler.connection, 'socket')
+        with patch.object(self.module.time, 'monotonic', return_value=0):
+            handler._send(404, {'implemented': False, 'error': 'unknown_operation'})
+        self.assertEqual(events.mock_calls[:4], [
+            call.response.write(b'{"implemented":false,"error":"unknown_operation"}'),
+            call.response.flush(), call.socket.shutdown(socket.SHUT_WR), call.socket.settimeout(0.05),
+        ])
+        self.assertEqual(handler.connection.recv.call_args_list, [call(4096)] * 4)
+        self.assertTrue(handler.close_connection)
+        self.assertEqual(handler.protocol_version, 'HTTP/1.0')
+        self.assertIn(call('Connection', 'close'), handler.send_header.call_args_list)
+
+    def test_drain_deadline_bounds_a_peer_that_keeps_sending(self):
+        handler = self.handler()
+        handler.connection.recv.return_value = b'x'
+        with patch.object(self.module.time, 'monotonic', side_effect=[0, 0.01, 0.06, 0.11]):
+            handler._send(404, {'implemented': False})
+        self.assertEqual(handler.connection.recv.call_count, 2)
+        handler.connection.settimeout.assert_called_once_with(0.05)
+
+    def test_eof_timeout_and_failed_half_close_do_not_replace_the_response(self):
+        for failure in ('eof', 'timeout', 'shutdown'):
+            with self.subTest(failure=failure):
+                handler = self.handler()
+                handler.connection.recv.side_effect = [b'' if failure == 'eof' else socket.timeout('idle')]
+                if failure == 'shutdown':
+                    handler.connection.shutdown.side_effect = OSError('already closed')
+                with patch.object(self.module.time, 'monotonic', return_value=0):
+                    handler._send(404, {'implemented': False})
+                handler.send_response.assert_called_once_with(404)
+                handler.wfile.write.assert_called_once_with(b'{"implemented":false}')
+                handler.wfile.flush.assert_called_once_with()
+                self.assertEqual(handler.connection.recv.call_count, 0 if failure == 'shutdown' else 1)
+
+    def test_head_keeps_headers_without_writing_a_body_before_half_close(self):
+        handler = self.handler('HEAD')
+        handler.connection.recv.return_value = b''
+        with patch.object(self.module.time, 'monotonic', return_value=0):
+            handler._send(501, {'implemented': False})
+        handler.send_response.assert_called_once_with(501)
+        self.assertIn(call('Content-Length', '21'), handler.send_header.call_args_list)
+        handler.wfile.write.assert_not_called()
+        handler.wfile.flush.assert_called_once_with()
+        handler.connection.shutdown.assert_called_once_with(socket.SHUT_WR)
+
+    def test_declared_huge_body_does_not_delay_or_change_the_unknown_response(self):
+        thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        thread.start()
+        client = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=3)
+        try:
+            client.request('POST', '/__missing__', body='PRIVATE_BODY', headers={'Content-Length': str(2 ** 64)})
+            response = client.getresponse()
+            self.assertEqual(response.status, 404)
+            self.assertNotIn(b'PRIVATE_BODY', response.read())
+            self.assertEqual(response.getheader('Connection'), 'close')
+        finally:
+            client.close()
+            self.server.shutdown()
+            thread.join(timeout=3)
 
 
 if __name__ == '__main__':

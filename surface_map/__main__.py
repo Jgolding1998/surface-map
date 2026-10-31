@@ -42,6 +42,7 @@ def main(argv=None):
     git_compare.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="enhanced")
     git_compare.add_argument("--format", choices=("json", "markdown"), default="json")
     git_compare.add_argument("--fail-on", default="", help="Comma-separated evidence policies; default advisory")
+    git_compare.add_argument("--site-origin", help="Optional first-party HTTP(S) origin used only to classify references; never fetched or exported")
     inspect = commands.add_parser("inspect", help="Print a minimized static source inventory as JSON")
     inspect.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
     inputs = inspect.add_mutually_exclusive_group(required=True)
@@ -67,7 +68,8 @@ def main(argv=None):
         from .git_compare import compare_git, markdown
         try:
             report = compare_git(args.repo, args.base, args.head, files=args.files,
-                                 javascript_engine=args.javascript_engine, fail_on=args.fail_on)
+                                 javascript_engine=args.javascript_engine, fail_on=args.fail_on,
+                                 site_origin=args.site_origin)
             output = markdown(report) if args.format == "markdown" else ci.json_output(report)
         except Exception:
             print("Git comparison rejected: invalid or unavailable Git inputs, unsupported selection, incomplete evidence, or parser. No input text or paths are returned.", file=sys.stderr)

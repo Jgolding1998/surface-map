@@ -17,8 +17,13 @@ and how to measure useful results. Setup time is separate from the trial.
 **For pull requests:** the [automatic Git comparison](docs/CI.md#automatic-static-source-comparison)
 reads changed HTML, JavaScript and TypeScript directly from two Git commits.
 No screenshots or hand-made capture files are needed. The report points out
-supported static route, form, request and asset-reference changes, with explicit
-coverage limits. It does not run the proposed app or prove that a change is a bug.
+supported static endpoint, form-field, resource/domain, navigation and tracking
+changes. Comparison-local opaque IDs catch private field renames and domain-only
+swaps without publishing the original names. Hidden controls, duplicate counts
+and field destinations are compared too. Supported SDK calls and executable
+inline scripts are inspected with the enhanced parser. Incomplete review cannot
+pass and keeps its coverage warnings. It does not run the proposed app or prove
+that a change is a bug. See the [coverage matrix](docs/CI.md#checks-requested-in-the-pr-feedback).
 
 ![Surface Map workspace](docs/dashboard.png)
 

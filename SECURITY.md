@@ -41,6 +41,13 @@ The server retains no upload files or reports. At most two optional parser worke
 
 ## Supported input boundary
 
+Generated mock servers bind to loopback, return fixed unimplemented/unknown
+responses and do not echo request bodies. They flush and half-close the response
+before a best-effort discard of unread input, capped at 16 KiB with a cooperative
+0.1-second deadline and 50 ms socket timeout. This reduces response resets on
+Windows without parsing, retaining or replaying body contents. Large or stalled
+requests can still be closed early; the drain is not a delivery guarantee.
+
 ### Static Git comparison
 
 The optional `compare-git` CLI and companion GitHub Action read immutable commit
@@ -65,8 +72,27 @@ local and are represented by generic source IDs. Raw source, filenames, origins,
 field values and exception text are not copied into reports or logs. A six-file
 limit and per-file/combined byte limits fail closed. No supported selection is
 reported as not applicable, not a passing app check. Privacy normalization can
-hide target, field and asset renames; normalized asset comparison does not verify
-third-party origin identity. Minimized reports still need review before sharing.
+hide target, field and asset renames in the legacy normalized comparison. The
+supplemental Git review uses jointly assigned in-memory identities and exports
+only opaque IDs, fixed labels, counts and generic source/line references. It
+retains no hashes or originals in reports. Domain-only changes can be detected;
+classifying third-party origins requires caller-supplied HTTP(S) site-origin
+metadata, which is never fetched. The Action reads it from a bounded ordinary
+workspace file rather than echoing an origin-valued input. Local HTTP origins
+are accepted as metadata; this does not change the public-URL HTTPS fetch policy.
+
+Executable inline script bodies are analyzed as text with the same pinned AST
+parser. Selected literal SDK imports and the classic gtag queue shim are hints,
+not proof of package identity, successful loading or event delivery. Unknown
+loader/global mutation can make tracking comparison incomplete. Supplemental
+source/category failures suppress that category on both versions, withhold the
+shared origin comparison, retain the compatibility report and force a non-pass
+policy result. They never silently fall back to weaker tracking inspection.
+Collection, record, inline-source, evidence and output limits bound this work;
+see [CI coverage](docs/CI.md#checks-requested-in-the-pr-feedback). Source data
+exists in process memory and is not securely erased. No script, SDK, import,
+form or discovered endpoint is executed. Minimized reports still need review
+before sharing.
 
 The consumer workflow pins the reviewed tool separately from target source,
 requires only repository read permission, keeps checkout credentials out of Git
