@@ -41,6 +41,13 @@ The server retains no upload files or reports. At most two optional parser worke
 
 ## Supported input boundary
 
+Generated mock servers bind to loopback, return fixed unimplemented/unknown
+responses and do not echo request bodies. They flush and half-close the response
+before a best-effort discard of unread input, capped at 16 KiB with a cooperative
+0.1-second deadline and 50 ms socket timeout. This reduces response resets on
+Windows without parsing, retaining or replaying body contents. Large or stalled
+requests can still be closed early; the drain is not a delivery guarantee.
+
 ### Static Git comparison
 
 The optional `compare-git` CLI and companion GitHub Action read immutable commit
