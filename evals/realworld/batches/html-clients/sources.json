@@ -1,0 +1,108 @@
+{
+  "schema": "surface-map-realworld-sources/1",
+  "note": "Whole files retain exact upstream bytes. Fragment line ranges are 1-based inclusive and retain exact selected upstream line bytes. No analyzer was run to derive the labels.",
+  "projects": [
+    {
+      "project": "bootstrap",
+      "license_file": "licenses/bootstrap.txt",
+      "license_url": "https://github.com/twbs/bootstrap/blob/c2ab624f40c4dcfdbcae9747dce265834ffb4f5d/LICENSE",
+      "license_sha256": "bc0cd18d94c028f1c0b62ec9fdaddcb9921c1e07c29cf52dc7df8cca9daf2488",
+      "artifacts": [
+        {
+          "path": "artifacts/bootstrap/alert.html",
+          "upstream_path": "js/tests/visual/alert.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "772334fef55ca9115f20e5027b4de56cda9a591240e42099b20c6bfc4fbd82d8",
+          "bytes": 2514,
+          "sha256": "772334fef55ca9115f20e5027b4de56cda9a591240e42099b20c6bfc4fbd82d8"
+        }
+      ]
+    },
+    {
+      "project": "htmx",
+      "license_file": "licenses/htmx.txt",
+      "license_url": "https://github.com/bigskysoftware/htmx/blob/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1/LICENSE",
+      "license_sha256": "d3d2456f76414f2456104660ebd65aff1c04cd7966b942bdabd63f3cdb316a38",
+      "artifacts": [
+        {
+          "path": "artifacts/htmx/manual-index.html",
+          "upstream_path": "test/manual/index.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "d845461262f7a58ac71423e21500d9afe200168a746433d7cf9782d441227dd3",
+          "bytes": 2249,
+          "sha256": "d845461262f7a58ac71423e21500d9afe200168a746433d7cf9782d441227dd3"
+        },
+        {
+          "path": "artifacts/htmx/aborting-request.html",
+          "upstream_path": "test/manual/aborting-request.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "d00de2749d7f27d30cca2a25d68238ee2b62eacc7274bdf560534eee1e96690f",
+          "bytes": 1055,
+          "sha256": "d00de2749d7f27d30cca2a25d68238ee2b62eacc7274bdf560534eee1e96690f"
+        }
+      ]
+    },
+    {
+      "project": "jquery",
+      "license_file": "licenses/jquery.txt",
+      "license_url": "https://github.com/jquery/jquery/blob/c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf/LICENSE.txt",
+      "license_sha256": "d4db9ebe6f29f5168eac45ad713f055623ac5d0dcd5ba92da23d650ae012020d",
+      "artifacts": [
+        {
+          "path": "artifacts/jquery/navigation-L1-L14.html",
+          "upstream_path": "test/data/qunit-fixture.html",
+          "lines": [
+            1,
+            14
+          ],
+          "upstream_file_sha256": "b05a066e3c9ce6b9c5334c5c9839529dd7ff0b7dc3c7041e35d07fca71a932ff",
+          "bytes": 982,
+          "sha256": "29722311c3b309cb007bb4b5ad35a98020196894372eccaf22a83710f22ba272"
+        }
+      ]
+    },
+    {
+      "project": "django",
+      "license_file": "licenses/django.txt",
+      "license_url": "https://github.com/django/django/blob/a05e16a7230fe33d3f43f4a3aaed103cebb42efc/LICENSE",
+      "license_sha256": "b846415d1b514e9c1dff14a22deb906d794bc546ca6129f950a18cd091e2a669",
+      "artifacts": [
+        {
+          "path": "artifacts/django/article_form.html",
+          "upstream_path": "tests/forms_tests/templates/forms_tests/article_form.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "b1c269b6e295955d48f29681ed5420ca759847798c72b5d3ecd1fbc21e56f575",
+          "bytes": 141,
+          "sha256": "b1c269b6e295955d48f29681ed5420ca759847798c72b5d3ecd1fbc21e56f575"
+        }
+      ]
+    },
+    {
+      "project": "sveltekit",
+      "license_file": "licenses/sveltekit.txt",
+      "license_url": "https://github.com/sveltejs/kit/blob/3da859a9f161d7e57d74a109149b83076664da7d/LICENSE",
+      "license_sha256": "ac6ecdc526c9e6aec1db76f0e8dfe344d792380e974686476e7c512152ae2636",
+      "artifacts": [
+        {
+          "path": "artifacts/sveltekit/enhance-form-L21-L31.html",
+          "upstream_path": "packages/kit/test/apps/basics/src/routes/actions/enhance/+page.svelte",
+          "lines": [
+            21,
+            31
+          ],
+          "upstream_file_sha256": "b2305ed2974426a9c5a91c42e33abe817e6f851a9b5bf91e68b6c7cabb24d633",
+          "bytes": 505,
+          "sha256": "b8d1131696ce68afca8c22b8a1c27c9b5976310923892e15062449a7253b76ed"
+        },
+        {
+          "path": "artifacts/sveltekit/fetch-no-body-page.js",
+          "upstream_path": "packages/kit/test/apps/basics/src/routes/load/fetch-no-body/+page.js",
+          "lines": "whole file",
+          "upstream_file_sha256": "a67dcf9b0cdb8d15dac7db2d4ddf259a60802cee684d2bfb3e16a1245dd632de",
+          "bytes": 212,
+          "sha256": "a67dcf9b0cdb8d15dac7db2d4ddf259a60802cee684d2bfb3e16a1245dd632de"
+        }
+      ]
+    }
+  ]
+}

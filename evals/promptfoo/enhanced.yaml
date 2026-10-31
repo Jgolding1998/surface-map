@@ -1,0 +1,19 @@
+description: Surface Map direct Python, all 64 frozen synthetic cases, parser required
+prompts:
+  - '{{case_id}}'
+providers:
+  - id: file://provider.py
+    label: direct-python-enhanced
+    config:
+      engine: enhanced
+tests: file://tests-enhanced.json
+defaultTest:
+  assert:
+    - type: python
+      value: file://assertions.py:get_assert
+      metric: exact_case
+evaluateOptions:
+  maxConcurrency: 1
+  repeat: 3
+  cache: false
+sharing: false

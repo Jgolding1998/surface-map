@@ -1,0 +1,202 @@
+{
+  "schema": "surface-map-holdout-corpus/1",
+  "name": "surface-map-realworld-html-clients-development-v1",
+  "projects": [
+    {
+      "id": "bootstrap",
+      "group": "bootstrap",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/twbs/bootstrap/tree/c2ab624f40c4dcfdbcae9747dce265834ffb4f5d",
+        "revision": "c2ab624f40c4dcfdbcae9747dce265834ffb4f5d",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "htmx",
+      "group": "htmx",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/bigskysoftware/htmx/tree/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+        "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+        "license": "0BSD",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "jquery",
+      "group": "jquery",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/jquery/jquery/tree/c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf",
+        "revision": "c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "django",
+      "group": "django",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/django/django/tree/a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+        "revision": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "sveltekit",
+      "group": "sveltekit",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/sveltejs/kit/tree/3da859a9f161d7e57d74a109149b83076664da7d",
+        "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "bootstrap-visual-alert-fragment-links",
+      "project": "bootstrap",
+      "family": "html-fragment-links-negative",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/bootstrap/alert.html",
+          "sha256": "772334fef55ca9115f20e5027b4de56cda9a591240e42099b20c6bfc4fbd82d8",
+          "provenance": {
+            "url": "https://github.com/twbs/bootstrap/blob/c2ab624f40c4dcfdbcae9747dce265834ffb4f5d/js/tests/visual/alert.html",
+            "revision": "c2ab624f40c4dcfdbcae9747dce265834ffb4f5d",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "htmx-manual-relative-navigation",
+      "project": "htmx",
+      "family": "html-relative-navigation-origin-merge",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/htmx/manual-index.html",
+          "sha256": "d845461262f7a58ac71423e21500d9afe200168a746433d7cf9782d441227dd3",
+          "provenance": {
+            "url": "https://github.com/bigskysoftware/htmx/blob/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1/test/manual/index.html",
+            "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+            "license": "0BSD",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/test/manual/index.html"
+    },
+    {
+      "id": "htmx-hx-get-unsupported",
+      "project": "htmx",
+      "family": "html-framework-attribute-unsupported",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/htmx/aborting-request.html",
+          "sha256": "d00de2749d7f27d30cca2a25d68238ee2b62eacc7274bdf560534eee1e96690f",
+          "provenance": {
+            "url": "https://github.com/bigskysoftware/htmx/blob/fa978b24e75fb03c137bf2cdae4fef0e711cf8a1/test/manual/aborting-request.html",
+            "revision": "fa978b24e75fb03c137bf2cdae4fef0e711cf8a1",
+            "license": "0BSD",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jquery-fixture-external-navigation",
+      "project": "jquery",
+      "family": "html-external-navigation-origin-merge",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/jquery/navigation-L1-L14.html",
+          "sha256": "29722311c3b309cb007bb4b5ad35a98020196894372eccaf22a83710f22ba272",
+          "provenance": {
+            "url": "https://github.com/jquery/jquery/blob/c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf/test/data/qunit-fixture.html#L1-L14",
+            "revision": "c2f27864e4ffc2d1409c289fcb9a42b6165dfeaf",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "django-actionless-unrendered-form",
+      "project": "django",
+      "family": "html-form-template-document-context",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/django/article_form.html",
+          "sha256": "b1c269b6e295955d48f29681ed5420ca759847798c72b5d3ecd1fbc21e56f575",
+          "provenance": {
+            "url": "https://github.com/django/django/blob/a05e16a7230fe33d3f43f4a3aaed103cebb42efc/tests/forms_tests/templates/forms_tests/article_form.html",
+            "revision": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/articles/create"
+    },
+    {
+      "id": "sveltekit-enhance-form-static-declaration",
+      "project": "sveltekit",
+      "family": "html-framework-form-static-fragment",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/sveltekit/enhance-form-L21-L31.html",
+          "sha256": "b8d1131696ce68afca8c22b8a1c27c9b5976310923892e15062449a7253b76ed",
+          "provenance": {
+            "url": "https://github.com/sveltejs/kit/blob/3da859a9f161d7e57d74a109149b83076664da7d/packages/kit/test/apps/basics/src/routes/actions/enhance/+page.svelte#L21-L31",
+            "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/actions/enhance"
+    },
+    {
+      "id": "sveltekit-injected-fetch-scope-boundary",
+      "project": "sveltekit",
+      "family": "javascript-injected-client-unsupported",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/sveltekit/fetch-no-body-page.js",
+          "sha256": "a67dcf9b0cdb8d15dac7db2d4ddf259a60802cee684d2bfb3e16a1245dd632de",
+          "provenance": {
+            "url": "https://github.com/sveltejs/kit/blob/3da859a9f161d7e57d74a109149b83076664da7d/packages/kit/test/apps/basics/src/routes/load/fetch-no-body/+page.js",
+            "revision": "3da859a9f161d7e57d74a109149b83076664da7d",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    }
+  ]
+}

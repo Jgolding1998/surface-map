@@ -6,9 +6,13 @@ __pycache__/
 node_modules/
 package-lock.json
 !/analyzers/javascript/package-lock.json
+!/evals/promptfoo/package-lock.json
+!/tests/browser/package-lock.json
 captures/
 *.har
 !/examples/rebuild-demo/session.har
+!/examples/quickstart/orders.har
+!/evals/holdout/fixtures/rejected.har
 *.zip
 *.apk
 *.exe

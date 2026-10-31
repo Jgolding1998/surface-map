@@ -2,7 +2,17 @@
 
 Inspect saved web artifacts and selected source files without running them. Build a route inventory and API skeleton from web captures, or a minimized language, dependency and library-capability inventory from source. Useful when documenting an app you own or comparing authorized captures.
 
-For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). The optional interface can also inspect a public HTTPS URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
+For Claude, Codex and other local MCP clients, use the [MCP installation guide](docs/MCP.md). Both the local workspace's **Public HTTPS page** mode and the optional MCP interface can inspect a public URL and selected scripts, with explicit coverage limits. A [recorded agent demo](docs/AGENT_DEMO.md) shows what was tested.
+
+**Try it without an AI account or paid service:** start the local workspace,
+select **Basic lexical hints**, then **Try an example agent brief**. Read an
+explanation in simple, developer, or Gen Z style and copy or download a Markdown
+handoff for your coding agent. These are local templates over the same facts,
+warnings and unknowns. No model API call or telemetry is involved.
+
+The [five-minute trial guide](docs/TRY_IT.md) covers setup and a small real task.
+The [pilot guide](docs/PILOT.md) identifies likely early users, recruitment venues,
+and how to measure useful results. Setup time is separate from the trial.
 
 ![Surface Map workspace](docs/dashboard.png)
 
@@ -11,10 +21,13 @@ For Claude, Codex and other local MCP clients, use the [MCP installation guide](
 Python 3.11 or later. No third-party Python packages or AI account are required.
 
 ```sh
-python -m surface_map
+python -m surface_map --open
 ```
 
-Open **http://127.0.0.1:8768**. A synthetic example loads automatically. Choose `--port 9000` if needed.
+The optional `--open` flag opens **http://127.0.0.1:8768** in your browser. A
+synthetic example loads automatically. Choose `--port 9000` if needed; leave off
+`--open` to open the printed URL yourself. Keep the terminal running and press
+**Ctrl+C** to stop.
 
 For syntax and scope analysis of JavaScript, JSX and TypeScript, install Node.js 24.22.1 or later in the 24.x line, then explicitly install the pinned parser:
 
@@ -27,6 +40,23 @@ This command installs the exact locked Babel dependencies with npm lifecycle scr
 The **JavaScript analysis** selector offers automatic, required syntax analysis, and basic lexical hints. Automatic mode uses the parser when available and reports a missing-parser fallback in the export and warnings. Required mode also rejects unavailable parser dependencies. Once syntax analysis starts, syntax, work-limit and worker failures reject the input in both modes; they never trigger weaker lexical parsing. Basic mode needs only Python and retains the narrower lexical scanner.
 
 ## Use
+
+For a public page, choose **Public HTTPS page**, enter its HTTPS URL, and select
+**Inspect page + create brief**. Typing does not fetch. The computer running
+Surface Map retrieves one public page and optionally up to five same-origin
+external scripts, then produces a report and agent brief from that same capture.
+No login, browser rendering, code execution, page-link crawling, form submission
+or API replay occurs. **Show route inventory and exports** reveals the underlying
+evidence without fetching again. Each new inspection makes a fresh capture.
+
+Public-page plans retain capture and analysis omissions. String/module reference
+inventory is intentionally not performed in this mode and is reported as omitted.
+Use saved captures for authenticated flows, comparisons, reference inventory and
+mock files. The URL field and results are cleared when you change mode or clear
+the session; no server-side capture cache is created. Public HTTPS checks, pinned
+DNS connections and redirect validation reject private/internal destinations.
+
+For saved files:
 
 1. Choose **Saved web artifacts** and add UTF-8 HTML, HAR or JavaScript files you own or have permission to inspect.
 2. Analyze the selection. Inspect each route's generic source ID and line or HAR-entry location.
@@ -41,11 +71,11 @@ Absent routes include capture context, such as a missing source kind or a method
 | HTML | Links, form actions and control names, script and stylesheet asset paths | Declared |
 | JavaScript/TypeScript | Syntax and scope analysis of Fetch, XMLHttpRequest and supported Axios calls, aliases, constant expressions and options | Inferred |
 
-Saved-artifact analysis executes no source, replays no traffic, and fetches no URL. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension. The optional MCP URL tool below can fetch a public page and selected external scripts before analysis.
+Saved-artifact analysis executes no source, replays no traffic, and fetches no URL. Inline scripts inside HTML are ignored. Import a separate script to inspect its client hints. A known URL with an unknown method is listed separately; exports never invent a GET operation for it. OpenAPI retains these targets in an `x-surface-map-unresolved-operations` extension. Public HTTPS mode and the optional MCP URL tool can fetch a public page and selected external scripts before analysis.
 
 ## Inspect selected source files
 
-For an implementation starting point, choose **Build a plan** in web mode. It separates operations, navigation, unresolved targets and broader script-string references, then lists missing behavior. Download the plan or mock file bundle. The generated Python starter uses no dependencies and returns 501 for every known operation until implemented; its checks verify the starter, not equivalence to a real service. See the [rebuild workflow and synthetic example](docs/REBUILD.md).
+For an implementation starting point, choose **Build a plan** in web mode. It separates operations, navigation, unresolved targets and broader script-string references, then lists missing behavior. Choose an explanation style and review **Copy agent brief** or download **Agent brief (.md)**. The brief is a bounded preview with explicit omissions; obtain Plan JSON for full retained request/response shapes. Mock files are generated only when requested and reused for later downloads. The generated Python starter uses no dependencies and returns 501 for every known operation until implemented; its checks verify the starter, not equivalence to a real service. See the [rebuild workflow and synthetic example](docs/REBUILD.md).
 
 Choose **Selected project files** to inventory up to 24 explicit source files and map literal imports between them. Relative paths are used internally for exact matching; reports retain generic source IDs. Package resolution, extension guessing and runtime loading are not inferred. For nested selections, use:
 
@@ -107,12 +137,14 @@ When document context is supplied, evidence also records `same_origin`, `cross_o
 ## Practical limits
 
 - Up to 6 web artifacts per capture: HTML can be up to 4 MiB, HAR/JavaScript/TypeScript up to 512 KiB each, and the capture can total 4 MiB of decoded UTF-8. Selected source files retain their separate 512 KiB per-file and 1 MiB combined limits. The interface reads these limits from the local server and reports the measured size when rejecting an input.
+- Public URL inspection reuses the MCP transport's maximum 9 requests, 3 redirects and 20-second capture budget, followed by a 10-second analysis budget and a separate one-second plan-projection budget. Its browser timeout is 45 seconds; saved-file requests retain their 35-second timeout. These are work safeguards, not an overall latency guarantee. One public capture can run at a time, leaving capacity for offline work. Public OpenAPI/contract downloads retain capture, script-omission, warning, parser and source context in `x-surface-map-*` extensions.
 - The browser sends web artifacts as strict base64 UTF-8 to avoid JSON quote expansion. API callers can send either `text` or `text_b64` for each artifact, never both. The HTTP envelope is capped at 16 MiB plus 64 KiB for web analysis and comparison, 3 MiB for source requests. Heavily escaped legacy `text` requests can hit the envelope cap before the decoded cap; use `text_b64` for predictable transfer size.
 - HAR supports up to 300 entries and 20,000 JSON nodes. Header-heavy captures can reach the node limit before the entry limit. HTML supports up to 10,000 start tags with cooperative three-second work checks. Inline scripts and embedded JSON are not interpreted. Embedded documents are recorded as references, without fetching their content; reports warn about these missing inputs.
 - Byte caps are not acceptance guarantees. JSON nesting, collections, routes and HTML tags are bounded. The basic JavaScript scanner supports up to 300,000 lexical tokens with a cooperative three-second tokenizer budget. The optional parser allows 100,000 flat AST nodes, 200,000 edges, an 8 MiB protocol response, a 256 MiB Node heap and a three-second request deadline. Python interpretation has separate nesting and work limits. Dense files can be rejected below 512 KiB.
 - Source manifests have structural limits, source code has parser and work limits, and evidence lists are bounded. The source inventory uses a cooperative five-second work budget. Registry dependencies are recognized only from a curated list; local paths, URLs, editable installs and Cargo workspace inheritance are not resolved. Shell hints are POSIX only. Simple here-documents are skipped with exact delimiter handling; unsupported or unterminated here-documents and unsupported shell quoting reject that source. Ambiguous parameter, command or ANSI-C expansions on a line containing `<<` also reject the source. Compound guards, command substitution and wrapper options can hide installer commands from the lexical hints. The scanner does not build a call graph, resolve every module or distinguish reachable code from dead code.
 - Export serialization stops at 3 MiB, including amplification from combined response shapes. Smaller captures may be needed. Errors include only predefined reasons and generic source IDs, without source text.
 - Base64 HAR bodies, non-JSON bodies, fully dynamic targets, archives, APKs, native binaries and .NET assemblies are unsupported. Syntax analysis recognizes supported Fetch, XMLHttpRequest and Axios patterns, constant aliases and expressions, lexical scope, options spreads and conservative mutation effects. Unknown options can leave a known target with an unresolved method. It does not execute functions, resolve an arbitrary module graph, prove reachability, or reconstruct application behavior.
+- Enhanced mode recognizes conventional unbound `axios` clients, including qualified globals, aliases and created instances. Each retained call carries `unverified_global_axios` assumption metadata and a warning: the library identity and prior configuration were not verified. Imported Axios clients are tracked separately. Contradictory global writes in supplied scripts suppress these assumptions; classic-script lexical declarations suppress bare-name assumptions while explicit global-object calls remain distinct. Inline scripts and configuration outside the selection remain uninspected. CommonJS wrapper scope cannot be established from a syntax-only selection, so a declaration without explicit module syntax can conservatively shadow a peer script's bare name. Basic mode does not infer Axios calls.
 - The basic JavaScript fallback is narrower: it recognizes literal fetch calls and selected module-level string constants, without full syntax or scope analysis. Recognized client shadowing can suppress hints for the whole file. Uncertain syntax, JSX text or hidden bindings can conceal or fabricate lexical hints. Required syntax mode is preferable when reviewing JavaScript evidence. Both modes can miss calls or find calls in code that never runs; static hints need verification.
 - Inferred calls describe intended targets, not valid executable requests. A call can throw before sending, for example a Node client given a relative URL or a GET request with a body. Runtime environment, request validity, proxies, external scripts, arbitrary function returns and module side effects are not reconstructed. Mutation and aliasing analysis is approximate; unsupported behavior can hide calls or produce incorrect hints. Review the source evidence before using a generated contract.
 - Parser workers are reused, with at most two active workers and two waiting callers. Saturation returns a fixed `busy` reason. The three-second parser deadline excludes bounded process cleanup, which can add about 3.6 seconds per worker on exceptional termination. Python interpretation has its own cooperative three-second deadline; these are work safeguards, not a total HTTP latency guarantee.
@@ -125,6 +157,27 @@ When document context is supplied, evidence also records `same_origin`, `cross_o
 - Comparison reports added, absent and changed normalized evidence, including gained or lost evidence kinds and query-field changes for unknown-method targets. Changed entries retain before and after source evidence. Line moves and source-order changes alone do not count as changes. Absence from a capture does not prove removal from a service.
 
 ## Check it
+
+For PR review, the [offline comparison CLI and GitHub Action](docs/CI.md) compare
+corresponding saved captures, produce minimized JSON/Markdown reports, and apply
+optional evidence-change policies. The Action reuses the analyzer and makes no
+model API calls. Start with advisory reports: captured evidence and redacted
+route names do not establish complete runtime API compatibility.
+
+The [local promptfoo integration](evals/promptfoo/README.md) adds repeatable
+evaluations and a results viewer. The [project corpus runner](evals/holdout/README.md)
+adds provenance, separate labels, project-disjoint splits and review/exposure
+tracking for broader evaluation. Synthetic examples and exposed development
+fixtures do not count as independently reviewed unseen holdout projects.
+
+The [real-project development collection](evals/realworld/README.md) adds 30
+source-derived tasks from 21 pinned upstream projects. Its initial enhanced
+result was 28/30. Adding scoped browser-global Axios inference improves the same
+unchanged cases and gold labels to 30/30, stable across three repetitions.
+The original failures remain in a historical result file. This is development
+tuning after inspecting known failures. These are agent-reviewed public source
+selections, not complete websites or unseen human-reviewed examples. CI now
+requires all 30 cases to pass and preserves client assumptions in scored reports.
 
 The [640-case scenario suite](evals/stress640/README.md) combines 16 families of HTML, HAR, JavaScript/TypeScript, privacy and comparison cases. Run `python -m evals.stress640 --engine enhanced --repeats 3 --check`. Its initial result was 640/640 in enhanced mode and 498/640 in basic mode. Version 1.4 improves basic mode to 538/640 on the same frozen cases, with no prior passing case lost. Enhanced mode remains 640/640. These are generated regression combinations, not 640 independent sites or a model comparison. CI runs the enhanced suite on Windows and Linux.
 

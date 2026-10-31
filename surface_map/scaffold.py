@@ -9,12 +9,12 @@ import re
 import stat
 import zipfile
 
-from .analyze import ArtifactError, FIELDS, METHODS, SEGMENTS
+from .analyze import ArtifactError, FIELDS, GLOBAL_AXIOS_ASSUMPTION, METHODS, SEGMENTS
 
 FILENAMES = ('mock_app.py', 'contract.json', 'rebuild-plan.json', 'test_mock.py', 'README.md')
 ROOT_KEYS = {'format', 'operations', 'pages', 'unresolved', 'candidate_references', 'coverage',
              'unknowns', 'capture_guide', 'privacy', 'scope', 'limits'}
-COMMON_KEYS = {'id', 'path', 'confidence', 'evidence', 'additional_evidence_count', 'origin_relations'}
+COMMON_KEYS = {'id', 'path', 'confidence', 'evidence', 'additional_evidence_count', 'origin_relations', 'assumptions'}
 OPERATION_KEYS = COMMON_KEYS | {'method', 'statuses', 'query_fields', 'request_shapes', 'response_shapes', 'stub', 'unknowns'}
 RELATIONS = {'same_origin', 'cross_origin', 'unknown'}
 SUMMARY_NOTE = 'Read the original plan for detailed warnings; this export contains bounded summaries, not complete coverage.'
@@ -92,10 +92,17 @@ def _relations(value):
     return sorted(set(rows))
 
 
+def _assumptions(value):
+    rows = _rows(value, 1)
+    if any(not isinstance(item, str) or item != GLOBAL_AXIOS_ASSUMPTION for item in rows):
+        _fail()
+    return list(rows)
+
+
 def _evidence(value):
     result = []
     for row in _rows(value, 32):
-        if not isinstance(row, dict) or set(row) - {'source', 'location', 'kind', 'origin_relation'}:
+        if not isinstance(row, dict) or set(row) - {'source', 'location', 'kind', 'origin_relation', 'assumptions'}:
             _fail()
         if (not re.fullmatch(r'source_[1-9][0-9]{0,3}', str(row.get('source', '')))
                 or not re.fullmatch(r'(?:line|entry) [1-9][0-9]{0,8}', str(row.get('location', '')))
@@ -104,6 +111,8 @@ def _evidence(value):
         clean = {key: row[key] for key in ('source', 'location', 'kind')}
         if 'origin_relation' in row:
             clean['origin_relation'] = _relations([row['origin_relation']])[0]
+        if 'assumptions' in row:
+            clean['assumptions'] = _assumptions(row['assumptions'])
         result.append(clean)
     return result
 
@@ -118,6 +127,11 @@ def _common(row, *, unresolved=False):
         clean['additional_evidence_count'] = _number(row['additional_evidence_count'])
     if 'origin_relations' in row:
         clean['origin_relations'] = _relations(row['origin_relations'])
+    assumptions = set(_assumptions(row['assumptions'])) if 'assumptions' in row else set()
+    for evidence in clean['evidence']:
+        assumptions.update(evidence.get('assumptions', []))
+    if assumptions or 'assumptions' in row:
+        clean['assumptions'] = sorted(assumptions)
     return clean
 
 
@@ -151,7 +165,7 @@ def _minimize_plan(plan):
         statuses = [_number(status, 599) for status in _rows(row.get('statuses', []), 64)]
         if any(status < 100 for status in statuses):
             _fail()
-        unknowns = operation_unknowns(clean.get('origin_relations'))
+        unknowns = operation_unknowns(clean.get('origin_relations'), clean.get('assumptions', []))
         if 'unknowns' in row and row['unknowns'] != unknowns:
             _fail()
         clean.update(method=row['method'], stub=row['stub'], statuses=sorted(set(statuses)),

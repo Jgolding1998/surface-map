@@ -26,9 +26,10 @@ def review(report, *, route_limit=12):
     for route in [*unresolved, *routes]:
         kinds = set(route.get("kinds", (row["kind"] for row in route["evidence"])))
         origin = {"origin_relations": route["origin_relations"]} if "origin_relations" in route else {}
+        assumptions = {"assumptions": list(route["assumptions"])} if route.get("assumptions") else {}
         if kinds == {"link"}:
             navigation.append({"id": route["id"], "path": route["path"],
-                               "evidence": route["evidence"][:3], **origin})
+                               "evidence": route["evidence"][:3], **origin, **assumptions})
             continue
         if route["method"] is not None:
             counts[route["confidence"]] += 1
@@ -50,7 +51,7 @@ def review(report, *, route_limit=12):
         candidates.append({"id": route["id"], "method": route["method"], "path": route["path"],
                            "confidence": route["confidence"], "reason": reason,
                            "statuses": statuses, "evidence": evidence[:3],
-                           "additional_evidence_count": max(0, len(evidence) - 3), **origin})
+                           "additional_evidence_count": max(0, len(evidence) - 3), **origin, **assumptions})
     order = {code: index for index, code in enumerate(CHECKS)}
     candidates.sort(key=lambda row: (order[row["reason"]], row["path"], row["method"] or ""))
     result = {

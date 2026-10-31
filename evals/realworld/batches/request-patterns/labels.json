@@ -1,0 +1,124 @@
+{
+  "schema": "surface-map-holdout-labels/1",
+  "corpus_sha256": "bcbab5d9e1a2295726ddea5e7c53cc52870b0be8ed83c4cbaccb39a1fb3ab521",
+  "labels": [
+    {
+      "id": "googlechrome-fetch-post-gists",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read fetch-post-demo.js (whole file, 31 lines). One call at L3-L6: fetch('https://api.github.com/gists', { method: 'post', body: JSON.stringify(opts) }). URL is a literal absolute string; host is dropped, leaving /gists. 'gists' is not in analyze.py SEGMENTS, so the path is /{segment_1}. The options object is a literal with literal method 'post'; Fetch normalizes the byte-case-insensitive verbs DELETE/GET/HEAD/OPTIONS/POST/PUT to upper case, so the wire method is POST (js_analysis._wire_method upper-cases ASCII verbs except PATCH). The body depends on the opts parameter and does not affect the route. ChromeSamples is an external page global; nothing else issues a request. Expected: POST /{segment_1}, inferred, javascript."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "POST",
+            "path": "/{segment_1}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "googlechrome-encoding-xhr-parameter-negative",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read encoding-api/demo.js (whole file, 36 lines). The only request is xhr.open('GET', file) at L19 inside fetchAndDecode(file, encoding); xhr is a local new XMLHttpRequest(). The URL is the function parameter 'file'. Callers pass Object.keys(filesToEncoding) entries ('utf8.bin', 'utf16le.bin', 'macintosh.bin') via forEach, but documented rules do not execute functions or follow call arguments into parameters, so the target is dynamic: no route and no unresolved target. Even if resolved, these are page-relative names and no document_url is supplied, so they would be omitted. Negative control. Expected: empty."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "tanstack-basic-posts-api",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read basic/src/services/posts/api.ts (whole file, 16 lines). L5: fetch('https://jsonplaceholder.typicode.com/posts') with a literal absolute URL and no options -> GET; host dropped; 'posts' is in SEGMENTS -> /posts. L10-L12: fetch(`https://jsonplaceholder.typicode.com/posts/${id}`) where id is the getPost parameter; documented rules treat parameter-derived targets as dynamic, so it yields neither a route nor an unresolved target. 'import type' at L1 is type-only. AMBIGUOUS: a tool that templatizes partially-known URLs could report GET /posts/{segment_2} or similar; under the documented constant-expression rules it is excluded. Expected: GET /posts only."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/posts",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "tanstack-star-wars-films-api",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read star-wars/src/services/films/api.ts (whole file, 14 lines). L5: fetch('https://swapi.dev/api/films/') literal, no options -> GET. Host dropped; empty path chunks (trailing slash) are discarded by safe_path; 'api' is in SEGMENTS, 'films' is not and is the 2nd chunk -> /api/{segment_2}. L10: fetch(`https://swapi.dev/api/films/${filmId}/`) uses the filmId parameter -> dynamic, excluded (same ambiguity as tanstack-basic-posts-api). Expected: GET /api/{segment_2}."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/api/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "rtk-query-pokemon-fetchbasequery-negative",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read query/react/basic/src/services/pokemon.ts (whole file, 14 lines). No fetch, XMLHttpRequest or Axios call appears. Requests are made at runtime by RTK Query's fetchBaseQuery({ baseUrl: 'https://pokeapi.co/api/v2/' }) combined with the endpoint query (name) => `pokemon/${name}`. fetchBaseQuery is an imported library wrapper, not a supported client, and the path depends on a parameter. Client-wrapper negative control. AMBIGUOUS: a tool that models RTK Query would report GET /api/v2/pokemon/{name} (normalized /api/v2/{segment_3}/{segment_4}); the documented static rules give an empty set. The literal baseUrl string is not a request call. Expected: empty."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "astro-ssr-api-dynamic-origin-negative",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read examples/ssr/src/api.ts (whole file, 69 lines). Two fetch calls. L23: fetch(`${origin}${endpoint}`, {...}) where origin = new URL(incomingReq.url).origin and endpoint are getJson parameters -> dynamic; callers' literal '/api/products', '/api/user', '/api/cart' are arguments to getJson, not to fetch, and functions are not executed. L56: fetch(`${location.origin}/api/cart`, { method: 'POST', ... }) -- the literal method is POST but the URL begins with the ambient browser global location.origin, which is not a constant, so the full target is not a known string. Documented rules: no route; not an unresolved target either (unresolved requires a known URL). AMBIGUOUS: a tool that treats location.origin as the same-origin base would report POST /api/cart (and would be defensible); a tool following getJson call sites would add GET /api/products, /api/user, /api/cart. Labelled empty under the documented rules; auditors may reclassify L56."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "remix-bookstore-cart-button-route-helper-negative",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Claude Code",
+        "reviewed_at": "2026-10-31",
+        "notes": "Read demos/bookstore/app/actions/fragments/public/cart-button.tsx (whole TSX file, 43 lines). One call at L24-L28: fetch(routes.api.cartToggle.href(), { method: 'POST', body: formData, signal }). The method is a literal POST, but the URL is the return value of an imported route helper (routes from '../../../routes.ts', not included) -> not a constant; no route. Because the URL is unknown, this is not an unresolved (known-URL/unknown-method) target either. The JSX and import.meta.url are not requests. Route-helper negative control. AMBIGUOUS: the real endpoint is defined in the excluded routes.ts; a project-level tool given that file might resolve it. Expected: empty."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    }
+  ]
+}

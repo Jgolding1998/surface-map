@@ -1,0 +1,69 @@
+{
+  "schema": "surface-map-holdout-corpus/1",
+  "name": "Synthetic harness self-tests; zero independent projects",
+  "projects": [
+    {
+      "id": "synthetic-harness",
+      "group": "synthetic:harness-self-test",
+      "split": "development",
+      "kind": "synthetic",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/Jgolding1998/surface-map/tree/main/evals/holdout/fixtures",
+        "revision": "synthetic-harness-v1",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "navigation-form",
+      "project": "synthetic-harness",
+      "family": "html",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "fixtures/navigation-and-form.html",
+          "sha256": "977ca122ba69bce5a23d6f655be4e96ef93a9a25874d40ac492f7722108047a1"
+        }
+      ]
+    },
+    {
+      "id": "unknown-method",
+      "project": "synthetic-harness",
+      "family": "javascript",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "fixtures/unresolved.js",
+          "sha256": "004c5396aec0993646162f81e5a332e9ba093ed05e7d5d29eaac89b2272b139d"
+        }
+      ]
+    },
+    {
+      "id": "negative-control",
+      "project": "synthetic-harness",
+      "family": "negative",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "fixtures/negative.html",
+          "sha256": "80931eb74cf7ba48f5963a9fd903ab708de9024d8ed000aac37dc404a66ecad1"
+        }
+      ]
+    },
+    {
+      "id": "malformed-har",
+      "project": "synthetic-harness",
+      "family": "rejection",
+      "artifacts": [
+        {
+          "kind": "har",
+          "path": "fixtures/rejected.har",
+          "sha256": "652ec80c766a6342a9d5fd411461d0632efe70317d1b985c3150fff1ceb4c99f"
+        }
+      ]
+    }
+  ]
+}

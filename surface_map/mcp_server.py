@@ -169,23 +169,10 @@ def _execute(name, args):
     deadline = time.monotonic() + ANALYSIS_BUDGET
     if name == "analyze_url":
         capture = capture_public_url(args["url"], include_scripts=args.get("include_scripts", True))
-        deadline = time.monotonic() + ANALYSIS_BUDGET
-        report = analyze(capture["artifacts"], javascript_engine=engine,
-                         document_url=capture["document_url"], deadline=deadline,
-                         include_page_signals=args.get("include_page_signals", False), tolerate_script_errors=True)
-        scripts = len(capture["artifacts"]) - 1
-        warnings = list(capture["warnings"])
-        omissions = report["script_omissions"]
-        if omissions:
-            warnings.append("Some fetched scripts were omitted from analysis; supported HTML and script evidence was retained. Inspect each source status and script_omissions.")
-        report["capture"] = {**capture["capture"], "scripts_analyzed": scripts - len(omissions),
-                             "analysis_partial": bool(omissions)}
-        report["capture_warnings"] = warnings
-        report["privacy"]["scope"] = (
-            "A public page and selected script resources were fetched for static analysis. "
-            "Discovered form and API operations were not replayed or validated. Normalized paths "
-            "may merge unrelated origins or identifiers; evidence is incomplete."
-        )
+        from .public_url import analyze_public_capture
+        report = analyze_public_capture(capture, javascript_engine=engine,
+                                        include_page_signals=args.get("include_page_signals", False),
+                                        analyzer=analyze)
         return review(report, route_limit=args.get("review_limit", 12)) if args.get("output") == "review" else report
     if name == "analyze_capture":
         report = analyze(args["artifacts"], javascript_engine=engine, deadline=deadline,

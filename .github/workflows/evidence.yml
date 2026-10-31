@@ -1,0 +1,34 @@
+name: Evidence action integration
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  saved-captures:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Exercise the composite Action on synthetic saved captures
+        id: evidence
+        uses: ./
+        with:
+          before: examples/ci/before.json
+          after: examples/ci/after.json
+      - name: Verify report semantics
+        shell: bash
+        run: python -c "import json; r=json.load(open('surface-map-results/comparison.json')); assert r['policy']['passed']; assert len(r['comparison']['added']) == 1; assert len(r['comparison']['changed']) == 1"
+      - name: Retain minimized reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: evidence-${{ matrix.os }}
+          path: surface-map-results/
+          if-no-files-found: ignore
+          retention-days: 7

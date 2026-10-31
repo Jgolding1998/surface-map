@@ -1,0 +1,137 @@
+{
+  "schema": "surface-map-realworld-sources/1",
+  "note": "Line ranges are 1-based inclusive over the upstream file at the pinned revision. Fragments are those lines joined with LF plus one trailing LF.",
+  "projects": [
+    {
+      "project": "httpbin",
+      "license_file": "licenses/httpbin.txt",
+      "license_url": "https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/LICENSE",
+      "artifacts": [
+        {
+          "path": "artifacts/httpbin/forms-post.html",
+          "upstream_path": "httpbin/templates/forms-post.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "6297c5bca1846ead33fcd6adc0de34c90bce0ca4b7325817ceab72f85ce492fe",
+          "bytes": 1419,
+          "sha256": "6297c5bca1846ead33fcd6adc0de34c90bce0ca4b7325817ceab72f85ce492fe"
+        }
+      ]
+    },
+    {
+      "project": "flask",
+      "license_file": "licenses/flask.txt",
+      "license_url": "https://github.com/pallets/flask/blob/49943b5a94413a530761350f04e896f76e8d620e/LICENSE.txt",
+      "artifacts": [
+        {
+          "path": "artifacts/flask/register.html",
+          "upstream_path": "examples/tutorial/flaskr/templates/auth/register.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "53da308c1d62f057613ec8e445eb70e89404288f503156102d1e3e39ec5b2153",
+          "bytes": 428,
+          "sha256": "53da308c1d62f057613ec8e445eb70e89404288f503156102d1e3e39ec5b2153"
+        },
+        {
+          "path": "artifacts/flask/login.html",
+          "upstream_path": "examples/tutorial/flaskr/templates/auth/login.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "f0d4ee341a19c8f9d51a66c5da624e687e58de7e3fb2ca41c6f5b8d07e20a6c1",
+          "bytes": 424,
+          "sha256": "f0d4ee341a19c8f9d51a66c5da624e687e58de7e3fb2ca41c6f5b8d07e20a6c1"
+        }
+      ]
+    },
+    {
+      "project": "axios",
+      "license_file": "licenses/axios.txt",
+      "license_url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/LICENSE",
+      "artifacts": [
+        {
+          "path": "artifacts/axios/get-index.html",
+          "upstream_path": "examples/get/index.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "7e2e63da659ecf2f8247aaa4f71ed62ada9c9c13f4b87f289cdf482510c1a990",
+          "bytes": 1325,
+          "sha256": "7e2e63da659ecf2f8247aaa4f71ed62ada9c9c13f4b87f289cdf482510c1a990"
+        },
+        {
+          "path": "artifacts/axios/get-inline-L15-L32.js",
+          "upstream_path": "examples/get/index.html",
+          "lines": [
+            15,
+            32
+          ],
+          "upstream_file_sha256": "7e2e63da659ecf2f8247aaa4f71ed62ada9c9c13f4b87f289cdf482510c1a990",
+          "bytes": 961,
+          "sha256": "cfac50b681c9e523dad32df43820c22fecd94508964fa8ab9fd7c5a66f602489"
+        },
+        {
+          "path": "artifacts/axios/post-inline-L24-L39.js",
+          "upstream_path": "examples/post/index.html",
+          "lines": [
+            24,
+            39
+          ],
+          "upstream_file_sha256": "2e440fd6cddccb3857a3a5713b2aad67ea481957610d90013496553319bb3a17",
+          "bytes": 545,
+          "sha256": "6eee6eb99328d185c1668c9492387c3c7fc48bb99bfb628b4d41a89f57de7317"
+        }
+      ]
+    },
+    {
+      "project": "github-fetch",
+      "license_file": "licenses/github-fetch.txt",
+      "license_url": "https://github.com/JakeChampion/fetch/blob/ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4/LICENSE",
+      "artifacts": [
+        {
+          "path": "artifacts/github-fetch/fetch-L526-L633.js",
+          "upstream_path": "fetch.js",
+          "lines": [
+            526,
+            633
+          ],
+          "upstream_file_sha256": "5edbcbfbde9540d067d6bbbc9f2747afc4e6323b2a5d38eeaf394bc7261c5447",
+          "bytes": 3118,
+          "sha256": "4d43d944838144f39335058db138cd4d6d9fde45bcb6eec69e1bea0008c41c20"
+        }
+      ]
+    },
+    {
+      "project": "mdn-learning-area",
+      "license_file": "licenses/mdn-learning-area.txt",
+      "license_url": "https://github.com/mdn/learning-area/blob/21973263ba859ff3477919087b488157f9d618a6/LICENSE",
+      "artifacts": [
+        {
+          "path": "artifacts/mdn-learning-area/get-method.html",
+          "upstream_path": "html/forms/sending-form-data/get-method.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "8a98e5138ded59fdae45a625109061359d56a36249e221ddfae71cfa4a38178e",
+          "bytes": 916,
+          "sha256": "8a98e5138ded59fdae45a625109061359d56a36249e221ddfae71cfa4a38178e"
+        },
+        {
+          "path": "artifacts/mdn-learning-area/post-method.html",
+          "upstream_path": "html/forms/sending-form-data/post-method.html",
+          "lines": "whole file",
+          "upstream_file_sha256": "d695f7e69bd983feb5eeceb1f99a3d680ae7b7d8a4da19788129cbaeec0b2043",
+          "bytes": 918,
+          "sha256": "d695f7e69bd983feb5eeceb1f99a3d680ae7b7d8a4da19788129cbaeec0b2043"
+        }
+      ]
+    },
+    {
+      "project": "nextjs",
+      "license_file": "licenses/nextjs.txt",
+      "license_url": "https://github.com/vercel/next.js/blob/fac5fc87df2b60169189ac6dcba3142854124371/license.md",
+      "artifacts": [
+        {
+          "path": "artifacts/nextjs/index.tsx",
+          "upstream_path": "examples/api-routes-rest/pages/index.tsx",
+          "lines": "whole file",
+          "upstream_file_sha256": "b87bfdd05b9c69edd3e7931fef08bab81ee1a2d47fe4f74ec21b52561b20fee2",
+          "bytes": 648,
+          "sha256": "b87bfdd05b9c69edd3e7931fef08bab81ee1a2d47fe4f74ec21b52561b20fee2"
+        }
+      ]
+    }
+  ]
+}

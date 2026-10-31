@@ -54,6 +54,34 @@ with a HAR. The CLI has no `document_url` option.
 
 ## 3. Read the plan
 
+In the browser, **Build a plan** also prepares a local explanation and an agent
+implementation brief. **Try an example agent brief** works without selecting
+files. Simple, developer and Gen Z modes change the introduction; the evidence,
+uncertainty and instructions stay identical. They use fixed templates, without
+model calls or a paid service.
+
+**Public HTTPS page** can produce a report and brief without preparing files.
+That workflow fetches once and projects the plan from the same analyzed report;
+it does not re-fetch for style changes or downloads. Public plans disclose actual
+retrieval, capture omissions and omitted reference inventory. They are intended
+for review and handoff; use saved artifacts for mock generation and comparison.
+The offline planner and its scope remain unchanged.
+
+Review the Markdown before copying it or downloading **Agent brief (.md)**.
+Clipboard refusal opens a selectable text preview. Briefs show at most 20
+operations, 8 navigation references, 8 unresolved targets and 2 evidence examples
+per row, with explicit omitted counts. Full request/response shapes and remaining
+retained detail require **Plan JSON**. Coverage metadata is not preview-truncated;
+briefs above 128 KiB are refused rather than silently cut. Original plan limits
+still apply.
+
+The browser initially requests the plan without mock files. **Mock files (JSON)**
+generates them on demand using the plan's original requested parser choice;
+further downloads reuse that result until the plan is cleared. If a new analysis
+changes the plan (for example, the optional parser becomes available), the
+workspace refreshes its explanation and brief and asks you to review them before
+selecting the download again. This does not change the CLI or MCP scaffold behavior.
+
 ```sh
 python -m surface_map rebuild --capture capture.json
 ```

@@ -1,0 +1,103 @@
+{
+  "schema": "surface-map-holdout-labels/1",
+  "corpus_sha256": "bc2a7d2c19d008abfe02d331aff6df6c4c6399bc12e47b95ea5833f57d3b5e39",
+  "labels": [
+    {
+      "id": "navigation-form",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Synthetic harness self-test authored and labeled from the declared extraction contract, without using analyzer predictions as ground truth. Not human reviewed or independent evidence."
+      },
+      "expected": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/docs",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "source": "source_1",
+                "location": "line 1",
+                "kind": "link"
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/api/orders",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "source": "source_1",
+                "location": "line 2",
+                "kind": "form"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "unknown-method",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Synthetic harness self-test authored and labeled from the declared extraction contract, without using analyzer predictions as ground truth. Not human reviewed or independent evidence."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": [
+          {
+            "path": "/api/items",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "source": "source_1",
+                "location": "line 1",
+                "kind": "javascript"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "negative-control",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Synthetic harness self-test authored and labeled from the declared extraction contract, without using analyzer predictions as ground truth. Not human reviewed or independent evidence."
+      },
+      "expected": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "malformed-har",
+      "review": {
+        "status": "agent-reviewed",
+        "reviewer": "Codex",
+        "reviewed_at": "2026-10-31",
+        "notes": "Synthetic harness self-test authored and labeled from the declared extraction contract, without using analyzer predictions as ground truth. Not human reviewed or independent evidence."
+      },
+      "expected": {
+        "rejected": true
+      }
+    }
+  ]
+}

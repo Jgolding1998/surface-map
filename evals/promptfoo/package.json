@@ -1,0 +1,14 @@
+{
+  "name": "surface-map-promptfoo-evals",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Optional local evaluation UI for Surface Map's frozen synthetic tasks",
+  "engines": {"node": ">=22.22.0"},
+  "scripts": {
+    "eval": "python run.py basic",
+    "eval:enhanced": "python run.py enhanced",
+    "eval:mcp": "python run.py mcp",
+    "view": "python run.py view"
+  },
+  "devDependencies": {"promptfoo": "0.125.1"}
+}

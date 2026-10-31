@@ -1,0 +1,152 @@
+{
+  "artifacts": 31,
+  "combined_corpus_sha256": "a2a04ccada4f49843a5d0bfc82f689db56ddb12c295ffc52bd50566fa9172774",
+  "combined_labels_sha256": "6b1694e84ad291f70ed86807c04c83109423725894980afb9f0efd7da646c7b4",
+  "independent_project_groups": 21,
+  "projects": 21,
+  "schema": "surface-map-realworld-combined-sources/1",
+  "scope": "Source manifests, capture hashes and separate labels were validated before combination. Labels and review declarations are copied, never generated from analyzer predictions. These are exposed, agent- or human-reviewed development projects; combination creates no unseen holdout, human certification, model comparison or additional independent projects.",
+  "sources": [
+    {
+      "case_ids": [
+        "axios-example-get-global",
+        "axios-example-post-global",
+        "fetch-polyfill-xhr-dynamic",
+        "flask-tutorial-login-form",
+        "flask-tutorial-register-form",
+        "httpbin-forms-post-template",
+        "mdn-form-get-method",
+        "mdn-form-post-method",
+        "nextjs-swr-fetcher-indirect"
+      ],
+      "corpus": "corpus.json",
+      "corpus_sha256": "cbef844778fdd68650dcd7ad4f551f7d3e8f752ef6d09101a2ef17e8c12666df",
+      "labels": "labels.json",
+      "labels_sha256": "795c91475ab088ec830d41f61ef011f65ebbaf40b370c68d9a7a7ac13e9ada52",
+      "prefix": "",
+      "project_groups": [
+        "axios",
+        "flask",
+        "github-fetch",
+        "httpbin",
+        "mdn-learning-area",
+        "nextjs"
+      ],
+      "project_ids": [
+        "axios",
+        "flask",
+        "github-fetch",
+        "httpbin",
+        "mdn-learning-area",
+        "nextjs"
+      ],
+      "provenance_sidecar": {
+        "path": "sources.json",
+        "sha256": "ba4bd5a35493fae3b846598f6da1db850bcda6ef4000ddc9a5e20d4ff27893a5"
+      }
+    },
+    {
+      "case_ids": [
+        "angular-reactive-form-without-document-url",
+        "express-auth-login-template",
+        "fastapi-unrendered-item-template",
+        "lit-docs-navigation-with-context",
+        "lit-starter-demo-link",
+        "vue-tutorial-dynamic-todo-fetch",
+        "vue-watchers-literal-fetch"
+      ],
+      "corpus": "batches/frameworks/corpus.json",
+      "corpus_sha256": "81e6749716d45c99ab8c704a5d29fe9d64f7836d89c1e3b84e916c27cf7f4ed5",
+      "labels": "batches/frameworks/labels.json",
+      "labels_sha256": "00b4b4c2301ba664a1cabb57f76913748fe69f9172937a68b6e079cbb0fa4d95",
+      "prefix": "batches/frameworks/",
+      "project_groups": [
+        "angular",
+        "express",
+        "fastapi",
+        "lit",
+        "vue"
+      ],
+      "project_ids": [
+        "angular",
+        "express",
+        "fastapi",
+        "lit",
+        "vue"
+      ],
+      "provenance_sidecar": {
+        "path": "batches/frameworks/sources.json",
+        "sha256": "82220bcd0c58f65e8ceb50a6a83a04fdf8142d87fd8db2c77e956d33deb7ca6c"
+      }
+    },
+    {
+      "case_ids": [
+        "bootstrap-visual-alert-fragment-links",
+        "django-actionless-unrendered-form",
+        "htmx-hx-get-unsupported",
+        "htmx-manual-relative-navigation",
+        "jquery-fixture-external-navigation",
+        "sveltekit-enhance-form-static-declaration",
+        "sveltekit-injected-fetch-scope-boundary"
+      ],
+      "corpus": "batches/html-clients/corpus.json",
+      "corpus_sha256": "697ecd8b8306937844b91e7cae5b3cf2f6d8aff17a4c544df7189159bf7f67b6",
+      "labels": "batches/html-clients/labels.json",
+      "labels_sha256": "bade9fdb818802a4029ab4918b2736bd753f6e6ac08793576a03c1fbc2b4e560",
+      "prefix": "batches/html-clients/",
+      "project_groups": [
+        "bootstrap",
+        "django",
+        "htmx",
+        "jquery",
+        "sveltekit"
+      ],
+      "project_ids": [
+        "bootstrap",
+        "django",
+        "htmx",
+        "jquery",
+        "sveltekit"
+      ],
+      "provenance_sidecar": {
+        "path": "batches/html-clients/sources.json",
+        "sha256": "9a444b62de9ed3bf936ee21a5690875e249a6390ba0263eace1d533ac5e51cd2"
+      }
+    },
+    {
+      "case_ids": [
+        "astro-ssr-api-dynamic-origin-negative",
+        "googlechrome-encoding-xhr-parameter-negative",
+        "googlechrome-fetch-post-gists",
+        "remix-bookstore-cart-button-route-helper-negative",
+        "rtk-query-pokemon-fetchbasequery-negative",
+        "tanstack-basic-posts-api",
+        "tanstack-star-wars-films-api"
+      ],
+      "corpus": "batches/request-patterns/corpus.json",
+      "corpus_sha256": "bcbab5d9e1a2295726ddea5e7c53cc52870b0be8ed83c4cbaccb39a1fb3ab521",
+      "labels": "batches/request-patterns/labels.json",
+      "labels_sha256": "82e84c36b697013d71d7aee8c2799fb8915f62c005136bb7b5c54b6dbb8a5c03",
+      "prefix": "batches/request-patterns/",
+      "project_groups": [
+        "astro",
+        "googlechrome-samples",
+        "redux-toolkit",
+        "remix",
+        "tanstack-query"
+      ],
+      "project_ids": [
+        "astro",
+        "googlechrome-samples",
+        "redux-toolkit",
+        "remix",
+        "tanstack-query"
+      ],
+      "provenance_sidecar": {
+        "path": "batches/request-patterns/sources.json",
+        "sha256": "f6c0d14ac6407642603838497dc5e67f1ab71969fe7b3b2de33238687f681265"
+      }
+    }
+  ],
+  "tasks": 30
+}

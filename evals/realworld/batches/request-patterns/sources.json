@@ -1,0 +1,118 @@
+{
+  "schema": "surface-map-realworld-sources/1",
+  "note": "Every artifact is the whole upstream file at the pinned revision, saved byte-for-byte (LF, trailing newline). Line ranges are 1-based inclusive. upstream_file_sha256 equals the artifact sha256 because no slicing was applied.",
+  "retrieval": "raw.githubusercontent.com/<repo>/<revision>/<path>; revision = GitHub REST API commits/HEAD on 2026-10-31",
+  "projects": [
+    {
+      "project": "googlechrome-samples",
+      "repository": "GoogleChrome/samples",
+      "revision": "8c3a755f756fcd816f088684a3c697cbd891fc35",
+      "license": "Apache-2.0",
+      "license_file": "licenses/googlechrome-samples.txt",
+      "license_url": "https://github.com/GoogleChrome/samples/blob/8c3a755f756fcd816f088684a3c697cbd891fc35/LICENSE",
+      "license_sha256": "669005c15efd559de29985b2133832082679c42a88be2903f7f7b4bb664208c0",
+      "artifacts": [
+        {
+          "path": "artifacts/googlechrome-samples/fetch-post-demo.js",
+          "upstream_path": "fetch-api/fetch-post-demo.js",
+          "lines": "whole file (L1-L31)",
+          "upstream_file_sha256": "d3fa5455891db4b03d77e69d638bf1d461f2ef458fe70b84801c944b6b64635b",
+          "bytes": 788,
+          "sha256": "d3fa5455891db4b03d77e69d638bf1d461f2ef458fe70b84801c944b6b64635b"
+        },
+        {
+          "path": "artifacts/googlechrome-samples/encoding-api-demo.js",
+          "upstream_path": "encoding-api/demo.js",
+          "lines": "whole file (L1-L36)",
+          "upstream_file_sha256": "9e85121467f30549bd406f3c16cf6c5b23e83240a608a73aafcd8916d6d6031c",
+          "bytes": 1383,
+          "sha256": "9e85121467f30549bd406f3c16cf6c5b23e83240a608a73aafcd8916d6d6031c"
+        }
+      ]
+    },
+    {
+      "project": "tanstack-query",
+      "repository": "TanStack/query",
+      "revision": "979695d0a2daa8662bdfcbf9f4ae9c9805d97dec",
+      "license": "MIT",
+      "license_file": "licenses/tanstack-query.txt",
+      "license_url": "https://github.com/TanStack/query/blob/979695d0a2daa8662bdfcbf9f4ae9c9805d97dec/LICENSE",
+      "license_sha256": "a405ee70c632bb938acb7ac5f210e814409b3760ea9d2329d8ed8ffcfd11a0e7",
+      "artifacts": [
+        {
+          "path": "artifacts/tanstack-query/basic-posts-api.ts",
+          "upstream_path": "examples/react/basic/src/services/posts/api.ts",
+          "lines": "whole file (L1-L16)",
+          "upstream_file_sha256": "1a9ebe0cd5d36c715e95394b6a91901fbf1c57b1b3d77b195866614bbd9f8c73",
+          "bytes": 541,
+          "sha256": "1a9ebe0cd5d36c715e95394b6a91901fbf1c57b1b3d77b195866614bbd9f8c73"
+        },
+        {
+          "path": "artifacts/tanstack-query/star-wars-films-api.ts",
+          "upstream_path": "examples/react/star-wars/src/services/films/api.ts",
+          "lines": "whole file (L1-L14)",
+          "upstream_file_sha256": "017dd2bec07750cd8cc508ee96f2b10bcf0a37ea299357014e441f022c798165",
+          "bytes": 493,
+          "sha256": "017dd2bec07750cd8cc508ee96f2b10bcf0a37ea299357014e441f022c798165"
+        }
+      ]
+    },
+    {
+      "project": "redux-toolkit",
+      "repository": "reduxjs/redux-toolkit",
+      "revision": "0fd611cc79d44990ac9a040dec4d5cb446233440",
+      "license": "MIT",
+      "license_file": "licenses/redux-toolkit.txt",
+      "license_url": "https://github.com/reduxjs/redux-toolkit/blob/0fd611cc79d44990ac9a040dec4d5cb446233440/LICENSE",
+      "license_sha256": "49784961ec6c4941437b7a2c54d8977d0528076a9e7c73dd40f7d0942b8f106d",
+      "artifacts": [
+        {
+          "path": "artifacts/redux-toolkit/pokemon.ts",
+          "upstream_path": "examples/query/react/basic/src/services/pokemon.ts",
+          "lines": "whole file (L1-L14)",
+          "upstream_file_sha256": "5d84ac4bb566ecf758405085e4db2a4525d723048da02d35b7d64757f15739b1",
+          "bytes": 437,
+          "sha256": "5d84ac4bb566ecf758405085e4db2a4525d723048da02d35b7d64757f15739b1"
+        }
+      ]
+    },
+    {
+      "project": "astro",
+      "repository": "withastro/astro",
+      "revision": "10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30",
+      "license": "MIT",
+      "license_file": "licenses/astro.txt",
+      "license_url": "https://github.com/withastro/astro/blob/10dae2f31486cc0a6a04d1f3d7f5ab7fa8889b30/LICENSE",
+      "license_sha256": "4aa72be797aad0e5e21827eaae6a1df9e122d7a401f07d2c308a6b9a5f0e1278",
+      "artifacts": [
+        {
+          "path": "artifacts/astro/ssr-api.ts",
+          "upstream_path": "examples/ssr/src/api.ts",
+          "lines": "whole file (L1-L69)",
+          "upstream_file_sha256": "9ba45fd123f948a645925055538e72066e782e1c9b3964910a4e2f71df07d75e",
+          "bytes": 1654,
+          "sha256": "9ba45fd123f948a645925055538e72066e782e1c9b3964910a4e2f71df07d75e"
+        }
+      ]
+    },
+    {
+      "project": "remix",
+      "repository": "remix-run/remix",
+      "revision": "a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259",
+      "license": "MIT",
+      "license_file": "licenses/remix.txt",
+      "license_url": "https://github.com/remix-run/remix/blob/a178e1f3a6e4ad94eebdf9b53e360c1cff7fe259/LICENSE",
+      "license_sha256": "d6baf87f30d13d2d7770c18c858e7a31fa7ceede4bc9469a50f03dbafe455cb4",
+      "artifacts": [
+        {
+          "path": "artifacts/remix/cart-button.tsx",
+          "upstream_path": "demos/bookstore/app/actions/fragments/public/cart-button.tsx",
+          "lines": "whole file (L1-L43)",
+          "upstream_file_sha256": "6192ff43dc2191aef84f7688be7ba8f80d7a4189f35eee64d4a65189b5d2b89a",
+          "bytes": 1172,
+          "sha256": "6192ff43dc2191aef84f7688be7ba8f80d7a4189f35eee64d4a65189b5d2b89a"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "artifacts": [
+    {"kind": "html", "text": "<a href=\"/dashboard\">Dashboard</a><form action=\"/api/orders\" method=\"post\"><input name=\"order_id\"><input name=\"quantity\"></form><a href=\"/reports\">Reports</a>"}
+  ]
+}

@@ -19,6 +19,23 @@ def _origin_change(a, b):
             "origin_relations": list(b["origin_relations"]) if "origin_relations" in b else None}
 
 
+def _assumption_fields(route):
+    return {"assumptions": sorted(set(route["assumptions"]))} if route.get("assumptions") else {}
+
+
+def _assumption_change(a, b):
+    if not a.get("assumptions") and not b.get("assumptions"):
+        return {}
+    return {"before_assumptions": sorted(set(a.get("assumptions", []))),
+            "assumptions": sorted(set(b.get("assumptions", [])))}
+
+
+ASSUMPTION_DESCRIPTION = (
+    " Some JavaScript evidence assumes the conventional browser-global Axios client; "
+    "its library identity and prior configuration were not verified."
+)
+
+
 def openapi_routes(routes):
     groups = {}
     for route in routes:
@@ -35,7 +52,7 @@ def openapi_routes(routes):
         for route in group:
             method = route["method"]
             if method not in operations:
-                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence", "origin_relations") if key in route}}
+                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence", "origin_relations", "assumptions") if key in route}}
             merged = operations[method]
             for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence"):
                 for value in route[key]:
@@ -46,6 +63,11 @@ def openapi_routes(routes):
                 for value in route["origin_relations"]:
                     if value not in relations:
                         relations.append(value)
+            if route.get("assumptions"):
+                assumptions = merged.setdefault("assumptions", [])
+                for value in route["assumptions"]:
+                    if value not in assumptions:
+                        assumptions.append(value)
             if ("inferred", "declared", "observed").index(route["confidence"]) > ("inferred", "declared", "observed").index(merged["confidence"]):
                 merged["confidence"] = route["confidence"]
         for route in operations.values():
@@ -53,6 +75,8 @@ def openapi_routes(routes):
             route["query_fields"].sort()
             if "origin_relations" in route:
                 route["origin_relations"].sort()
+            if "assumptions" in route:
+                route["assumptions"].sort()
             result.append(route)
     return result
 
@@ -65,6 +89,9 @@ def openapi(report):
         operation = {"operationId": route["id"], "summary": f"{route['method']} {route['path']}", "description": "Evidence-derived skeleton only. Origins, raw values and unknown names were removed. Confirm behavior and supply your own server before use.", "parameters": parameters, "responses": {}, "x-surface-map-confidence": route["confidence"], "x-surface-map-evidence": route["evidence"]}
         if "origin_relations" in route:
             operation["x-surface-map-origin-relations"] = route["origin_relations"]
+        if route.get("assumptions"):
+            operation["x-surface-map-assumptions"] = list(route["assumptions"])
+            operation["description"] += ASSUMPTION_DESCRIPTION
         for status in route["statuses"]:
             operation["responses"][str(status)] = {"description": "Status observed in a HAR entry. Body shapes are combined observations, not guaranteed for this status."}
             if route["response_shapes"]:
@@ -79,11 +106,16 @@ def openapi(report):
         result["x-surface-map-unresolved-operations"] = report["unresolved_operations"]
     if report.get("evidence_limits"):
         result["x-surface-map-evidence-limits"] = report["evidence_limits"]
+    assumptions = sorted({assumption for row in report["routes"] + report.get("unresolved_operations", [])
+                          for assumption in row.get("assumptions", [])})
+    if assumptions:
+        result["x-surface-map-assumptions"] = assumptions
+        result["info"]["description"] += ASSUMPTION_DESCRIPTION
     return result
 
 
 def contract(report):
-    result = {"format": "surface-map-contract-v1", "routes": [{**{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}, **_origin_fields(route)} for route in report["routes"]], "privacy": report["privacy"]}
+    result = {"format": "surface-map-contract-v1", "routes": [{**{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}, **_origin_fields(route), **_assumption_fields(route)} for route in report["routes"]], "privacy": report["privacy"]}
     if report.get("unresolved_operations"):
         result["unresolved_operations"] = report["unresolved_operations"]
     if report.get("evidence_limits"):
@@ -111,6 +143,8 @@ def compare(before, after):
             right = sorted(b["origin_relations"])
             if left != right:
                 fields.append("origin_relations")
+        if set(a.get("assumptions", [])) != set(b.get("assumptions", [])):
+            fields.append("assumptions")
         return fields
 
     def keyed(report):
@@ -165,9 +199,11 @@ def compare(before, after):
 
     old, new = keyed(before), keyed(after)
     added = [{"method": method, "path": path, "evidence": new[(method, path)]["evidence"],
-              "presence_context": presence_context(new[(method, path)]), **_origin_fields(new[(method, path)])} for method, path in sorted(new.keys() - old.keys())]
+              "presence_context": presence_context(new[(method, path)]), **_origin_fields(new[(method, path)]),
+              **_assumption_fields(new[(method, path)])} for method, path in sorted(new.keys() - old.keys())]
     removed = [{"method": method, "path": path, "evidence": old[(method, path)]["evidence"],
-                "absence_context": absence_context(old[(method, path)]), **_origin_fields(old[(method, path)])} for method, path in sorted(old.keys() - new.keys())]
+                "absence_context": absence_context(old[(method, path)]), **_origin_fields(old[(method, path)]),
+                **_assumption_fields(old[(method, path)])} for method, path in sorted(old.keys() - new.keys())]
     changed = []
     for method, path in sorted(old.keys() & new.keys()):
         a, b = old[(method, path)], new[(method, path)]
@@ -182,7 +218,8 @@ def compare(before, after):
             if "javascript" in kinds and old_engines and new_engines and old_engines != new_engines:
                 context.append("javascript_engine_changed")
             changed.append({"method": method, "path": path, "changed_fields": fields,
-                            "before_evidence": a["evidence"], "evidence": b["evidence"], "context": context, **_origin_change(a, b)})
+                            "before_evidence": a["evidence"], "evidence": b["evidence"], "context": context,
+                            **_origin_change(a, b), **_assumption_change(a, b)})
     result = {"added": added, "removed": removed, "changed": changed,
               "before_coverage": coverage(before), "after_coverage": coverage(after),
               "note": "Differences are between supplied, normalized evidence. Missing from a capture does not prove a route was removed from a service. Row context is not exhaustive and does not establish causes; inspect before/after warnings. Coverage warnings and retention limits apply to the capture overall."}
@@ -199,5 +236,6 @@ def compare(before, after):
             fields = changed_fields(a, b, ("query_fields",))
             if fields:
                 result["unresolved_changed"].append({"method": None, "path": path, "changed_fields": fields,
-                                                     "before_evidence": a["evidence"], "evidence": b["evidence"], **_origin_change(a, b)})
+                                                     "before_evidence": a["evidence"], "evidence": b["evidence"],
+                                                     **_origin_change(a, b), **_assumption_change(a, b)})
     return result

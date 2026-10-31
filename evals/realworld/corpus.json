@@ -1,0 +1,261 @@
+{
+  "schema": "surface-map-holdout-corpus/1",
+  "name": "surface-map-realworld-development-seed-v1",
+  "projects": [
+    {
+      "id": "httpbin",
+      "group": "httpbin",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/postmanlabs/httpbin/tree/f8ec666b4d1b654e4ff6aedd356f510dcac09f83",
+        "revision": "f8ec666b4d1b654e4ff6aedd356f510dcac09f83",
+        "license": "ISC",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "flask",
+      "group": "flask",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/pallets/flask/tree/49943b5a94413a530761350f04e896f76e8d620e",
+        "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+        "license": "BSD-3-Clause",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "axios",
+      "group": "axios",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/axios/axios/tree/9d11464a75ee5c644c0308d742f58755c0482594",
+        "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "github-fetch",
+      "group": "github-fetch",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/JakeChampion/fetch/tree/ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4",
+        "revision": "ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "mdn-learning-area",
+      "group": "mdn-learning-area",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/mdn/learning-area/tree/21973263ba859ff3477919087b488157f9d618a6",
+        "revision": "21973263ba859ff3477919087b488157f9d618a6",
+        "license": "CC0-1.0",
+        "retrieved_at": "2026-10-31"
+      }
+    },
+    {
+      "id": "nextjs",
+      "group": "nextjs",
+      "split": "development",
+      "kind": "real",
+      "exposure": "exposed",
+      "provenance": {
+        "url": "https://github.com/vercel/next.js/tree/fac5fc87df2b60169189ac6dcba3142854124371",
+        "revision": "fac5fc87df2b60169189ac6dcba3142854124371",
+        "license": "MIT",
+        "retrieved_at": "2026-10-31"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "httpbin-forms-post-template",
+      "project": "httpbin",
+      "family": "html-form-unrendered-action",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/httpbin/forms-post.html",
+          "sha256": "6297c5bca1846ead33fcd6adc0de34c90bce0ca4b7325817ceab72f85ce492fe",
+          "provenance": {
+            "url": "https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/templates/forms-post.html",
+            "revision": "f8ec666b4d1b654e4ff6aedd356f510dcac09f83",
+            "license": "ISC",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "flask-tutorial-register-form",
+      "project": "flask",
+      "family": "html-form-empty-action",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/flask/register.html",
+          "sha256": "53da308c1d62f057613ec8e445eb70e89404288f503156102d1e3e39ec5b2153",
+          "provenance": {
+            "url": "https://github.com/pallets/flask/blob/49943b5a94413a530761350f04e896f76e8d620e/examples/tutorial/flaskr/templates/auth/register.html",
+            "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/auth/register"
+    },
+    {
+      "id": "flask-tutorial-login-form",
+      "project": "flask",
+      "family": "html-form-empty-action",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/flask/login.html",
+          "sha256": "f0d4ee341a19c8f9d51a66c5da624e687e58de7e3fb2ca41c6f5b8d07e20a6c1",
+          "provenance": {
+            "url": "https://github.com/pallets/flask/blob/49943b5a94413a530761350f04e896f76e8d620e/examples/tutorial/flaskr/templates/auth/login.html",
+            "revision": "49943b5a94413a530761350f04e896f76e8d620e",
+            "license": "BSD-3-Clause",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ],
+      "document_url": "https://example.com/auth/login"
+    },
+    {
+      "id": "axios-example-get-global",
+      "project": "axios",
+      "family": "javascript-axios-global",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/axios/get-index.html",
+          "sha256": "7e2e63da659ecf2f8247aaa4f71ed62ada9c9c13f4b87f289cdf482510c1a990",
+          "provenance": {
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/get/index.html",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        },
+        {
+          "kind": "javascript",
+          "path": "artifacts/axios/get-inline-L15-L32.js",
+          "sha256": "cfac50b681c9e523dad32df43820c22fecd94508964fa8ab9fd7c5a66f602489",
+          "provenance": {
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/get/index.html#L15-L32",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "axios-example-post-global",
+      "project": "axios",
+      "family": "javascript-axios-global",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/axios/post-inline-L24-L39.js",
+          "sha256": "6eee6eb99328d185c1668c9492387c3c7fc48bb99bfb628b4d41a89f57de7317",
+          "provenance": {
+            "url": "https://github.com/axios/axios/blob/9d11464a75ee5c644c0308d742f58755c0482594/examples/post/index.html#L24-L39",
+            "revision": "9d11464a75ee5c644c0308d742f58755c0482594",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fetch-polyfill-xhr-dynamic",
+      "project": "github-fetch",
+      "family": "javascript-xhr-dynamic-negative",
+      "artifacts": [
+        {
+          "kind": "javascript",
+          "path": "artifacts/github-fetch/fetch-L526-L633.js",
+          "sha256": "4d43d944838144f39335058db138cd4d6d9fde45bcb6eec69e1bea0008c41c20",
+          "provenance": {
+            "url": "https://github.com/JakeChampion/fetch/blob/ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4/fetch.js#L526-L633",
+            "revision": "ba5cf1ed2e02ebb96fa1e60b4fd2eb04071b60e4",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mdn-form-get-method",
+      "project": "mdn-learning-area",
+      "family": "html-form-absolute-action",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/mdn-learning-area/get-method.html",
+          "sha256": "8a98e5138ded59fdae45a625109061359d56a36249e221ddfae71cfa4a38178e",
+          "provenance": {
+            "url": "https://github.com/mdn/learning-area/blob/21973263ba859ff3477919087b488157f9d618a6/html/forms/sending-form-data/get-method.html",
+            "revision": "21973263ba859ff3477919087b488157f9d618a6",
+            "license": "CC0-1.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mdn-form-post-method",
+      "project": "mdn-learning-area",
+      "family": "html-form-absolute-action",
+      "artifacts": [
+        {
+          "kind": "html",
+          "path": "artifacts/mdn-learning-area/post-method.html",
+          "sha256": "d695f7e69bd983feb5eeceb1f99a3d680ae7b7d8a4da19788129cbaeec0b2043",
+          "provenance": {
+            "url": "https://github.com/mdn/learning-area/blob/21973263ba859ff3477919087b488157f9d618a6/html/forms/sending-form-data/post-method.html",
+            "revision": "21973263ba859ff3477919087b488157f9d618a6",
+            "license": "CC0-1.0",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    },
+    {
+      "id": "nextjs-swr-fetcher-indirect",
+      "project": "nextjs",
+      "family": "typescript-fetch-indirect-negative",
+      "artifacts": [
+        {
+          "kind": "typescript",
+          "path": "artifacts/nextjs/index.tsx",
+          "sha256": "b87bfdd05b9c69edd3e7931fef08bab81ee1a2d47fe4f74ec21b52561b20fee2",
+          "provenance": {
+            "url": "https://github.com/vercel/next.js/blob/fac5fc87df2b60169189ac6dcba3142854124371/examples/api-routes-rest/pages/index.tsx",
+            "revision": "fac5fc87df2b60169189ac6dcba3142854124371",
+            "license": "MIT",
+            "retrieved_at": "2026-10-31"
+          }
+        }
+      ]
+    }
+  ]
+}

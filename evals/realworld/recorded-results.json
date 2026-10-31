@@ -1,0 +1,2284 @@
+{
+  "schema": "surface-map-holdout-results/1",
+  "corpus_sha256": "a2a04ccada4f49843a5d0bfc82f689db56ddb12c295ffc52bd50566fa9172774",
+  "labels_sha256": "6b1694e84ad291f70ed86807c04c83109423725894980afb9f0efd7da646c7b4",
+  "input_sha256": "8133fae97d3f5ae82560312379098d1d11cc751f7b6edb012bcddb3fb93e3855",
+  "engine": "enhanced",
+  "split": "all",
+  "repeats": 3,
+  "analysis_calls": 90,
+  "scored_observations": 90,
+  "composition": {
+    "tasks": 30,
+    "project_records": 21,
+    "independent_project_groups": 21,
+    "synthetic_project_groups": 0,
+    "declared_unseen_holdout_project_groups": 0,
+    "declared_unseen_human_reviewed_holdout_groups": 0,
+    "unique_capture_hashes": 31,
+    "families": {
+      "html-actionless-framework-form": 1,
+      "html-ejs-form-and-navigation": 1,
+      "html-external-navigation-origin-merge": 1,
+      "html-form-absolute-action": 2,
+      "html-form-empty-action": 2,
+      "html-form-template-document-context": 1,
+      "html-form-unrendered-action": 1,
+      "html-fragment-links-negative": 1,
+      "html-framework-attribute-unsupported": 1,
+      "html-framework-form-static-fragment": 1,
+      "html-jinja-unrendered-navigation": 1,
+      "html-relative-navigation-collision": 1,
+      "html-relative-navigation-origin-merge": 1,
+      "html-starter-navigation": 1,
+      "javascript-axios-global": 2,
+      "javascript-fetch-lowercase-method": 1,
+      "javascript-framework-dynamic-target": 1,
+      "javascript-injected-client-unsupported": 1,
+      "javascript-watch-callback-literal-fetch": 1,
+      "javascript-xhr-dynamic-negative": 2,
+      "typescript-client-wrapper-negative": 1,
+      "typescript-fetch-dynamic-origin-negative": 1,
+      "typescript-fetch-indirect-negative": 1,
+      "typescript-fetch-literal-and-template": 2,
+      "typescript-fetch-route-helper-negative": 1
+    },
+    "splits": {
+      "development": 30
+    },
+    "label_review": {
+      "agent-reviewed": 30
+    },
+    "project_exposure_declarations": {
+      "exposed": 21
+    },
+    "scope": "Real project groups and exposure/review status are declared metadata, not external attestations. Tasks, captures and repeats are not independent websites. Public or previously inspected cases are not unseen holdout evidence."
+  },
+  "cases": 30,
+  "passed": 30,
+  "stable_cases": 30,
+  "known_operations": {
+    "tp": 21,
+    "fp": 0,
+    "fn": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "unresolved_targets": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "precision": null,
+    "recall": null,
+    "f1": null
+  },
+  "analyzer": {
+    "surface_map_version": "1.5.0",
+    "python": "3.13.11",
+    "source_sha256": {
+      "surface_map/__init__.py": "a16d9dce068557ae30782242ca13cb424c6e4281958ceceb42b9b0a0f27b9089",
+      "surface_map/analyze.py": "8410775925eceb83bd16dcf081e2342275095b7637494108b22acdc4237c9652",
+      "surface_map/export.py": "c9f7e00ce2f9648453e00318a063679f6344d616f55df4dc14787c1ef0371eb3",
+      "surface_map/js_analysis.py": "579375b05dda2befe349ebf9e760d9ea5fbcacf14442097dc173567822ced20d",
+      "surface_map/js_parser.py": "87ab9ac18aa64d94599c672696bc33657041a416b1232f477ba2077731e25089",
+      "evals/holdout/run.py": "f2fe59fd5432377230c5cdc305701010c682abf0442feb2ba429d80fde74548d",
+      "analyzers/javascript/parse.mjs": "66798af5d387ca7b911c5751f27870aabad5c07fe320ee94704e8898bbcab5e6",
+      "analyzers/javascript/package-lock.json": "b53b24f49b8fbe9bd7550a453f99b98ea698226957b682c7b97adeaa9a8abaed",
+      "analyzers/javascript/integrity.json": "ec2fd3fa5ce885d65f029ec36a44e4a5f9ec42d66e78071f60a92853425a6ebf"
+    },
+    "scope": "Source and parser-lock identities, not proof that a declared corpus was unseen. Enhanced analysis uses the explicitly configured parser; this record does not claim OS sandboxing or a model comparison.",
+    "executed": true
+  },
+  "projects": {
+    "angular": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "astro": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "axios": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "bootstrap": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "django": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "express": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "fastapi": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "flask": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "github-fetch": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "googlechrome-samples": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "htmx": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "httpbin": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "jquery": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "lit": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "mdn-learning-area": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "nextjs": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "redux-toolkit": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "remix": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "sveltekit": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "tanstack-query": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "vue": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    }
+  },
+  "families": {
+    "html-actionless-framework-form": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-ejs-form-and-navigation": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-external-navigation-origin-merge": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-form-absolute-action": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-form-empty-action": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-form-template-document-context": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-form-unrendered-action": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-fragment-links-negative": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-framework-attribute-unsupported": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-framework-form-static-fragment": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-jinja-unrendered-navigation": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-relative-navigation-collision": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-relative-navigation-origin-merge": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "html-starter-navigation": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-axios-global": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-fetch-lowercase-method": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-framework-dynamic-target": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-injected-client-unsupported": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-watch-callback-literal-fetch": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "javascript-xhr-dynamic-negative": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "typescript-client-wrapper-negative": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "typescript-fetch-dynamic-origin-negative": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "typescript-fetch-indirect-negative": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "typescript-fetch-literal-and-template": {
+      "cases": 2,
+      "passed": 2,
+      "stable_cases": 2,
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    },
+    "typescript-fetch-route-helper-negative": {
+      "cases": 1,
+      "passed": 1,
+      "stable_cases": 1,
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "angular-reactive-form-without-document-url",
+      "input_id": "case_27a8ca12fe00c1b4120c",
+      "project": "angular",
+      "family": "html-actionless-framework-form",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "astro-ssr-api-dynamic-origin-negative",
+      "input_id": "case_8fe500d9426ffc43c72f",
+      "project": "astro",
+      "family": "typescript-fetch-dynamic-origin-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "axios-example-get-global",
+      "input_id": "case_a087feb317657c5e18c2",
+      "project": "axios",
+      "family": "javascript-axios-global",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 1",
+                "source": "source_2"
+              }
+            ],
+            "method": "GET",
+            "assumptions": [
+              "unverified_global_axios"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "axios-example-post-global",
+      "input_id": "case_a66b350e4bc66e405573",
+      "project": "axios",
+      "family": "javascript-axios-global",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/post/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 6",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST",
+            "assumptions": [
+              "unverified_global_axios"
+            ]
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "bootstrap-visual-alert-fragment-links",
+      "input_id": "case_d121758bc266c0acc907",
+      "project": "bootstrap",
+      "family": "html-fragment-links-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "django-actionless-unrendered-form",
+      "input_id": "case_80b546223ffdb9e84daa",
+      "project": "django",
+      "family": "html-form-template-document-context",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/create",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 3",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "express-auth-login-template",
+      "input_id": "case_9cef504933ca73a40ae3",
+      "project": "express",
+      "family": "html-ejs-form-and-navigation",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/login",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 7",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          },
+          {
+            "path": "/{segment_1}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 6",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "fastapi-unrendered-item-template",
+      "input_id": "case_24b8faf790bbec230a70",
+      "project": "fastapi",
+      "family": "html-jinja-unrendered-navigation",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "fetch-polyfill-xhr-dynamic",
+      "input_id": "case_65b94040b3f47a10f479",
+      "project": "github-fetch",
+      "family": "javascript-xhr-dynamic-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "flask-tutorial-login-form",
+      "input_id": "case_80387751ef4038034d59",
+      "project": "flask",
+      "family": "html-form-empty-action",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/auth/login",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 8",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "flask-tutorial-register-form",
+      "input_id": "case_55b9d86b04f0eedce52e",
+      "project": "flask",
+      "family": "html-form-empty-action",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/auth/register",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 8",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "googlechrome-encoding-xhr-parameter-negative",
+      "input_id": "case_d175d3d62f93a9930f19",
+      "project": "googlechrome-samples",
+      "family": "javascript-xhr-dynamic-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "googlechrome-fetch-post-gists",
+      "input_id": "case_3b67e88476070552b32b",
+      "project": "googlechrome-samples",
+      "family": "javascript-fetch-lowercase-method",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 3",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "htmx-hx-get-unsupported",
+      "input_id": "case_09513eeb3ce93939554c",
+      "project": "htmx",
+      "family": "html-framework-attribute-unsupported",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "htmx-manual-relative-navigation",
+      "input_id": "case_37d739ab6ac53d4fb184",
+      "project": "htmx",
+      "family": "html-relative-navigation-origin-merge",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/{segment_2}/{segment_3}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 10",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 11",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 12",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 13",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 14",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 15",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 16",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 17",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 18",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 19",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 20",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 21",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 22",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 25",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 26",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 27",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 32",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 33",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 34",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 35",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 36",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 37",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 38",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 43",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 44",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 45",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 50",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "httpbin-forms-post-template",
+      "input_id": "case_10725a421a6b9e12431d",
+      "project": "httpbin",
+      "family": "html-form-unrendered-action",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "jquery-fixture-external-navigation",
+      "input_id": "case_a487369fb91ef0721518",
+      "project": "jquery",
+      "family": "html-external-navigation-origin-merge",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 1",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          },
+          {
+            "path": "/",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 11",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 12",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 3",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 4",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 5",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 6",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "lit-docs-navigation-with-context",
+      "input_id": "case_b7f212547f34b8ef15a9",
+      "project": "lit",
+      "family": "html-relative-navigation-collision",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 25",
+                "source": "source_1"
+              },
+              {
+                "kind": "link",
+                "location": "line 27",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          },
+          {
+            "path": "/api",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 26",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          },
+          {
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 71",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "lit-starter-demo-link",
+      "input_id": "case_70acf90f30d7279c4fdb",
+      "project": "lit",
+      "family": "html-starter-navigation",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/index.html",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "link"
+            ],
+            "evidence": [
+              {
+                "kind": "link",
+                "location": "line 9",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "mdn-form-get-method",
+      "input_id": "case_200a29ba22ff40ffd47f",
+      "project": "mdn-learning-area",
+      "family": "html-form-absolute-action",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 30",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "mdn-form-post-method",
+      "input_id": "case_47abd91420b62e123256",
+      "project": "mdn-learning-area",
+      "family": "html-form-absolute-action",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 30",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "nextjs-swr-fetcher-indirect",
+      "input_id": "case_3a4e23d00545a6fa702e",
+      "project": "nextjs",
+      "family": "typescript-fetch-indirect-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "remix-bookstore-cart-button-route-helper-negative",
+      "input_id": "case_12c6dca559f85d0ac0bc",
+      "project": "remix",
+      "family": "typescript-fetch-route-helper-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "rtk-query-pokemon-fetchbasequery-negative",
+      "input_id": "case_bfdb4a919fb1c708b01d",
+      "project": "redux-toolkit",
+      "family": "typescript-client-wrapper-negative",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "sveltekit-enhance-form-static-declaration",
+      "input_id": "case_58938fd44f9da0af4318",
+      "project": "sveltekit",
+      "family": "html-framework-form-static-fragment",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/{segment_1}/{segment_2}",
+            "confidence": "declared",
+            "evidence_kinds": [
+              "form"
+            ],
+            "evidence": [
+              {
+                "kind": "form",
+                "location": "line 1",
+                "source": "source_1"
+              }
+            ],
+            "method": "POST"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "sveltekit-injected-fetch-scope-boundary",
+      "input_id": "case_72bcc1faa8d410bffd63",
+      "project": "sveltekit",
+      "family": "javascript-injected-client-unsupported",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "tanstack-basic-posts-api",
+      "input_id": "case_c99c6f7c0b6cd2fb3026",
+      "project": "tanstack-query",
+      "family": "typescript-fetch-literal-and-template",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/posts",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 5",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "tanstack-star-wars-films-api",
+      "input_id": "case_ea75ab453ca2f0bcac8a",
+      "project": "tanstack-query",
+      "family": "typescript-fetch-literal-and-template",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/api/{segment_2}",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 5",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "vue-tutorial-dynamic-todo-fetch",
+      "input_id": "case_9ecd683ca16a0d85b742",
+      "project": "vue",
+      "family": "javascript-framework-dynamic-target",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [],
+        "unresolved": []
+      }
+    },
+    {
+      "id": "vue-watchers-literal-fetch",
+      "input_id": "case_6408d9c2b3981eafd19f",
+      "project": "vue",
+      "family": "javascript-watch-callback-literal-fetch",
+      "review_status": "agent-reviewed",
+      "passed": true,
+      "stable": true,
+      "failures": [],
+      "known_operations": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "unresolved_targets": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "prediction": {
+        "routes": [
+          {
+            "path": "/api",
+            "confidence": "inferred",
+            "evidence_kinds": [
+              "javascript"
+            ],
+            "evidence": [
+              {
+                "kind": "javascript",
+                "location": "line 13",
+                "source": "source_1"
+              }
+            ],
+            "method": "GET"
+          }
+        ],
+        "unresolved": []
+      }
+    }
+  ],
+  "metric_scope": "Precision/recall count method/path identities from the first repetition. Strict case scores also require confidence, evidence kinds and any labeled locations. Empty precision, recall and F1 denominators are null. All repetitions must have identical scored projections."
+}
