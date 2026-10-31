@@ -14,6 +14,12 @@ The [five-minute trial guide](docs/TRY_IT.md) covers setup and a small real task
 The [pilot guide](docs/PILOT.md) identifies likely early users, recruitment venues,
 and how to measure useful results. Setup time is separate from the trial.
 
+**For pull requests:** the [automatic Git comparison](docs/CI.md#automatic-static-source-comparison)
+reads changed HTML, JavaScript and TypeScript directly from two Git commits.
+No screenshots or hand-made capture files are needed. The report points out
+supported static route, form, request and asset-reference changes, with explicit
+coverage limits. It does not run the proposed app or prove that a change is a bug.
+
 ![Surface Map workspace](docs/dashboard.png)
 
 ## Run

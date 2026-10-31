@@ -12,6 +12,7 @@ import re
 import time
 
 from .analyze import analyze, strict_json
+from .ci_assets import FIXED_NOTE as ASSET_SCOPE, compare_assets
 from .export import compare
 from .source_io import read_ordinary
 
@@ -114,29 +115,34 @@ def _coverage(report):
             Counter(item["engine"] for item in report.get("javascript_analysis", [])))
 
 
-def compare_captures(before_document, after_document, *, javascript_engine="enhanced", fail_on=()):
+def compare_captures(before_document, after_document, *, javascript_engine="enhanced", fail_on=(), include_assets=False):
     """Compare matching offline selections; policy hits never assert breakage."""
     policies = parse_fail_on(fail_on)
+    if type(include_assets) is not bool:
+        raise CIError("input")
     deadline = time.monotonic() + ANALYSIS_SECONDS
     before = _analyze(before_document, javascript_engine, deadline)
     after = _analyze(after_document, javascript_engine, deadline)
     if not _complete(before) or not _complete(after) or _coverage(before) != _coverage(after):
         raise CIError("coverage")
     difference = compare(before, after)
+    assets = compare_assets(before, after) if include_assets else None
     hits = {
-        "added": bool(difference["added"] or difference.get("unresolved_added")),
-        "absent": bool(difference["removed"] or difference.get("unresolved_removed")),
+        "added": bool(difference["added"] or difference.get("unresolved_added") or assets and assets["added"]),
+        "absent": bool(difference["removed"] or difference.get("unresolved_removed") or assets and assets["removed"]),
         "changed": bool(difference["changed"] or difference.get("unresolved_changed")),
         # Existing unknown methods are still uncertainty, even when unchanged.
         "unresolved": bool(before.get("unresolved_operations") or after.get("unresolved_operations")),
         "warnings": bool(before["warnings"] or after["warnings"]),
     }
     matched = [name for name in policies if hits[name]]
-    result = {"format": "surface-map-ci-comparison-v1", "comparison": difference,
+    result = {"format": "surface-map-ci-comparison-v2" if include_assets else "surface-map-ci-comparison-v1", "comparison": difference,
               "before": _context(before), "after": _context(after),
               "policy": {"fail_on": policies, "matched": matched, "passed": not matched,
                          "status": "advisory" if not policies else "failed" if matched else "passed"},
               "scope": SCOPE}
+    if include_assets:
+        result["asset_comparison"] = assets
     json_output(result)
     return result
 
@@ -167,7 +173,7 @@ def _references(evidence):
 
 def markdown(result):
     """Render only normalized evidence, escaping every dynamic Markdown cell."""
-    if result.get("format") != "surface-map-ci-comparison-v1":
+    if result.get("format") not in {"surface-map-ci-comparison-v1", "surface-map-ci-comparison-v2"}:
         raise CIError("input")
     difference, policy = result["comparison"], result["policy"]
     lines = ["## Surface Map evidence comparison", "", SCOPE, "",
@@ -195,6 +201,22 @@ def markdown(result):
                                              _references(prior), _references(current))) + " |")
         if len(rows) > MAX_MARKDOWN_ROWS:
             lines.extend(["", str(len(rows) - MAX_MARKDOWN_ROWS) + " additional rows are omitted from this summary; retain the JSON report."])
+    assets = result.get("asset_comparison")
+    if assets is not None:
+        lines.extend(["", "### Static asset references", "", ASSET_SCOPE, "",
+                      "Added: " + str(len(assets["added"])) + ". Absent: " + str(len(assets["removed"]))
+                      + ". Retained identities in both captures: " + str(assets["unchanged_count"]) + "."])
+        for label, key in (("Added", "added"), ("Absent", "removed")):
+            rows = assets[key]
+            if rows:
+                lines.extend(["", "| Change | Kind | Normalized path | Evidence |",
+                              "| --- | --- | --- | --- |"])
+                for row in rows[:MAX_MARKDOWN_ROWS]:
+                    lines.append("| " + " | ".join((label, _cell(row["kind"]), _cell(row["path"]),
+                                                     _references(row["evidence"]))) + " |")
+                if len(rows) > MAX_MARKDOWN_ROWS:
+                    lines.extend(["", str(len(rows) - MAX_MARKDOWN_ROWS)
+                                  + " additional asset references are omitted; retain the JSON report."])
     for side, title in (("before", "Before capture"), ("after", "After capture")):
         context = result[side]
         lines.extend(["", "### " + title, "",

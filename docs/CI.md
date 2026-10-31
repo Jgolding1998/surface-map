@@ -5,6 +5,108 @@ or calling an AI model. The same analyzer powers the browser, MCP and CI paths.
 CI compares supplied, normalized evidence. It does not test endpoints or prove
 that a deployed API is compatible.
 
+## Automatic static source comparison
+
+Use `compare-git` to collect changed website source directly from local Git
+objects. No screenshots or manually prepared capture JSON are required. It reads
+supported `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` and `.tsx` files,
+without checking out, importing, building or executing the proposed application.
+JSX syntax support does not imply that JSX elements or framework routing
+components are recognized as HTML forms and links.
+
+```sh
+python -m surface_map compare-git --repo /path/to/app --base FULL_BASE_COMMIT_SHA --head FULL_HEAD_COMMIT_SHA --format markdown
+```
+
+Both IDs must be full 40- or 64-character commit SHAs. The tool uses their unique
+merge base, so unrelated changes on the base branch are not reversed into the PR
+report. It reports both the requested base and effective merge base. Needed
+objects must already be local. Use a recent Git that supports `--no-lazy-fetch`;
+older Git fails with a fixed error rather than permitting an implicit fetch.
+
+Enhanced JavaScript analysis uses the optional pinned parser described in the
+[setup guide](../README.md#run). Add `--javascript-engine basic` for a Python-only
+run with substantially fewer recognized JavaScript patterns. Basic mode still
+requires Git. A selected-file or parser failure is an error, not an all-clear.
+
+Automatic selection is bounded to six changed supported files, with 4 MiB per
+HTML file, 512 KiB per script, and 4 MiB combined per side. Larger selections are
+refused; narrow the task with `--files src/page.html src/client.js` using exact
+repository-relative paths. Explicit selection can include unchanged files for
+context. Glob patterns, absolute paths, symlinks, submodules, Git LFS pointers,
+NUL-containing or non-UTF-8 source, config includes, alternates, shallow or partial
+clones, grafts and worktree Gitfile redirects are refused. An added or absent file uses an empty
+artifact on its missing side; this is stated in the report.
+
+Only selected source is inspected. Imports, unchanged files, generated output,
+server behavior and browser interactions are not automatically checked. Empty
+or unsupported-only selections return `analysis_performed: false` and
+`policy.status: not_applicable`, with no passing verdict. Exit 0 in that case
+means no analysis applied, not that the app is unchanged. Explicit policy matches
+exit 1, and rejected/incomplete work exits 2.
+
+### Add it to PRs
+
+The companion [`git-action`](../git-action/action.yml) handles collection and
+reporting. Keep a trusted, reviewed Surface Map revision separate from the PR's
+source. This minimal consumer workflow runs no application code and needs no
+model API key or paid service:
+
+```yaml
+name: Static source changes to review
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Jgolding1998/surface-map
+          ref: FULL_REVIEWED_SURFACE_MAP_SHA
+          path: surface-map-tool
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: pr-source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./surface-map-tool/git-action
+        with:
+          repository: pr-source
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+```
+
+Replace the Surface Map SHA placeholder with a reviewed full commit. The action
+sets up Python and the pinned optional Node parser in the trusted tool folder;
+it never installs from the target project's manifests. Leave `fail-on` empty to
+start with advisory reports. It writes a GitHub Actions job summary and new local
+minimized JSON/Markdown files. It does not post PR comments, upload captures,
+request write permission or build/run the app. Do not add head-code execution to
+this job or move it to `pull_request_target`. Existing browser-test captures can
+still use the original saved-capture Action below in a separate trusted job.
+
+### What the first version checks
+
+| Example from PR feedback | Supported result | Important limit |
+| --- | --- | --- |
+| Form destination or GET/POST changes | Added/absent normalized operations from literal HTML; inferred supported request patterns | No server acceptance check; private target renames can normalize to the same path |
+| Added or absent form field, including a hidden input | Changes to declared field sets; a hidden input is reported only as an added field | Values and visibility/type are not exported; unknown field renames can be hidden by aliases |
+| New or absent script/stylesheet reference | Added/absent retained normalized asset references | Domains are discarded; a domain-only swap can be invisible; dynamic loaders are uninspected |
+| A static navigation link disappears | Prior link evidence is no longer found in the selected source | Framework routing and browser navigation are not proved; absent evidence is not a broken-link verdict |
+| A tracking request disappears | A supported literal Fetch/XHR/Axios request may be absent | No general analytics SDK or event-coverage detection; wrappers and `gtag` calls alone are not supported |
+
+Every asset summary states the domain and alias limits, including when no asset
+changes are found. These checks identify evidence for review; they do not claim
+to detect all third-party domains, tracking regressions or security flaws.
+Real Git fixtures exercise the requested examples and unchanged controls in
+[`test_pr_feedback_cases.py`](../tests/test_pr_feedback_cases.py). The integration
+workflow also compares two selected files across Surface Map's actual source
+history. Both are developer verification, not evidence of customer benefit or
+unseen-site accuracy.
+
 ## Try the local example
 
 From the checkout root, install the optional pinned parser once with
@@ -39,7 +141,11 @@ Use an absolute `run_ci.py` path to run the CLI from another working directory.
 
 Policies are comma-separated: `added`, `absent`, `changed`, `unresolved`, and
 `warnings`. Added/absent/changed policies include changes to unknown-method
-targets as well as known operations. `absent` refers to the comparator's `removed` evidence list, not
+targets as well as known operations. The original saved-capture Action keeps its
+v1 route-policy behavior. The Git companion opts into v2 reports, where `added`
+and `absent` also cover retained normalized asset references. The saved-capture
+CLI can opt in with `compare --include-assets`. Domain-only swaps can still be invisible.
+`absent` refers to the comparator's `removed` evidence list, not
 proven service removal. `unresolved` fails when either capture contains any
 unknown-method target, including unchanged targets. `warnings` checks either
 capture's retained warnings. No policy is enabled by default.

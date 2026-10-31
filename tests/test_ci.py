@@ -281,6 +281,50 @@ class OfflineCITests(unittest.TestCase):
         self.assertIn("Added evidence | 3", rendered)
         self.assertIn("2 additional rows are omitted", rendered)
 
+    def test_asset_additions_and_absences_apply_only_selected_policies(self):
+        before = html_capture('<script src="/static/app.js"></script>')
+        after = html_capture('<script src="/api/reports"></script>')
+        report = ci.compare_captures(before, after, javascript_engine="basic", fail_on="added,absent", include_assets=True)
+        self.assertEqual(report["comparison"]["added"], [])
+        self.assertEqual(report["policy"]["matched"], ["added", "absent"])
+        self.assertEqual(len(report["asset_comparison"]["added"]), 1)
+        self.assertEqual(len(report["asset_comparison"]["removed"]), 1)
+        rendered = ci.markdown(report)
+        self.assertIn("Static asset references", rendered)
+        self.assertIn("domain-only swaps", rendered)
+
+    def test_asset_domain_swap_remains_explicitly_partial(self):
+        before = html_capture('<script src="https://first.invalid/static/app.js"></script>')
+        after = html_capture('<script src="https://second.invalid/static/app.js"></script>')
+        report = ci.compare_captures(before, after, javascript_engine="basic", fail_on="added,absent", include_assets=True)
+        self.assertTrue(report["policy"]["passed"])
+        self.assertEqual(report["asset_comparison"]["added"], [])
+        self.assertEqual(report["asset_comparison"]["removed"], [])
+        self.assertIn("Origins are discarded", ci.markdown(report))
+        self.assertNotIn("first.invalid", ci.json_output(report))
+        self.assertNotIn("second.invalid", ci.markdown(report))
+
+    def test_existing_capture_policy_and_v1_format_are_unchanged_without_opt_in(self):
+        before = html_capture('<p>Body</p>')
+        after = html_capture('<script src="/assets/app.js"></script>')
+        legacy = ci.compare_captures(before, after, javascript_engine="basic", fail_on="added")
+        self.assertTrue(legacy["policy"]["passed"])
+        self.assertEqual(legacy["format"], "surface-map-ci-comparison-v1")
+        self.assertNotIn("asset_comparison", legacy)
+        self.assertNotIn("Static asset references", ci.markdown(legacy))
+        opted_in = ci.compare_captures(before, after, javascript_engine="basic", fail_on="added", include_assets=True)
+        self.assertFalse(opted_in["policy"]["passed"])
+        self.assertEqual(opted_in["format"], "surface-map-ci-comparison-v2")
+        self.assertIn("Static asset references", ci.markdown(opted_in))
+
+    def test_asset_opt_in_is_explicit_in_cli_and_rejects_nonboolean_api_flag(self):
+        before, after = html_capture('<p>Body</p>'), html_capture('<script src="/assets/app.js"></script>')
+        code, output, stderr = self.compare(before, after, "--include-assets", "--fail-on", "added")
+        self.assertEqual((code, stderr), (1, ""))
+        self.assertEqual(json.loads(output)["format"], "surface-map-ci-comparison-v2")
+        with self.assertRaises(ci.CIError):
+            ci.compare_captures(before, after, javascript_engine="basic", include_assets="false")
+
 
 if __name__ == "__main__":
     unittest.main()
