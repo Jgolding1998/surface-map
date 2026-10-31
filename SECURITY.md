@@ -41,6 +41,37 @@ The server retains no upload files or reports. At most two optional parser worke
 
 ## Supported input boundary
 
+### Static Git comparison
+
+The optional `compare-git` CLI and companion GitHub Action read immutable commit
+objects from an explicitly selected local repository. They never check out or
+execute its source, run its build, invoke its package manager, replay requests,
+or fetch missing objects. The Git executable is resolved outside the data
+repository and started by absolute path from the trusted tool directory with a
+minimal environment, fixed arguments, subprocess time/output bounds, disabled
+replacement objects, optional locks, lazy fetching, filesystem monitors and
+external helpers. Git config includes, alternates, partial/promisor repositories,
+metadata symlinks/reparse points, worktree redirects and selected symlink/gitlink
+entries are rejected. These restrictions intentionally exclude some normal Git
+setups. An installed Git supporting `--no-lazy-fetch` remains trusted software;
+this is not a sandbox against a malicious replacement Git binary or native Git
+vulnerability.
+
+Inputs require full commit SHAs and a unique merge base. Selected paths remain
+local and are represented by generic source IDs. Raw source, filenames, origins,
+field values and exception text are not copied into reports or logs. A six-file
+limit and per-file/combined byte limits fail closed. No supported selection is
+reported as not applicable, not a passing app check. Privacy normalization can
+hide target, field and asset renames; normalized asset comparison does not verify
+third-party origin identity. Minimized reports still need review before sharing.
+
+The consumer workflow pins the reviewed tool separately from target source,
+requires only repository read permission, keeps checkout credentials out of Git
+config, and executes no target application code. Keep it unprivileged and do not
+add build/test execution before the comparison in that job. The repository's own
+integration test runs proposed tool code as ordinary test CI; it is not an
+independent trusted assessment of hostile changes to Surface Map itself.
+
 Use artifacts you own or are authorized to inspect. Capture authorization and the right to share derived information are installation responsibilities. Archives and application binaries are unsupported; no extraction, decompilation or native process attachment occurs.
 
 The source CLI reads only explicitly selected ordinary UTF-8 files. It checks ancestors before descendants to reject symbolic links and Windows reparse points. On Windows it rejects UNC/device paths and alternate streams before filesystem access, checks the resulting absolute path again, and rejects remote or unknown drive types with the system drive-type API. It never walks a directory or follows requirements includes or package URLs. Other mounted filesystems and concurrent path changes by another local process are outside this boundary. HTTP source inspection accepts content, not filesystem paths or remote URLs. A rejected source contributes no partial evidence, and rejected selections cannot be compared as though their dependencies were absent. Cooperative work limits reduce accidental resource use; this is not a hard process-isolation boundary.

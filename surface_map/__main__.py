@@ -33,6 +33,15 @@ def main(argv=None):
     compare.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="enhanced")
     compare.add_argument("--format", choices=("json", "markdown"), default="json")
     compare.add_argument("--fail-on", default="", help="Comma-separated added, absent, changed, unresolved, warnings; default advisory")
+    compare.add_argument("--include-assets", action="store_true", help="Opt into v2 normalized asset-reference comparison; added/absent policies also cover assets")
+    git_compare = commands.add_parser("compare-git", help="Automatically compare changed static website files from two Git commits without running the target code")
+    git_compare.add_argument("--repo", type=Path, required=True, help="Ordinary local Git checkout or bare repository")
+    git_compare.add_argument("--base", required=True, help="Full base branch commit SHA; comparison uses its merge base with head")
+    git_compare.add_argument("--head", required=True, help="Full proposed commit SHA")
+    git_compare.add_argument("--files", nargs="+", help="Optional exact repository-relative paths, at most six; no glob patterns")
+    git_compare.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="enhanced")
+    git_compare.add_argument("--format", choices=("json", "markdown"), default="json")
+    git_compare.add_argument("--fail-on", default="", help="Comma-separated evidence policies; default advisory")
     inspect = commands.add_parser("inspect", help="Print a minimized static source inventory as JSON")
     inspect.add_argument("--javascript-engine", choices=("auto", "basic", "enhanced"), default="auto")
     inputs = inspect.add_mutually_exclusive_group(required=True)
@@ -53,6 +62,18 @@ def main(argv=None):
     if args.command == "setup-js":
         from .js_parser import setup
         return setup()
+    if args.command == "compare-git":
+        from . import ci
+        from .git_compare import compare_git, markdown
+        try:
+            report = compare_git(args.repo, args.base, args.head, files=args.files,
+                                 javascript_engine=args.javascript_engine, fail_on=args.fail_on)
+            output = markdown(report) if args.format == "markdown" else ci.json_output(report)
+        except Exception:
+            print("Git comparison rejected: invalid or unavailable Git inputs, unsupported selection, incomplete evidence, or parser. No input text or paths are returned.", file=sys.stderr)
+            return 2
+        print(output)
+        return 1 if report["policy"]["status"] == "failed" else 0
     if args.command in {"analyze", "compare"}:
         from . import ci
         try:
@@ -61,7 +82,8 @@ def main(argv=None):
                 output, code = ci.json_output(report), 0
             else:
                 report = ci.compare_captures(ci.load_capture(args.before), ci.load_capture(args.after),
-                                             javascript_engine=args.javascript_engine, fail_on=args.fail_on)
+                                             javascript_engine=args.javascript_engine, fail_on=args.fail_on,
+                                             include_assets=args.include_assets)
                 output = ci.markdown(report) if args.format == "markdown" else ci.json_output(report)
                 code = 0 if report["policy"]["passed"] else 1
         except ci.CIError as error:

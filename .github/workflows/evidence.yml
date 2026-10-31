@@ -32,3 +32,37 @@ jobs:
           path: surface-map-results/
           if-no-files-found: ignore
           retention-days: 7
+  git-source-evidence:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare actual Surface Map source history without running the selected files
+        id: git-evidence
+        uses: ./git-action
+        with:
+          base: 7ec928c281306bc2291c85ca36d431b1cc572dba
+          head: ${{ github.sha }}
+          javascript-engine: basic
+          files: |
+            surface_map/static/index.html
+            surface_map/static/app.js
+      - name: Verify actual-source report scope
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('surface-map-pr-results/comparison.json').read_text())
+          assert result['analysis_performed']
+          assert result['selection']['selected_files'] == 2
+          assert result['policy']['status'] == 'advisory'
+          evidence = result['evidence_comparison']
+          assert evidence['comparison']['added'] or evidence['asset_comparison']['added']
+          PY
