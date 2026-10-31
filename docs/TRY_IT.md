@@ -63,8 +63,9 @@ visible; neither should be treated as a complete app inventory.
 
 ## Report useful feedback
 
-Use the repository's **Real-world trial feedback** issue form or keep these
-answers privately:
+Keep these answers privately or use the repository's existing **Project
+feedback** link under **Issues → New issue**. The new **Real-world trial
+feedback** form becomes available after this branch reaches the default branch:
 
 1. What job were you trying to do, and what was your normal workflow?
 2. How long did setup take? Could you finish the task without help?

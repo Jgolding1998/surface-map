@@ -58,7 +58,9 @@ This draft has not been sent. Adapt it to your own experience and the venue.
 
 Start with 8-12 participants as a discovery pilot, not a statistically sufficient
 sample for broad claims. Record setup friction separately from task performance.
-Use private notes or the public issue form with reviewed, non-sensitive feedback.
+Use private notes or the existing **Project feedback** link under **Issues → New
+issue** with reviewed, non-sensitive feedback. The new local trial issue form is
+part of this branch and becomes selectable after merging to the default branch.
 
 Give each person a concrete task, such as preparing a handoff for one order form.
 Compare their normal developer/agent workflow with a Surface Map assisted
