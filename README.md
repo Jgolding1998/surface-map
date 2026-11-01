@@ -152,6 +152,10 @@ the actual interface with synthetic data. [REA comparison and verified inventory
 explain where a broader reverse-engineering tool is stronger and what this
 bounded evidence tool can demonstrate.
 
+Interface refinement also used [Unslop](https://github.com/heydamir/unslop) by
+Damir Sokolovsky, licensed under CC BY 4.0. The product behavior and validation
+remain this repository's own work.
+
 ## Help us find what it misses
 
 Try one flow you own or are authorized to inspect. Tell us what was wrong,

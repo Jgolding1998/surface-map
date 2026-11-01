@@ -100,7 +100,7 @@ function sourceList(sources) {
 
 function details(route) {
   const panel = $("#detail"); panel.replaceChildren();
-  panel.append(node("span", "detail-label", "ROUTE EVIDENCE"), node("h3", "", `${route.method || "METHOD UNKNOWN"} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
+  panel.append(node("span", "detail-label", "Route evidence"), node("h3", "", `${route.method || "METHOD UNKNOWN"} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
   if (!route.method) panel.append(node("p", "", "The target is known, but its method is unresolved. This is retained as an extension, never invented as an OpenAPI operation."));
   const origins = {same_origin: "Same origin as the page", cross_origin: "Different origin from the page", unknown: "Origin could not be determined"};
   if (route.origin_relations?.length) panel.append(node("h4", "", "Origin context"), node("p", "", route.origin_relations.map(value => origins[value] || origins.unknown).join("; ")));
@@ -165,7 +165,7 @@ function show(result, example = false) {
   $("#workspace-mode").textContent = example ? "EXAMPLE WORKSPACE" : "YOUR SAVED ARTIFACTS";
   sourceList(report.sources); table();
   if (routes.length) { selected = routes[0].id; details(routes[0]); table(); }
-  else emptyDetail("NO ROUTES RETAINED", "Nothing to inspect yet.", "Supported routes, forms and literal requests appear here with their source locations. A HAR capture usually gives the strongest evidence.");
+  else emptyDetail("No routes retained", "Nothing to inspect yet", "Supported routes, forms and literal requests appear here with their source locations. A HAR capture usually gives the strongest evidence.");
   const engines = [...new Set((report.javascript_analysis || []).map(item => item.engine))].join(", ");
   notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`, false, "success");
   refresh();
@@ -480,7 +480,7 @@ function resetWorkspace(clearURL = true) {
   $("#source-list").replaceChildren(); $("#diff-panel").hidden=true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent="0";
   $("#workspace-mode").textContent = modeLabel();
-  emptyDetail("SESSION CLEARED", "Nothing selected.", "Add evidence in the inputs panel, or explore an example. The server does not retain uploads or reports.");
+  emptyDetail("Session cleared", "Nothing selected", "Add evidence in the inputs panel, or explore an example. The server does not retain uploads or reports.");
   $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace.";
   clearSourceView(); clearPlan(); table(); refresh();
 }
@@ -516,7 +516,7 @@ $("#files").addEventListener("change", () => {
   files = Array.from($("#files").files); current = null; selected = null; diff = null; $("#diff-panel").hidden = true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent = "0";
   $("#workspace-mode").textContent = modeLabel();
-  emptyDetail("SELECTION READY", "Selection awaiting analysis.", "Analyze artifacts to map routes, or build a plan for an agent brief. Nothing is sent until you choose an action.");
+  emptyDetail("Selection ready", "Selection awaiting analysis", "Analyze artifacts to map routes, or build a plan for an agent brief. Nothing is sent until you choose an action.");
   sourceList(files.map((file,index) => ({id:`source_${index + 1}`,kind:kind(file) || "unsupported",bytes:file.size})));
   table(); notice("Selection ready. Analyze artifacts to build a fresh evidence map."); refresh();
 });
