@@ -95,6 +95,7 @@ main { width:100%; max-width:1500px; min-width:0; margin:0 auto; padding:28px 32
 .notice.success { color:#3f5236; background:#edf2e8; border-color:#d6dfd1; border-left-color:#5d7a4f; }
 .notice.error { color:#8a3420; background:#fbece5; border-color:#e6c4b8; border-left-color:#a94418; }
 /* Busy: a visible progress strip and dimmed stale numbers, never a fake result. */
+.retry-button { width:auto; margin:-8px 0 20px; padding:10px 16px; }
 body.is-busy .notice { color:#4a453d; background:var(--panel); border-color:var(--line); border-left-color:var(--accent); }
 body.is-busy .notice::after { content:""; position:absolute; left:0; bottom:0; height:3px; width:35%; background:var(--accent); border-radius:3px; animation:sm-progress 1.1s ease-in-out infinite; }
 body.is-busy .stats-grid strong,body.is-busy .source-metrics strong,body.is-busy #route-rows { opacity:.4; }

@@ -33,6 +33,7 @@
     <main id="report" tabindex="-1" aria-busy="false">
       <div class="page-heading"><div><p class="eyebrow">Evidence workbench</p><h1>Understand the surface</h1><p class="intro">See the routes, review what is known, and carry the unknowns into your next step.</p></div><span id="workspace-mode" class="workspace-mode">EXAMPLE WORKSPACE</span></div>
       <div id="notice" class="notice" role="status">Loading the synthetic example. No requests are made to the mapped service.</div>
+      <button id="retry-bootstrap" class="button secondary retry-button" type="button" hidden>Retry loading the workspace</button>
       <section id="source-panel" class="source-panel" hidden aria-labelledby="source-heading">
         <div class="panel-title"><div><h2 id="source-heading">Static source inventory</h2><p id="source-description">Declared dependencies and inferred import hints, with generic source locations. No code is run.</p></div><button id="export-source" class="export-button" disabled>Inventory JSON ↓</button></div>
         <div class="source-metrics"><div><span>LANGUAGES</span><strong id="language-count">0</strong></div><div><span>KNOWN DEPENDENCIES</span><strong id="dependency-count">0</strong></div><div><span>CAPABILITY HINTS</span><strong id="capability-count">0</strong></div></div>
