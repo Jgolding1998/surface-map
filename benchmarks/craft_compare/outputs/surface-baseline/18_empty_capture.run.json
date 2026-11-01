@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "18_empty_capture",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 113.156,
+  "stdout_bytes": 433,
+  "stderr_bytes": 0,
+  "stdout_sha256": "d23fde890eca30fd72425306207ff3c31b7d1ede5c176ac6ad1977cdca7cc333",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "364b204d9142db758f051a09b5ea5e6238ac67f1017ce14da864c1b6e7da0f76",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\18_empty_capture"
+}

@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "08_multipart_params",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 119.758,
+  "stdout_bytes": 737,
+  "stderr_bytes": 0,
+  "stdout_sha256": "b69ffd591e46d299b427c80dace7813d24199c8f054e9a97bb911370bde98faf",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "3a803b14e724ad2cfec579ae39ac171763701c62fd5d6a5eaa3daf7f21e05675",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\08_multipart_params"
+}

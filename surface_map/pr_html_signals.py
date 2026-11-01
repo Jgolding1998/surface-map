@@ -11,7 +11,7 @@ import re
 import time
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
-from .analyze import HTML, HTML_WORK_SECONDS, document_base
+from .analyze import HTML, HTML_WORK_SECONDS, document_base, validate_document_url
 
 MAX_BYTES = 4 * 1024 * 1024
 MAX_RECORDS = 4096
@@ -132,10 +132,30 @@ def canonical_target(raw, site_origin=None):
         return None
 
 
+def resolve_reference(raw, base_url=None, *, base_unresolved=False):
+    """Resolve supported literal references privately, without fetching anything.
+
+    Keep the collector's conservative URL boundary: urllib must not silently
+    remove controls or backslashes that the literal target validator rejects.
+    An unsupported explicit document base is different from unknown context.
+    """
+    if type(raw) is not str:
+        return raw
+    if (len(raw) > 4096 or "\\" in raw
+            or any(ord(char) <= 32 or ord(char) == 127 for char in raw)):
+        return raw
+    try:
+        if base_unresolved and not urlsplit(raw).scheme:
+            return None
+        return urljoin(base_url, raw) if base_url is not None else raw
+    except (ValueError, UnicodeError):
+        return None
+
+
 class _Builder:
     def __init__(self, source, site):
         self.source, self.site = source, site
-        self.document_url = None  # site_origin is not the document URL.
+        self.document_url = None  # site_origin alone is not a document URL.
         self.base_url = None
         self.relative_reason = "Document path is unknown."
         self.records, self.limitations, self.scope_notes = [], set(), set()
@@ -177,12 +197,8 @@ class _Builder:
     def resolve(self, raw, kind):
         if kind == "link" and isinstance(raw, str) and raw.startswith("#"):
             return raw
-        if self.base_url is not None and isinstance(raw, str):
-            try:
-                return urljoin(self.base_url, raw)
-            except ValueError:
-                return raw
-        return raw
+        return resolve_reference(raw, self.base_url,
+                                 base_unresolved=self.document_url is not None and self.base_url is None)
 
     def target(self, raw):
         # These references are outside the HTTP(S) route/resource inventory,
@@ -208,6 +224,13 @@ class _Builder:
         return target
 
     def current_document_target(self):
+        if self.document_url is not None:
+            target = canonical_target(self.document_url, self.site)
+            if target is None:
+                _fail()
+            if self.site is None:
+                self.scope_notes.add("first_party_origin_unknown")
+            return target
         self.scope_notes.add("current_document_target_unresolved")
         return {"identity": ("current_document", self.site, self.source, ()),
                 "origin": self.site, "path": "",
@@ -215,7 +238,10 @@ class _Builder:
 
     def form_target(self, raw):
         omitted_before = self.omitted_count
-        target = self.target(raw)
+        # A nonempty action is parsed relative to the document base, including
+        # fragment-only and whitespace-only attributes. Only a genuinely empty
+        # or absent action substitutes the document URL before URL parsing.
+        target = self.target(self.resolve(raw, "form"))
         if target is not None:
             return target
         # Keep the declaration's controls visible even when its destination is
@@ -235,7 +261,8 @@ class _Builder:
         # Compare the first literal base declaration independently from route
         # resolution: a relative base can change every child reference even
         # while the document's absolute location remains unknown.
-        target = self.current_document_target() if not raw or raw.startswith("#") else canonical_target(raw, self.site)
+        target = (canonical_target(self.base_url, self.site) if self.base_url is not None else
+                  self.current_document_target() if not raw or raw.startswith("#") else canonical_target(raw, self.site))
         if target is None:
             self.limitations.add("unsupported_document_base_omitted")
             self.omitted_count += 1
@@ -304,12 +331,17 @@ class _HTML(HTML):
         if not active:
             return
         if tag == "form" and not self.template_depth and not form_was_open:
-            action = attrs.get("action")
+            raw_action = attrs.get("action")
             method = (attrs.get("method") or "").lower()
-            action = action.strip("\t\n\f\r ") if action is not None else ""
-            if method != "dialog" and (not action or action.startswith("#")):
-                self.form = {"url": None, "method": "POST" if method == "post" else "GET", "names": set(),
-                             "location": "line " + str(self.getpos()[0]), "_pr_current_document": True}
+            action = raw_action.strip("\t\n\f\r ") if raw_action is not None else ""
+            if method != "dialog":
+                current_document = raw_action is None or raw_action == ""
+                # With no known base or document context, preserve the existing
+                # unresolved current-document identity for fragment/blank actions.
+                if self.builder.base_url is None and self.builder.document_url is None:
+                    current_document |= not action or action.startswith("#")
+                self.form = {"url": action, "method": "POST" if method == "post" else "GET", "names": set(),
+                             "location": "line " + str(self.getpos()[0]), "_pr_current_document": current_document}
         if not self.template_depth and any(name.startswith("on") for name in attrs):
             self.builder.limitations.add("event_handler_attributes_uninspected")
         if tag == "script" and not self.template_depth and "src" not in attrs:
@@ -321,7 +353,8 @@ class _HTML(HTML):
                 self.builder.limitations.add("script_type_uninspected")
         if tag == "base" and not self.template_depth and "href" in attrs:
             self.builder.document_base(attrs["href"], "line " + str(self.getpos()[0]))
-            self.builder.scope_notes.add("document_path_unknown")
+            if self.builder.base_url is None:
+                self.builder.scope_notes.add("document_path_unknown")
         if not self.template_depth and tag in {"input", "button"} and (
                 "formaction" in attrs or "formmethod" in attrs):
             self.builder.limitations.add("submitter_overrides_uninspected")
@@ -404,7 +437,7 @@ class _HTML(HTML):
             self._finish_form()
 
 
-def collect_html(text, source="source_1", *, site_origin=None, deadline=None):
+def collect_html(text, source="source_1", *, site_origin=None, deadline=None, document_url=None):
     """Collect private declarations; the caller must alias identities before export."""
     try:
         if (type(text) is not str or type(source) is not str or not _SOURCE.fullmatch(source)
@@ -413,11 +446,17 @@ def collect_html(text, source="source_1", *, site_origin=None, deadline=None):
         if deadline is not None and (type(deadline) not in {float, int} or not math.isfinite(deadline)):
             _fail()
         site = validate_site_origin(site_origin) if site_origin is not None else None
+        document = validate_document_url(document_url) if document_url is not None else None
+        if document is not None and canonical_target(document) is None:
+            _fail()
         end = min(time.monotonic() + HTML_WORK_SECONDS, deadline) if deadline is not None else time.monotonic() + HTML_WORK_SECONDS
         builder = _Builder(source, site)
         # An absolute first <base href> can supply a path context. An origin
         # option alone never supplies the unknown page's directory or filename.
-        builder.base_url = document_base(text, None, end)
+        builder.document_url = document
+        builder.base_url = document_base(text, document, end)
+        if document is not None and builder.base_url is None:
+            builder.limitations.add("unsupported_document_base_omitted")
         parser = _HTML(source, builder, end)
         builder.parser = parser
         parser.feed(text)
@@ -426,6 +465,7 @@ def collect_html(text, source="source_1", *, site_origin=None, deadline=None):
         return {"records": builder.records, "limitations": sorted(builder.limitations),
                 "scope_notes": sorted(builder.scope_notes),
                 "engine": "html-static", "omitted_count": builder.omitted_count,
-                "inline_scripts": builder.inline_scripts}
+                "inline_scripts": builder.inline_scripts, "base_url": builder.base_url,
+                "base_unresolved": document is not None and builder.base_url is None}
     except Exception:
         _fail()

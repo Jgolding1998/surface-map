@@ -1,0 +1,8 @@
+{
+  "tool": "surface-baseline",
+  "analyze_sha256": "8410775925eceb83bd16dcf081e2342275095b7637494108b22acdc4237c9652",
+  "init_sha256": "8dc7a3c5850a96b7198a1c5fe717bf023189904a71cf848571e94ecad2858c60",
+  "fixture_manifest_sha256": "5407bbba81789c25f872d893ec716fa87390b2e092b91c8f79c09cde84b95fbd",
+  "source_label": "surface-baseline recorded Python analyzer modules",
+  "metadata_projection": "Local absolute source/snapshot paths omitted for public portability; analyzer output files are unmodified."
+}

@@ -13,6 +13,7 @@ captures/
 !/examples/rebuild-demo/session.har
 !/examples/quickstart/orders.har
 !/evals/holdout/fixtures/rejected.har
+!/benchmarks/craft_compare/fixtures/*.har
 *.zip
 *.apk
 *.exe

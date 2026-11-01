@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "15_malformed_entry",
+  "exit_code": 1,
+  "timeout": false,
+  "runtime_ms": 118.381,
+  "stdout_bytes": 104,
+  "stderr_bytes": 0,
+  "stdout_sha256": "1f139c3a74cdaa49cf08c94b5b1bf74d23a5d6014dda24e9f86e58a722971ece",
+  "json_output": true,
+  "accepted": false,
+  "fixture_sha256": "061a3cf357778e6ced953560bc7c156fb620aad17633b9601695a338344e7866",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\15_malformed_entry"
+}

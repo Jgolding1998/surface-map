@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "18_empty_capture",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 28.56,
+  "stdout_bytes": 1373,
+  "stderr_bytes": 0,
+  "stdout_sha256": "8110b90c5babafa03e350061cf959e87f4c33bf0b134d1a623b4e7b634245064",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "364b204d9142db758f051a09b5ea5e6238ac67f1017ce14da864c1b6e7da0f76",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\18_empty_capture"
+}

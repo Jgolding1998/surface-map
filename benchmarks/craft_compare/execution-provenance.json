@@ -1,0 +1,33 @@
+{
+  "scope": "Actual Windows x64 released offline Craft HAR CLI vs Surface basic HAR analyzer library; same frozen synthetic bytes, no provider or model calls.",
+  "manifest_sha256": "5407bbba81789c25f872d893ec716fa87390b2e092b91c8f79c09cde84b95fbd",
+  "craft": {
+    "release": "v0.1.0",
+    "commit": "c316051c9e01e1bf9863f3c802a805179afa4663",
+    "source_url": "https://github.com/storytold/craft-anything/tree/c316051c9e01e1bf9863f3c802a805179afa4663",
+    "release_url": "https://github.com/storytold/craft-anything/releases/tag/v0.1.0",
+    "cli_sha256": "52a4249d3d9b6f321883b5048e774026856f5fe8e8afaca89984d02ffe8f0fd5",
+    "source_build_limitation": "Published checksum verified; no reproducible-build verification was performed."
+  },
+  "surface_baseline": {
+    "version": "1.6.3",
+    "commit": "2a516820cf1836d7025df90b81df1b1cdfbaea23",
+    "source_url": "https://github.com/Jgolding1998/surface-map/tree/2a516820cf1836d7025df90b81df1b1cdfbaea23",
+    "analyzer_sha256": "8410775925eceb83bd16dcf081e2342275095b7637494108b22acdc4237c9652",
+    "analyzer_lf_sha256": "283f58903eb81e01b5c24ec9c1826150d180b47b45390b02ff7e22c16ad7e5f6"
+  },
+  "surface_upgraded": {
+    "source_state": "Final version 1.7.0 Python source freeze; final repository commit not assigned at execution time",
+    "package_version": "1.7.0",
+    "analyzer_sha256": "3e9edd02e0e41061ac66b978e4497c53d69b10d05d58608aaf234dd456464860",
+    "analyzer_lf_sha256": "ab5634c835742e4c1d768853251f955f3d6849f3972661d2ba986d57c12c84ef",
+    "module_tree_sha256": "ed41a327e7c703b19a7e6f15a651aa506f8b9e9214ab5161ffc57d1a1c86d58d"
+  },
+  "projection": {
+    "expected_facts": "Original manifest unchanged",
+    "craft": "result.api_surface JSON outline properties; result.entries[].request_body.fields lists retain occurrences",
+    "surface": "result.routes[].request_shapes/response_shapes; request_fields[].fields[].occurrences; har_body_analysis[].bodies[] omission reasons",
+    "privacy": "Compare field/occurrence counts, not private-name identity; aliases intentionally differ",
+    "portable_adapter": "run.py derives from the actual run harness, takes explicit local source/CLI paths and creates fresh content snapshots. The complete canonical Python module map is pinned by default in source-pins.json; --allow-new-source explicitly permits a different map. The original authored scripts are retained under provenance/. No upstream source code is vendored."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "06_urlencoded_text",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 28.995,
+  "stdout_bytes": 2218,
+  "stderr_bytes": 0,
+  "stdout_sha256": "a67b1f88c15e8e24045be2ccb55b56e931bc95331d0c584049e3f0a6da4b13f4",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "5a2908fceb5e6b3b25123ce36990c0a0380d69b8c2f61089279738cebfe8a227",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\06_urlencoded_text"
+}

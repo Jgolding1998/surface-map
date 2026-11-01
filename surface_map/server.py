@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_TOTAL_BYTES, analyze, strict_json
 from .export import compare, contract, openapi
+from .capture_compare import compare_saved
 from .samples import artifacts
 from .source_io import compare_sources, inspect_sources, source_examples
 from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES
@@ -263,12 +264,16 @@ def make_server(port=8768):
                                if key in public["report"]}
                     for name in ("openapi", "contract"):
                         result[name].update(context)
-                elif self.path == "/api/compare" and keys == {"baseline", "candidate"}:
-                    result = {"diff": compare(analyze(document["baseline"], javascript_engine=engine, deadline=deadline), analyze(document["candidate"], javascript_engine=engine, deadline=deadline))}
+                elif self.path == "/api/compare" and {"baseline", "candidate"} <= keys <= {"baseline", "candidate", "include_review_signals", "before_document_url", "after_document_url"}:
+                    compared = compare_saved(document["baseline"], document["candidate"], javascript_engine=engine,
+                        deadline=deadline, include_review_signals=document.get("include_review_signals", True),
+                        before_document_url=document.get("before_document_url"), after_document_url=document.get("after_document_url"))
+                    result = {"diff": compared.pop("comparison"), **compared}
                 elif self.path == "/api/demo" and not keys:
                     result = bundle(analyze(artifacts(), javascript_engine=engine))
                 elif self.path == "/api/demo-diff" and not keys:
-                    result = {"diff": compare(analyze(artifacts(), javascript_engine=engine), analyze(artifacts(2), javascript_engine=engine))}
+                    compared = compare_saved(artifacts(), artifacts(2), javascript_engine=engine, deadline=deadline)
+                    result = {"diff": compared.pop("comparison"), **compared}
                 elif self.path == "/api/rebuild-demo" and keys <= {"include_scaffold"}:
                     from .rebuild import plan_rebuild, scaffold_files
                     include_scaffold = document.get("include_scaffold", False)

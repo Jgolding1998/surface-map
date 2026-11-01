@@ -1,0 +1,31 @@
+{
+  "tool": "surface-upgraded",
+  "case": "10_unknown_encoding",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 283.817,
+  "stdout_bytes": 1727,
+  "stderr_bytes": 0,
+  "stdout_sha256": "1889f43ee7a56d48ed82fc3e482d85c68c6db1882296fe189680bc0b84a24d9c",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "667f027bc2983032a9f8f730f92d783e2bc64fdb8b3299689d0dff360569b304",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-upgraded\\10_unknown_encoding"
+}

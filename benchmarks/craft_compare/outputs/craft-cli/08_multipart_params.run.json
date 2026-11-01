@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "08_multipart_params",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 25.408,
+  "stdout_bytes": 2210,
+  "stderr_bytes": 0,
+  "stdout_sha256": "bc1c741124e2748c97dabcbc8a0f3c29e6c36b324b919729deae0d282b592d0a",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "3a803b14e724ad2cfec579ae39ac171763701c62fd5d6a5eaa3daf7f21e05675",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\08_multipart_params"
+}

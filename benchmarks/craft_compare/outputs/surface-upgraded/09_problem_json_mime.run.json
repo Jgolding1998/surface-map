@@ -1,0 +1,31 @@
+{
+  "tool": "surface-upgraded",
+  "case": "09_problem_json_mime",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 270.071,
+  "stdout_bytes": 1805,
+  "stderr_bytes": 0,
+  "stdout_sha256": "1134b68ff3ad9ae950e8bb0943e9cda07c0cbf0a8496329c85c1f1579faaa9b3",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "bfbae867e1a839d596de69fdd98a1b49e705040ecc2795e922700c422d154a29",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-upgraded\\09_problem_json_mime"
+}

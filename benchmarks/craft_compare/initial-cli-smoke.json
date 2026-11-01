@@ -1,0 +1,13 @@
+{
+  "case": "01_json_control",
+  "tool": "craft-cli",
+  "purpose": "Verify the reviewed offline command works before starting the full predeclared suite",
+  "executed_after_fixture_manifest_freeze": true,
+  "exit_code": 0,
+  "runtime_ms": 755.141,
+  "stdout_bytes": 3289,
+  "stderr_bytes": 0,
+  "stdout_sha256": "e2f51496128a8888c74f288a1d556746cbe5cb97ce2a2e500ca1feb96323bba0",
+  "raw_identical_output_reference": "outputs/craft-cli/01_json_control.stdout.json",
+  "note": "The full suite repeated this control. Its identical output hash matches the retained bytes. The initial smoke time is excluded from the measured-suite table; this means the vendor binary had been launched before that suite. No speed ranking is inferred."
+}

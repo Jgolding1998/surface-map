@@ -107,6 +107,48 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(result["analysis_scope"]["security_audited"])
             self.assertIn("manifest declarations", result["analysis_scope"]["unknown_dependencies"])
 
+    async def test_filtered_evidence_and_rich_comparison_through_stdio(self):
+        import base64
+        capture = [{"kind": "har", "text": json.dumps({"log": {"entries": [{
+            "request": {"method": "POST", "url": "https://synthetic.invalid/api/orders",
+                        "postData": {"mimeType": "application/x-www-form-urlencoded",
+                                     "text": "quantity=" + CANARY + "&quantity=" + CANARY}},
+            "response": {"status": 200, "content": {"mimeType": "application/json", "encoding": "base64",
+                         "text": base64.b64encode(json.dumps({"success": True, "token": CANARY}).encode()).decode()}}
+        }]}})}]
+        async with self.session() as client:
+            page = self.result_json(await client.call_tool("inspect_evidence", {
+                "artifacts": capture, "javascript_engine": "basic", "method": "POST",
+                "confidence": "observed", "detail": True, "limit": 1}))
+            self.assertEqual(page["counts"]["matching"], 1)
+            self.assertEqual(page["items"][0]["request_fields"][0]["fields"], [{"name": "quantity", "occurrences": 2}])
+            self.assertTrue(page["items"][0]["response_shapes"])
+            self.assertNotIn(CANARY, json.dumps(page))
+            self.assertEqual(page["har_body_analysis"][0]["counts"]["inspected"], 2)
+            scaffold = self.result_json(await client.call_tool("plan_rebuild", {
+                "artifacts": capture, "javascript_engine": "basic", "include_scaffold": True}))
+            mock_contract = json.loads(scaffold["files"]["contract.json"])
+            self.assertEqual(mock_contract["operations"][0]["request_fields"], page["items"][0]["request_fields"])
+            self.assertNotIn(CANARY, json.dumps(scaffold))
+            first = self.result_json(await client.call_tool("inspect_evidence", {
+                "artifacts": capture, "javascript_engine": "basic", "category": "har_bodies", "limit": 1}))
+            second = self.result_json(await client.call_tool("inspect_evidence", {
+                "artifacts": capture, "javascript_engine": "basic", "category": "har_bodies", "limit": 1,
+                "offset": first["page"]["next_offset"]}))
+            self.assertEqual(first["counts"]["matching"], 2)
+            self.assertEqual(second["counts"]["matching"], 2)
+            self.assertNotEqual(first["items"][0]["direction"], second["items"][0]["direction"])
+            old = [{"kind": "html", "text": '<form action="/api/orders"><input type="hidden" name="old_private"></form>'}]
+            new = [{"kind": "html", "text": '<form action="/api/orders"><input type="hidden" name="new_private"></form>'}]
+            diff = self.result_json(await client.call_tool("compare_captures", {
+                "before": old, "after": new, "javascript_engine": "basic"}))
+            self.assertEqual(diff["review_signals"]["status"], "available")
+            self.assertEqual(len(diff["review_signals"]["comparison"]["form_field"]["added"]), 1)
+            self.assertNotIn("old_private", json.dumps(diff))
+            invalid = await client.call_tool("inspect_evidence", {"artifacts": capture, "limit": 101})
+            self.assertTrue(invalid.is_error)
+            self.assertNotIn(CANARY, invalid.model_dump_json())
+
     async def test_redaction_across_real_stdio_tool_results(self):
         har = {"log": {"entries": [{
             "request": {"method": "POST", "url": "https://" + CANARY + ".invalid/api/orders/" + CANARY + "?token=" + CANARY,

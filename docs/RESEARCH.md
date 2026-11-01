@@ -1,5 +1,10 @@
 # Surface Map: alternatives, improvements, and adoption
 
+**2026-11-01 update:** the [Craft Anything comparison](../benchmarks/craft_compare/README.md)
+adds an actual released offline CLI comparison on 18 frozen synthetic HAR
+fixtures. It documents both tools' scope differences, raw results and a portable
+reproducer. This is separate from the earlier source/documentation review below.
+
 Research date: **2026-10-31**. Baseline: Surface Map `fcc81b6`.
 This is a review of public source, documentation, and repository metadata,
 plus direct checks of Surface Map. It is **not a head-to-head accuracy or speed

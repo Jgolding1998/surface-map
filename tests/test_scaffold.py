@@ -99,6 +99,35 @@ class ScaffoldTests(unittest.TestCase):
         self.assertEqual(coverage['warnings_count'], 1)
         self.assertEqual(coverage['script_omissions_count'], 1)
 
+    def test_observed_har_form_scaffold_keeps_only_validated_evidence(self):
+        canary = 'FORM_PRIVATE_VALUE_12345'
+        har = {'log': {'entries': [{'request': {'method': 'POST', 'url': 'https://private.invalid/api/orders',
+            'postData': {'mimeType': 'application/x-www-form-urlencoded',
+                         'text': 'quantity=1&quantity=2&private_name=' + canary}},
+            'response': {'status': 200}}]}}
+        plan = plan_rebuild([{'kind': 'har', 'text': json.dumps(har)}], javascript_engine='basic')
+        files = scaffold_files(plan)
+        operation = json.loads(files['contract.json'])['operations'][0]
+        self.assertEqual(operation['request_fields'], plan['operations'][0]['request_fields'])
+        self.assertEqual(next(field['occurrences'] for field in operation['request_fields'][0]['fields']
+                              if field['name'] == 'quantity'), 2)
+        summary = json.loads(files['rebuild-plan.json'])['coverage']['har_bodies']
+        self.assertEqual(summary, {'bodies': 2, 'inspected': 1, 'omitted': 1,
+                                   'not_recorded': 1, 'omitted_body_records': 0})
+        self.assertNotIn(canary, ''.join(files.values()))
+        self.assertNotIn('private_name', ''.join(files.values()))
+        for key, value in (('name', canary), ('occurrences', 0), ('occurrences', True), ('value', canary)):
+            bad = copy.deepcopy(plan)
+            bad['operations'][0]['request_fields'][0]['fields'][0][key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ArtifactError):
+                scaffold_files(bad)
+        bad = copy.deepcopy(plan)
+        bad['coverage']['har_body_analysis'][0]['counts']['inspected'] = canary
+        with self.assertRaises(ArtifactError):
+            scaffold_files(bad)
+        plan['coverage']['har_body_analysis'][0]['counts']['reasons'][canary] = 1
+        self.assertNotIn(canary, ''.join(scaffold_files(plan).values()))
+
     def test_archive_has_fixed_names_timestamps_and_no_paths(self):
         first = scaffold_zip(fixture())
         self.assertEqual(first, scaffold_zip(fixture()))
@@ -108,6 +137,21 @@ class ScaffoldTests(unittest.TestCase):
                 self.assertEqual(row.date_time, (1980, 1, 1, 0, 0, 0))
                 self.assertNotIn('/', row.filename)
                 self.assertEqual(row.comment, b'')
+
+    def test_maximum_form_name_collisions_remain_exportable(self):
+        names = [''.join(char.upper() if index < 6 and variant & (1 << index) else char
+                         for index, char in enumerate('authorization')) for variant in range(64)]
+        har = {'log': {'entries': [{'request': {'method': 'POST', 'url': 'https://private.invalid/api/orders',
+            'postData': {'mimeType': 'multipart/form-data',
+                         'params': [{'name': name, 'value': 'PRIVATE_VALUE'} for name in names]}},
+            'response': {'status': 200}}]}}
+        plan = plan_rebuild([{'kind': 'har', 'text': json.dumps(har)}], javascript_engine='basic')
+        fields = plan['operations'][0]['request_fields'][0]['fields']
+        self.assertEqual(len(fields), 64)
+        self.assertGreater(max(len(field['name']) for field in fields), 128)
+        files = scaffold_files(plan)
+        self.assertEqual(json.loads(files['contract.json'])['operations'][0]['request_fields'][0]['fields'], fields)
+        self.assertNotIn('PRIVATE_VALUE', ''.join(files.values()))
 
     def test_supported_nested_shapes_and_field_aliases(self):
         plan = fixture()

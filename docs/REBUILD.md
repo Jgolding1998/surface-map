@@ -88,7 +88,7 @@ python -m surface_map rebuild --capture capture.json
 
 The plan (`surface-map-rebuild-v1`) contains:
 - `operations`: forms, script hints and HAR entries, with evidence, statuses,
-  query names, shapes and per-operation unknowns (at most 50);
+  query names, JSON shapes, observed form-field names/counts and per-operation unknowns (at most 50);
 - `pages`: link-only groups, never handlers (at most 50);
 - `unresolved`: targets with unknown methods (at most 50);
 - `candidate_references`: string and module candidates, never handlers;
@@ -97,6 +97,13 @@ The plan (`surface-map-rebuild-v1`) contains:
 
 Operations beyond the cap are cut in sorted method and path order, and counted
 in `coverage.omitted_operations`.
+
+HAR body-inspection counters, reasons and limits remain under
+`coverage.har_body_analysis`; per-body rows are omitted and their retained count
+is disclosed. Generated scaffold contracts retain validated form-field evidence
+separately from JSON shapes. Their plan export includes numeric HAR coverage
+totals under `coverage.har_bodies`; read the original plan for detailed reasons.
+An absent HAR body record does not establish that the original body was empty.
 
 **Origin scope.** Script hints and form targets on other origins are analyzed
 like any other evidence, but nothing is requested. With a `document_url`, an

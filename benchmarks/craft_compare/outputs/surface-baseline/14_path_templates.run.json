@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "14_path_templates",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 129.699,
+  "stdout_bytes": 1923,
+  "stderr_bytes": 0,
+  "stdout_sha256": "070924faf226ca6db99db9fb29c8d6c130bb00f091d6a9188e1980e7d924ac78",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "7adf03e16eb9938c92599975ce3bf1aadeeeb62783ee1ac56c7914b93168fd9e",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\14_path_templates"
+}

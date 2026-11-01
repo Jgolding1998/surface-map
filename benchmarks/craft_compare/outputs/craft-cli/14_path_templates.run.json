@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "14_path_templates",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 30.422,
+  "stdout_bytes": 6826,
+  "stderr_bytes": 0,
+  "stdout_sha256": "93f512d2b7c58f64b51ce8075053b36e4a21a2e8fedf13acead75fbaabd6401a",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "7adf03e16eb9938c92599975ce3bf1aadeeeb62783ee1ac56c7914b93168fd9e",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\14_path_templates"
+}

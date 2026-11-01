@@ -30,6 +30,13 @@ run with substantially fewer recognized JavaScript patterns. Basic mode still
 requires Git. Tracking inspection requires the enhanced parser. A selected-file
 or parser failure is never an all-clear.
 
+For Git review, selecting JavaScript/TypeScript or executable inline scripts in
+basic mode marks syntax-dependent categories incomplete and exits 1, even with
+no `fail-on` policy. Supported independent HTML changes remain in the report.
+Basic mode never probes or starts Node; use enhanced mode for the supported
+syntax-based review. The integration workflow checks both complete enhanced
+analysis and this expected basic-mode refusal to pass incomplete evidence.
+
 Automatic selection is bounded to six changed supported files, with 4 MiB per
 HTML file, 512 KiB per script, and 4 MiB combined per side. Larger selections are
 refused; narrow the task with `--files src/page.html src/client.js` using exact

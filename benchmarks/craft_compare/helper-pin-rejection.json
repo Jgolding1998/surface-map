@@ -1,0 +1,15 @@
+{
+  "schema": "helper-module-pin-preflight-control-v1",
+  "modified_module": "surface_map/source.py",
+  "change": "Harmless appended comment in a synthetic final-source copy",
+  "analyzer_file_unchanged": true,
+  "default_preflight_rejected": true,
+  "rejection_reason": "Python module map differs from recorded source for surface-upgraded; use matching modules or explicitly pass --allow-new-source",
+  "worker_call_count": 0,
+  "altered_source_executed": false,
+  "raw_analyzer_output_files_created": 0,
+  "explicit_allow_new_source_snapshot_permitted": true,
+  "override_recorded_module_map_mismatch": true,
+  "runner_sha256": "71d37cefd76889e443991675ad126715b65ddda291c56000ad39ce4bf61d3020",
+  "scope": "The authored portable runner main/preflight was invoked in-process with its worker function replaced by a fail-fast mock. No Surface module was imported or executed. The explicit override was checked separately through source-snapshot preflight without a worker."
+}

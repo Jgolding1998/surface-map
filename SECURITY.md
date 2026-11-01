@@ -14,11 +14,26 @@ Parser and worker files are checked against a pinned integrity manifest. Node re
 
 Minimization trades fidelity for disclosure reduction. A normalized path, field name, count, type or status can still reveal information about an application. Review exports before sharing. The tool does not certify that an artifact or export is public or free of sensitive facts.
 
+HAR body inspection accepts only supported JSON media types and strict UTF-8 or
+base64, with a 64 KiB decoded/text limit, structural bounds and cooperative work
+checks. Form inspection retains minimized names and repeat counts, not values,
+filenames or file data. Multipart text is never decoded; only saved parameter
+metadata is used. Fixed omission reasons and all-entry counters remain when the
+128-row per-source body list is truncated. An unrecorded body is not an empty
+body. Generated mock exports revalidate form names, provenance and numeric
+coverage; arbitrary plan text cannot become code or example values.
+
+Filtered evidence pages analyze the supplied content afresh and retain no server
+handles or cursors. They cannot recover already omitted evidence. Supplemental
+saved-capture comparisons use comparison-local opaque identities for supported
+private field/domain changes, with explicit partial or unavailable coverage.
+These identities are not hashes of the originals and are not cross-run IDs.
+
 Opt-in page-signal analysis returns fixed content categories, source positions, source hiding declarations and minimized machine-resource paths. It does not return page prose, instruction bodies, commands, arbitrary attributes, URLs or digests of private text. These additional labels can still reveal facts about supplied content. Source declarations are not computed visibility or a prompt-injection verdict. Detected guidance is never followed and discovered resources are never fetched by this option. The bounded inventory shares the HTML analysis deadline; malformed nesting, unsupported styles and text/finding truncation limit coverage.
 
 ## MCP and public URL capture
 
-The optional MCP interface uses stdio, with no network listener. Five tools analyze supplied or bundled contents. Only `analyze_url` makes outbound requests: public HTTPS on port 443, without cookies, credentials or environment proxies. DNS answers and redirects are checked, private and special-purpose addresses are rejected, and connections use a vetted numeric IP while verifying TLS for the requested hostname. TLS verification is never disabled.
+The optional MCP interface uses stdio, with no network listener. Eight tools analyze supplied or bundled contents. Only `analyze_url` makes outbound requests: public HTTPS on port 443, without cookies, credentials or environment proxies. DNS answers and redirects are checked, private and special-purpose addresses are rejected, and connections use a vetted numeric IP while verifying TLS for the requested hostname. TLS verification is never disabled.
 
 Capture allows one HTML document and up to five same-origin external scripts, at most nine requests and three redirects, within a shared 20-second network deadline and per-file/combined byte caps. Inline scripts, cross-origin scripts, dynamic imports, browser rendering, API replay and form submission are unsupported. A pending operating-system DNS lookup can outlive its timeout; a single retained slot bounds outstanding lookups. The standard library bounds HTTP header parsing before the module applies its smaller accepted-header cap.
 

@@ -1,0 +1,2737 @@
+{
+  "scope": "Source-informed capability and boundary comparison of a pinned offline Craft HAR CLI against Surface 1.6.3 and the upgraded checkout. Not an independent broad accuracy benchmark.",
+  "manifest_sha256": "5407bbba81789c25f872d893ec716fa87390b2e092b91c8f79c09cde84b95fbd",
+  "cases": [
+    {
+      "case": "01_json_control",
+      "purpose": "Shared ordinary JSON control, including request and response type-only facts.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 2,
+        "statuses": [
+          200,
+          201
+        ],
+        "request_properties": 4,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 172.996,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1282,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 2,
+          "statuses": [
+            200,
+            201
+          ],
+          "request_properties": 4,
+          "response_properties": 2,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 317.712,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2511,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 2,
+          "statuses": [
+            200,
+            201
+          ],
+          "request_properties": 4,
+          "response_properties": 2,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 2,
+              "counts": {
+                "bodies": 4,
+                "inspected": 3,
+                "omitted": 1,
+                "json_shapes": 3,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "json_shape": 3
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "request",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 33.085,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 3289,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 2,
+          "statuses": [
+            200,
+            201
+          ],
+          "request_properties": 4,
+          "response_properties": 2,
+          "entries": 2,
+          "coverage": {
+            "examined": 2,
+            "status": "complete",
+            "total": 2
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json",
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "02_base64_json",
+      "purpose": "Saved base64 JSON response; encoded bodies are a known upgrade target.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 133.445,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 282.694,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1799,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 2,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 1,
+                "omitted": 1,
+                "json_shapes": 1,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 29.451,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2206,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 2,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "03_invalid_base64",
+      "purpose": "Invalid base64 must not produce a fabricated JSON body.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 115.591,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 285.643,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1715,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "invalid_base64": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "format": "json",
+                  "reason": "invalid_base64"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "invalid_base64": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 27.378,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2052,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "case": "04_non_utf8_base64",
+      "purpose": "Non-UTF-8 decoded bytes must not become trusted JSON shape evidence.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 121.213,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 277.999,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1711,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "invalid_utf8": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "format": "json",
+                  "reason": "invalid_utf8"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "invalid_utf8": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 27.934,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2087,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "application/json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "05_decoded_body_over_64k",
+      "purpose": "A documented Surface decoded-body cap; higher Craft acceptance is a scope difference.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "surface_response_properties": 0,
+        "surface_body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 119.466,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 709,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 315.954,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1717,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "body_too_large": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "format": "json",
+                  "reason": "body_too_large"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "body_too_large": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 28.041,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2187,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "06_urlencoded_text",
+      "purpose": "Observed form field names, decoding, empty values and duplicate names; all values must stay private.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 5,
+        "form_unique_fields": 4
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 105.417,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 732,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 296.568,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2031,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 5,
+          "form_unique_fields": 4,
+          "form_names": [
+            "field_1",
+            "field_2",
+            "name",
+            "field_4"
+          ],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 2,
+                "omitted": 0,
+                "json_shapes": 1,
+                "form_fields": 1,
+                "reasons": {
+                  "form_fields": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "inspected",
+                  "format": "urlencoded",
+                  "reason": "form_fields"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 28.995,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2218,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 5,
+          "form_unique_fields": 4,
+          "form_names": [
+            "name",
+            "tag",
+            "tag",
+            "empty",
+            "encoded%20field"
+          ],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "07_urlencoded_params",
+      "purpose": "HAR postData.params without text and with duplicated field names.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 3,
+        "form_unique_fields": 2
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 109.665,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 732,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 297.566,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1953,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 3,
+          "form_unique_fields": 2,
+          "form_names": [
+            "name",
+            "field_2"
+          ],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 2,
+                "omitted": 0,
+                "json_shapes": 1,
+                "form_fields": 1,
+                "reasons": {
+                  "form_fields": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "inspected",
+                  "format": "urlencoded",
+                  "reason": "form_fields"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 25.33,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2193,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 3,
+          "form_unique_fields": 2,
+          "form_names": [
+            "name",
+            "tag",
+            "tag"
+          ],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "08_multipart_params",
+      "purpose": "Multipart field names and duplicates; file names, contents and boundary details are not needed.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 4,
+        "form_unique_fields": 3
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 119.758,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 737,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 294.432,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1996,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 4,
+          "form_unique_fields": 3,
+          "form_names": [
+            "field_1",
+            "field_2",
+            "title"
+          ],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 2,
+                "omitted": 0,
+                "json_shapes": 1,
+                "form_fields": 1,
+                "reasons": {
+                  "form_fields": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "inspected",
+                  "format": "multipart",
+                  "reason": "form_fields"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 25.408,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2210,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 4,
+          "form_unique_fields": 3,
+          "form_names": [
+            "title",
+            "tag",
+            "tag",
+            "avatar"
+          ],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "09_problem_json_mime",
+      "purpose": "Existing structured JSON MIME and parameter control.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 117.193,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 803,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            400
+          ],
+          "request_properties": 0,
+          "response_properties": 2,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 270.071,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1805,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            400
+          ],
+          "request_properties": 0,
+          "response_properties": 2,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 1,
+                "omitted": 1,
+                "json_shapes": 1,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 25.332,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2263,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            400
+          ],
+          "request_properties": 0,
+          "response_properties": 2,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "10_unknown_encoding",
+      "purpose": "Unknown HAR body encoding must be identified; parsing it as plaintext is reported separately.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 122.054,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 283.817,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1727,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "unsupported_encoding": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "format": "json",
+                  "reason": "unsupported_encoding"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "unsupported_encoding": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 27.094,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2176,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "11_plaintext_json_policy",
+      "purpose": "JSON-looking text/plain: Surface MIME policy differs from Craft content sniffing.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "surface_response_properties": 0
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 116.942,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 282.612,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1701,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "unsupported_mime": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "reason": "unsupported_mime"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "unsupported_mime": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 25.469,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2163,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "12_malformed_json",
+      "purpose": "Malformed supported JSON; retain route and identify missing body evidence.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 120.772,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 707,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 279.226,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1711,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 0,
+                "omitted": 2,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "invalid_json": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "omitted",
+                  "format": "json",
+                  "reason": "invalid_json"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {
+            "invalid_json": 1
+          },
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 27.631,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2085,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "application/json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "13_privacy_defaults",
+      "purpose": "Shared credential/value-removal controls plus explicitly different identifier/header/query minimization policies.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 121.194,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 784,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 273.683,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1786,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 1,
+              "counts": {
+                "bodies": 2,
+                "inspected": 1,
+                "omitted": 1,
+                "json_shapes": 1,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 1,
+                  "json_shape": 1
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 837.395,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2883,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [
+            "SEARCH_VALUE_CANARY",
+            "TRACE_VALUE_CANARY",
+            "PRIVATE_FIELD_CANARY"
+          ],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 1,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "14_path_templates",
+      "purpose": "Numeric, UUID, ISO-date and long-hex grouping; compare group counts, not policy-specific path spellings.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 4,
+        "request_entries": 8
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 129.699,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1923,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 4,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 270.971,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 4382,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 4,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 8,
+              "counts": {
+                "bodies": 16,
+                "inspected": 8,
+                "omitted": 8,
+                "json_shapes": 8,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 8,
+                  "json_shape": 8
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 3",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 3",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 4",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 4",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 5",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 5",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 6",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 6",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 7",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 7",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 8",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 8",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 30.422,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 6826,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 4,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 8,
+          "coverage": {
+            "examined": 8,
+            "status": "complete",
+            "total": 8
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "15_malformed_entry",
+      "purpose": "Malformed HAR control: rejection versus permissive empty records must remain visible.",
+      "expected_facts": {
+        "accepted": false
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": false,
+          "runtime_ms": 118.381,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 104,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "error": {
+            "type": "ArtifactError",
+            "message": "source_1: HAR entry has no supported request object"
+          }
+        },
+        "surface-upgraded": {
+          "accepted": false,
+          "runtime_ms": 240.126,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 104,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "error": {
+            "type": "ArtifactError",
+            "message": "source_1: HAR entry has no supported request object"
+          }
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 28.35,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1881,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            0
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 1,
+          "coverage": {
+            "examined": 1,
+            "status": "complete",
+            "total": 1
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "case": "16_entry_cap_301",
+      "purpose": "Above Surface's documented 300-entry cap; not a shared-capacity accuracy score.",
+      "expected_facts": {
+        "surface_accepted": false,
+        "craft_accepted": true,
+        "craft_entries": 301
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": false,
+          "runtime_ms": 127.442,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 103,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "error": {
+            "type": "ArtifactError",
+            "message": "source_1: HAR must contain at most 300 log.entries"
+          }
+        },
+        "surface-upgraded": {
+          "accepted": false,
+          "runtime_ms": 231.285,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 103,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "error": {
+            "type": "ArtifactError",
+            "message": "source_1: HAR must contain at most 300 log.entries"
+          }
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 50.193,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 168153,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 301,
+          "coverage": {
+            "examined": 301,
+            "status": "complete",
+            "total": 301
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json",
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "17_timings_and_headers",
+      "purpose": "Craft historical timing metadata is additional scope, not Surface failure.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "request_entries": 2,
+        "craft_timing_entries": 2
+      },
+      "boundary_case": true,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 114.244,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 805,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 230.879,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2015,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 2,
+              "counts": {
+                "bodies": 4,
+                "inspected": 2,
+                "omitted": 2,
+                "json_shapes": 2,
+                "form_fields": 0,
+                "reasons": {
+                  "not_present": 2,
+                  "json_shape": 2
+                },
+                "text_omissions": {}
+              },
+              "bodies": [
+                {
+                  "location": "entry 1",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 1",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "request",
+                  "state": "omitted",
+                  "reason": "not_present"
+                },
+                {
+                  "location": "entry 2",
+                  "direction": "response",
+                  "state": "inspected",
+                  "format": "json",
+                  "reason": "json_shape"
+                }
+              ],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 29.111,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 2934,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 1,
+          "statuses": [
+            200
+          ],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 2,
+          "coverage": {
+            "examined": 2,
+            "status": "complete",
+            "total": 2
+          },
+          "truncated": false,
+          "timing_entries": 2,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": [
+            "json",
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "case": "18_empty_capture",
+      "purpose": "Empty valid HAR control.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 0
+      },
+      "boundary_case": false,
+      "results": {
+        "surface-baseline": {
+          "accepted": true,
+          "runtime_ms": 113.156,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 433,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 0,
+          "statuses": [],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": "no explicit HAR body coverage",
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "surface-upgraded": {
+          "accepted": true,
+          "runtime_ms": 244.603,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1196,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 0,
+          "statuses": [],
+          "request_properties": 0,
+          "response_properties": 0,
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "body_coverage": [
+            {
+              "source": "source_1",
+              "entries": 0,
+              "counts": {
+                "bodies": 0,
+                "inspected": 0,
+                "omitted": 0,
+                "json_shapes": 0,
+                "form_fields": 0,
+                "reasons": {},
+                "text_omissions": {}
+              },
+              "bodies": [],
+              "omitted_body_records": 0,
+              "truncated": false,
+              "limits": {
+                "entries": 300,
+                "body_bytes": 65536,
+                "body_records": 128,
+                "form_fields": 64,
+                "json_depth": 12,
+                "json_nodes": 4000,
+                "shape_depth": 5,
+                "shape_properties": 32,
+                "shape_array_samples": 8,
+                "work_seconds": 3.0
+              },
+              "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."
+            }
+          ],
+          "body_omission_reasons": {},
+          "warnings": []
+        },
+        "craft-cli": {
+          "accepted": true,
+          "runtime_ms": 28.56,
+          "stderr_bytes": 0,
+          "timeout": false,
+          "output_bytes": 1373,
+          "forbidden_canaries_retained": [],
+          "policy_difference_canaries_retained": [],
+          "routes": 0,
+          "statuses": [],
+          "request_properties": 0,
+          "response_properties": 0,
+          "entries": 0,
+          "coverage": {
+            "examined": 0,
+            "status": "complete",
+            "total": 0
+          },
+          "truncated": false,
+          "timing_entries": 0,
+          "body_coverage": "body kind/size or null; no explicit decode/parse omission reasons",
+          "form_field_occurrences": 0,
+          "form_unique_fields": 0,
+          "form_names": [],
+          "response_body_kinds": []
+        }
+      }
+    }
+  ],
+  "timing": {
+    "note": "One process per fixture in the reported suite on this Windows host. An initial Craft control smoke invocation preceded that suite (755.141 ms, recorded separately). Times include process/interpreter startup; execution order and OS caching are uncontrolled. These are reproducibility observations, not a speed benchmark or general performance ranking.",
+    "tools": {
+      "surface-baseline": {
+        "process_runs": 18,
+        "median_ms": 119.612,
+        "min_ms": 105.417,
+        "max_ms": 172.996,
+        "total_ms": 2198.628
+      },
+      "surface-upgraded": {
+        "process_runs": 18,
+        "median_ms": 280.919,
+        "min_ms": 230.879,
+        "max_ms": 317.712,
+        "total_ms": 4975.841
+      },
+      "craft-cli": {
+        "process_runs": 18,
+        "median_ms": 28.196,
+        "min_ms": 25.33,
+        "max_ms": 837.395,
+        "total_ms": 1335.179
+      }
+    }
+  },
+  "upgraded_analyzer_sha256": "3e9edd02e0e41061ac66b978e4497c53d69b10d05d58608aaf234dd456464860",
+  "source_module_pins": {
+    "surface-baseline": {
+      "package_version": "1.6.3",
+      "modules": 25,
+      "canonical_module_map_sha256": "fc5659000b0122ed13a796837393b64b523af81ad81e0173cbfb3da85024da43"
+    },
+    "surface-upgraded": {
+      "package_version": "1.7.0",
+      "modules": 27,
+      "canonical_module_map_sha256": "43cad4897bf71fc6be8499c5444a873a724152aae1797c27c17783e3987f4b12"
+    }
+  }
+}

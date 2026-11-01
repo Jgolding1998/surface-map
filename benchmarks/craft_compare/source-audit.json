@@ -1,0 +1,32 @@
+{
+  "craft_commit": "c316051c9e01e1bf9863f3c802a805179afa4663",
+  "released_binary_zip_sha256": "2544a2c457e5bc22ab0b57dd757ece6bb35e622de35cffed2a3e0f216d832e9c",
+  "cli_sha256": "52a4249d3d9b6f321883b5048e774026856f5fe8e8afaca89984d02ffe8f0fd5",
+  "selected_command": "--deep web-recording-show --json <synthetic HAR path/options>",
+  "audited_paths": [
+    "apps/craft-anything-cli/src/main.rs: main -> Command::Tool -> make_engine -> Engine::call",
+    "apps/craft-anything-cli/src/tool_args.rs: --json parses only supplied JSON parameter object",
+    "crates/engine/src/settings.rs: CRAFT_ANYTHING_CONFIG_DIR takes precedence over portable/user configuration",
+    "crates/engine/src/plugins.rs: install loads only configured/cached plugin definitions; defaults and isolated config have no plugins",
+    "crates/engine/src/tools/web_tools.rs: web_recording_show reads a capped local HAR, calls inspect_har and builds evidence",
+    "crates/analysis/src/web_har.rs: in-memory parsing, grouping, outline/redaction, no process/network/model call",
+    "crates/formats/src/har.rs: in-memory HAR JSON parsing",
+    "crates/formats/src/sourcemap.rs: pure base64 decoder"
+  ],
+  "execution_boundary": {
+    "working_directory": "fresh per-case directory under work/craft-upgrade/isolation",
+    "environment": "explicit allowlist with fresh HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME, XDG_DATA_HOME, TEMP, TMP, and CRAFT_ANYTHING_CONFIG_DIR",
+    "plugins": "explicit empty mcp/wasm configuration",
+    "project": "no --project, so no existing project/evidence or project settings are loaded",
+    "stdin": "closed empty bytes, all data via synthetic files and JSON parameters",
+    "process_timeout_seconds": 20,
+    "not_invoked": ["MCP server", "GUI", "setup", "doctor", "AI", "rebuild", "browser", "device tools", "target execution", "package installation"],
+    "limitation": "Static call-path review and environment isolation do not constitute an OS sandbox. Outbound networking is not independently blocked or instrumented. The chosen handler contains no network or subprocess calls."
+  },
+  "licenses": {
+    "source": "MIT OR Apache-2.0; choose MIT for any source reuse with copyright and permission notice retained",
+    "binary": "vendor license and NOTICE files retained beside CLI",
+    "brand": "No ArtCraft fonts, logos, UI assets or marks reused"
+  },
+  "timing": "Recorded before first CLI execution and after fixture/expectation manifest freeze"
+}

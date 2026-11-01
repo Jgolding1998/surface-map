@@ -53,7 +53,7 @@ jobs:
         with:
           base: 7ec928c281306bc2291c85ca36d431b1cc572dba
           head: ${{ github.sha }}
-          javascript-engine: basic
+          javascript-engine: enhanced
           files: |
             surface_map/static/index.html
             surface_map/static/app.js
@@ -73,3 +73,58 @@ jobs:
           assert result['review_signals']['format'] == 'surface-map-pr-review-signals-v1'
           assert not result['review_signals']['coverage']['incomplete_sources']
           PY
+      - name: Verify basic JavaScript coverage fails closed while retaining HTML evidence
+        shell: bash
+        env:
+          SURFACE_MAP_REPOSITORY: .
+          SURFACE_MAP_BASE: 7ec928c281306bc2291c85ca36d431b1cc572dba
+          SURFACE_MAP_HEAD: ${{ github.sha }}
+          SURFACE_MAP_ENGINE: basic
+          SURFACE_MAP_FAIL_ON: ''
+          SURFACE_MAP_OUTPUT_DIRECTORY: surface-map-pr-results-basic
+          SURFACE_MAP_FILES: |
+            surface_map/static/index.html
+            surface_map/static/app.js
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          completed = subprocess.run(
+              [sys.executable, '-I', '-S', str(Path('scripts/git_ci_action.py').resolve())],
+              env=os.environ.copy(), capture_output=True, text=True, timeout=60, check=False)
+          assert completed.returncode == 1, f'Expected incomplete-policy exit 1, got {completed.returncode}'
+          assert completed.stderr == '', 'Basic comparison emitted an unexpected error'
+          result = json.loads(Path(os.environ['SURFACE_MAP_OUTPUT_DIRECTORY'], 'comparison.json').read_text(encoding='utf-8'))
+          assert result['analysis_performed']
+          assert result['selection']['selected_files'] == 2
+          assert result['policy'] == {'fail_on': [], 'matched': ['incomplete'], 'passed': False, 'status': 'failed'}
+          signals = result['review_signals']
+          incomplete = signals['coverage']['incomplete_sources']
+          assert incomplete
+          assert any('javascript_syntax_analysis_unavailable' in row['reasons']
+                     and row.get('endpoint_scope') == 'javascript_only'
+                     and row.get('navigation_scope') == 'javascript_only' for row in incomplete)
+          html_sources = {row['id'] for row in result['evidence_comparison']['before']['sources']
+                          if row['kind'] == 'html'}
+          retained_html = [row for category in ('endpoint', 'navigation', 'form_field')
+                           for change in ('added', 'removed', 'changed')
+                           for row in signals['comparison'][category][change]
+                           if row['confidence'] == 'declared'
+                           and any(item['source'] in html_sources for item in row['evidence'])]
+          assert retained_html, 'Independent declared HTML changes must remain reviewable'
+          print('Basic comparison rejected incomplete JavaScript and retained declared HTML changes.')
+          PY
+      - name: Retain minimized source comparison reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: git-evidence-${{ matrix.os }}
+          path: |
+            surface-map-pr-results/
+            surface-map-pr-results-basic/
+          if-no-files-found: warn
+          retention-days: 7

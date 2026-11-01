@@ -16,6 +16,8 @@ from . import __version__
 from .analyze import ArtifactError, MAX_ARTIFACTS, MAX_FILE_BYTES, MAX_HTML_BYTES, MAX_TOTAL_BYTES, analyze, strict_json
 from .export import compare, contract, openapi
 from .review import review
+from .capture_compare import compare_saved, report_context
+from .evidence import CATEGORIES as EVIDENCE_CATEGORIES, KINDS as EVIDENCE_KINDS, MAX_PAGE, inspect_evidence
 from .samples import artifacts as sample_artifacts
 from .server import ANALYSIS_BUDGET, MAX_REQUEST, MAX_RESPONSE, OutputTooLarge, encoded_response
 from .source import MAX_FILE_BYTES as SOURCE_FILE_BYTES, MAX_TOTAL_BYTES as SOURCE_TOTAL_BYTES, SOURCE_KINDS
@@ -35,7 +37,10 @@ INSTRUCTIONS = (
     "browser execution or API replay. Use it only for a URL the user wants inspected. Surface Map cannot "
     "read arbitrary files or execute captured source. "
     "Choose analyze_capture for saved contents, analyze_url for a public page the user wants inspected, "
-    "compare_captures for before/after evidence, and inspect_sources for supplied code or manifests. "
+    "compare_captures for before/after evidence, inspect_evidence for filtered pages of a saved capture, "
+    "and inspect_sources for supplied code or manifests. "
+    "Comparison review_signals keep private field/domain identities distinct for paired static artifacts; "
+    "preserve partial/unavailable status and exclusions. Basic mode never starts the JavaScript parser. "
     "Use inspect_project for a bounded selection with logical relative paths, and plan_rebuild for an "
     "evidence-backed plan from saved captures. Its optional scaffold is returned as text, never written or run. "
     "Optional document URLs on saved captures are resolution context only and are never fetched. "
@@ -68,6 +73,8 @@ def limits():
                          "text_window_characters": MAX_TEXT_WINDOW, "max_nesting": MAX_DEPTH,
                          "scope": "Fixed source-only categories; no prose, automatic fetching or computed visibility. Shares the HTML deadline."},
         "comparison": "Each side has the web capture byte limits; both sides share the analysis deadline and MCP request/result limits.",
+        "evidence_pages": {"max_items": MAX_PAGE, "default_items": 25, "stored_state": False,
+                           "scope": "Fresh saved-content analysis each call; repeat identical inputs/options for subsequent offsets. Retention limits still apply."},
         "transport": "stdio only; oversized, malformed or structurally excessive JSON frames close the connection without echoing input.",
         "scope": INSTRUCTIONS,
         "privacy": "The agent/client sees supplied contents before minimization; its logging and retention are outside Surface Map's control.",
@@ -128,9 +135,30 @@ def tool_specs():
         "compare_captures": (
             "Use when asked what changed between two saved web captures, including routes, methods and shapes. "
             "Added, absent and changed normalized evidence does not prove service changes. "
-            "Each side is limited separately; both share one analysis deadline. Preserve warnings and evidence labels.",
+            "By default include supplemental private-identity signals for paired HTML/script slots: hidden fields, "
+            "script origins, navigation and supported tracking. HAR observations remain in the normalized comparison. "
+            "Preserve review_signals status, incomplete categories, exclusions and warnings. Basic mode retains HTML hints "
+            "but leaves JavaScript signals incomplete without starting Node. Set include_review_signals false for the legacy view. "
+            "Each side is limited separately; both share one analysis deadline.",
             _schema({"before": _capture_schema(), "after": _capture_schema(), "javascript_engine": engine,
+                     "include_review_signals": {"type": "boolean", "default": True},
                      "before_document_url": document_url, "after_document_url": document_url}, ("before", "after"))),
+        "inspect_evidence": (
+            "Inspect a filtered page of minimized routes, assets, unresolved operations or HAR body coverage from saved contents. "
+            "Use for questions such as observed POST requests, one source, or bodies that could not be inspected. "
+            "Default summaries omit schemas; detail true returns retained rows. Every page retains coverage, warnings, "
+            "counts and omission totals. No cache or handle is stored: repeat identical artifacts and options at next_offset. "
+            "No files, URLs, services or captured instructions are opened or executed.",
+            _schema({"artifacts": _capture_schema(), "javascript_engine": engine, "document_url": document_url,
+                     "category": {"type": "string", "enum": list(EVIDENCE_CATEGORIES), "default": "routes"},
+                     "offset": {"type": "integer", "minimum": 0, "maximum": 100000, "default": 0},
+                     "limit": {"type": "integer", "minimum": 1, "maximum": MAX_PAGE, "default": 25},
+                     "detail": {"type": "boolean", "default": False},
+                     "source_id": {"type": "string", "pattern": "^source_[1-6]$"},
+                     "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "UNKNOWN"]},
+                     "confidence": {"type": "string", "enum": ["observed", "declared", "inferred"]},
+                     "evidence_kind": {"type": "string", "enum": list(EVIDENCE_KINDS)},
+                     "body_state": {"type": "string", "enum": ["inspected", "omitted"]}}, ("artifacts",))),
         "inspect_sources": (
             "Use when asked which languages, dependencies or library roles appear in supplied source files and manifests. "
             "Inspect selected contents for minimized evidence; this is not a runtime audit or vulnerability scanner. "
@@ -164,7 +192,7 @@ def tool_specs():
 
 
 def _report_context(report):
-    return {key: report[key] for key in ("sources", "warnings", "javascript_analysis", "page_signals", "evidence_limits") if key in report}
+    return report_context(report)
 
 
 def _execute(name, args):
@@ -190,11 +218,15 @@ def _execute(name, args):
         return {"output": output, "document": {"openapi": openapi, "contract": contract}[output](report),
                 **_report_context(report)}
     if name == "compare_captures":
-        before = analyze(args["before"], javascript_engine=engine, deadline=deadline,
-                         document_url=args.get("before_document_url"))
-        after = analyze(args["after"], javascript_engine=engine, deadline=deadline,
-                        document_url=args.get("after_document_url"))
-        return {"comparison": compare(before, after), "before": _report_context(before), "after": _report_context(after)}
+        return compare_saved(args["before"], args["after"], javascript_engine=engine, deadline=deadline,
+                             before_document_url=args.get("before_document_url"),
+                             after_document_url=args.get("after_document_url"),
+                             include_review_signals=args.get("include_review_signals", True))
+    if name == "inspect_evidence":
+        return inspect_evidence(args["artifacts"], javascript_engine=engine, deadline=deadline,
+                                document_url=args.get("document_url"),
+                                **{key: args[key] for key in ("category", "offset", "limit", "detail", "source_id",
+                                                            "method", "confidence", "evidence_kind", "body_state") if key in args})
     if name == "inspect_sources":
         return inspect_sources(args["artifacts"], javascript_engine=engine)
     if name == "inspect_project":

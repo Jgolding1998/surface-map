@@ -1,0 +1,31 @@
+{
+  "tool": "surface-upgraded",
+  "case": "14_path_templates",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 270.971,
+  "stdout_bytes": 4382,
+  "stderr_bytes": 0,
+  "stdout_sha256": "e9e9b8becbe36a9d2a2b4f0c633ecde4125e544fa82c1071d4ecf8cce8060962",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "7adf03e16eb9938c92599975ce3bf1aadeeeb62783ee1ac56c7914b93168fd9e",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-upgraded\\14_path_templates"
+}

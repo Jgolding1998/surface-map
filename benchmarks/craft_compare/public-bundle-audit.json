@@ -1,0 +1,19 @@
+{
+  "schema": "public-evidence-bundle-audit-v1",
+  "files_inspected_before_this_record": 210,
+  "manifest_unchanged": true,
+  "raw_output_sha256s_verified": 54,
+  "private_absolute_path_findings": [],
+  "binary_archive_or_bytecode_findings": [],
+  "vendor_mit_and_notice_byte_identical": true,
+  "complete_module_pin_file_matches_actual_reproducer": true,
+  "helper_mutation_rejected_before_workers": true,
+  "final_source_unchanged_since_freeze": true,
+  "source_module_count": 27,
+  "upgraded_version": "1.7.0",
+  "upgraded_analyzer_sha256": "3e9edd02e0e41061ac66b978e4497c53d69b10d05d58608aaf234dd456464860",
+  "upgraded_raw_module_tree_sha256": "ed41a327e7c703b19a7e6f15a651aa506f8b9e9214ab5161ffc57d1a1c86d58d",
+  "portable_runner_sha256": "71d37cefd76889e443991675ad126715b65ddda291c56000ad39ce4bf61d3020",
+  "projection_sha256": "1c0d9b8394f7550215198ac5c070236eeec90cd3438e7fdf9b2a737705c981c9",
+  "scope": "Read-only final validation of the public portable evidence; no additional analyzer executions, no production edits."
+}

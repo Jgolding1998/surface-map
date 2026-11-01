@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "15_malformed_entry",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 28.35,
+  "stdout_bytes": 1881,
+  "stderr_bytes": 0,
+  "stdout_sha256": "add16a518546aea1dda26378cdf7d4d177bd953ccc209ec9a511fc553de2f0cd",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "061a3cf357778e6ced953560bc7c156fb620aad17633b9601695a338344e7866",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\15_malformed_entry"
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "final-source-regression-v1",
+  "candidate_archive": "retained-runs/candidate-8a949020be3cd873",
+  "final_package_version": "1.7.0",
+  "upgraded_raw_stdout_cases_identical_to_candidate": 18,
+  "final_analyzer_sha256": "3e9edd02e0e41061ac66b978e4497c53d69b10d05d58608aaf234dd456464860",
+  "final_raw_module_tree_sha256": "ed41a327e7c703b19a7e6f15a651aa506f8b9e9214ab5161ffc57d1a1c86d58d",
+  "original_fixture_manifest_unchanged": true,
+  "scope": "Original upgraded candidate evidence is retained separately; this records actual final-source rerun equality rather than inferring from the unchanged analyzer file."
+}

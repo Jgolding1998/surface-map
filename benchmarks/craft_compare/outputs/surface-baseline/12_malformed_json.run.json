@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "12_malformed_json",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 120.772,
+  "stdout_bytes": 707,
+  "stderr_bytes": 0,
+  "stdout_sha256": "b85155ed03421a5930c19592c4ed9c523c3e6420d8728f0c32508dfa58459900",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "994b4ac2267dd8d7223182314f5950a089c9f9fad1670da30393470cbc66799e",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\12_malformed_json"
+}

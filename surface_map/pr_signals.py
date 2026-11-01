@@ -104,7 +104,7 @@ def _attributes(record):
 
 
 def _index(records, aliases, *, site_origin, deadline):
-    from .pr_html_signals import canonical_target
+    from .pr_html_signals import canonical_target, resolve_reference
 
     groups = {category: {} for category in CATEGORIES}
     for record in records:
@@ -123,7 +123,8 @@ def _index(records, aliases, *, site_origin, deadline):
         if category == "tracking":
             api, event = private_identity
             if api == "navigator_send_beacon" and event is not None:
-                reference = canonical_target(event, site_origin=site_origin)
+                reference = canonical_target(resolve_reference(event, record.get("_base_url"),
+                    base_unresolved=record.get("_base_unresolved", False)), site_origin=site_origin)
                 if reference is None:
                     # Keep the syntactic call as unresolved, without storing a
                     # raw URL or implying that its destination was understood.
@@ -201,10 +202,12 @@ def _index(records, aliases, *, site_origin, deadline):
     return groups
 
 
-def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=None, deadline=None, module_sources=()):
+def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=None, deadline=None, module_sources=(),
+                    before_document_url=None, after_document_url=None):
     """Compare private identities in memory, then return only an allowlisted projection."""
     try:
-        from .pr_html_signals import collect_html, validate_site_origin
+        from .analyze import validate_document_url
+        from .pr_html_signals import collect_html, validate_site_origin, resolve_reference
         from .pr_js_signals import collect_javascript
 
         import math
@@ -218,6 +221,18 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
         ci._validate_capture(after)
         if ([item["kind"] for item in before["artifacts"]]
                 != [item["kind"] for item in after["artifacts"]]):
+            raise ValueError
+        documents = []
+        for capture, explicit in ((before, before_document_url), (after, after_document_url)):
+            if explicit is not None and "document_url" in capture and explicit != capture["document_url"]:
+                raise ValueError
+            value = explicit if explicit is not None else capture.get("document_url")
+            document = validate_document_url(value) if value is not None else None
+            kinds = [item["kind"] for item in capture["artifacts"]]
+            if "har" in kinds or document is not None and kinds.count("html") != 1:
+                raise ValueError
+            documents.append(document)
+        if (documents[0] is None) != (documents[1] is None):
             raise ValueError
         sides, warnings, notes, mutated = [], [], [], set()
         incomplete = {}
@@ -234,16 +249,21 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
             if warning not in warnings:
                 warnings.append(warning)
 
-        def mark_incomplete(source, categories, reason, *, javascript_navigation_only=False):
+        def mark_incomplete(source, categories, reason, *, javascript_only=False):
             entry = incomplete.setdefault(source, {"source": source, "categories": set(), "reasons": set(),
-                                                    "full_navigation_exclusion": False})
+                                                    "full_navigation_exclusion": False, "full_endpoint_exclusion": False})
             entry["categories"].update(categories)
             entry["reasons"].add(reason)
-            if "navigation" in categories and not javascript_navigation_only:
-                entry["full_navigation_exclusion"] = True
+            for category in ("navigation", "endpoint"):
+                if category in categories and not javascript_only:
+                    entry["full_" + category + "_exclusion"] = True
 
         def scope_limits(collected, side, source, reason):
             nonlocal navigation_has_omissions
+            if collected.get("engine") in {"basic", "unavailable"}:
+                mark_incomplete(source, ("tracking", "endpoint", "navigation"), "javascript_syntax_analysis_unavailable",
+                                javascript_only=True)
+                warn(side, source, "javascript_syntax_analysis_unavailable")
             limitations = collected.get("limitations", [])
             if type(limitations) is not list:
                 raise ValueError
@@ -265,7 +285,7 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                                   ("navigation_identity_uncertain", "navigation")):
                 if collected.get(key):
                     mark_incomplete(source, (category,), "global_client_identity_uncertain",
-                                    javascript_navigation_only=category == "navigation")
+                                    javascript_only=True)
                     warn(side, source, "global_client_identity_uncertain")
             if collected.get("navigation_target_unresolved"):
                 navigation_has_omissions = True
@@ -276,7 +296,7 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
             if any(counts.values()):
                 omissions.append({"side": side, "source": source, **counts})
 
-        def collect_tracking(text, source, kind, module_mode, offset=0):
+        def collect_tracking(text, source, kind, module_mode, offset=0, *, base_url=None, base_unresolved=False):
             collected = collect_javascript(text, source, kind=kind, engine=javascript_engine,
                                            deadline=deadline, module_mode=module_mode)
             for key in axios_state:
@@ -299,11 +319,17 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 raise ValueError
             rows = [dict(row) for row in rows]
             from .pr_html_signals import canonical_target
+            for row in rows:
+                if row.get("api") == "navigator_send_beacon":
+                    # Private context follows the call to the allowlisted
+                    # projection; neither base URLs nor literal values export.
+                    row["_base_url"], row["_base_unresolved"] = base_url, base_unresolved
             for call in collected.get("endpoint_calls", []):
                 method = call.get("method")
                 if method not in _ATTRS["method"]:
                     method = "UNKNOWN"
-                target = canonical_target(call.get("url"), site_origin=origin)
+                target = canonical_target(resolve_reference(call.get("url"), base_url,
+                                          base_unresolved=base_unresolved), site_origin=origin)
                 if target is None:
                     collected.setdefault("limitations", []).append("unsupported_endpoint_target")
                     continue
@@ -318,7 +344,8 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 api, family = call.get("api"), call.get("navigation_root")
                 if api not in NAVIGATION_APIS or family not in {"location", "open"}:
                     raise ValueError
-                target = canonical_target(call.get("url"), site_origin=origin)
+                target = canonical_target(resolve_reference(call.get("url"), base_url,
+                                          base_unresolved=base_unresolved), site_origin=origin)
                 if target is None:
                     collected.setdefault("limitations", []).append("unsupported_navigation_target")
                     collected["navigation_target_unresolved"] = True
@@ -341,14 +368,28 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
         for side, capture in enumerate((before, after)):
             records, counts = [], {"html": 0, "javascript": 0, "inline_javascript": 0}
             side_name = "before" if side == 0 else "after"
+            # Collect each HTML document once before its associated scripts.
+            # Input artifact order must not decide URL resolution context.
+            html_contexts = {}
+            for index, artifact in enumerate(capture["artifacts"], 1):
+                if artifact["kind"] != "html":
+                    continue
+                source = "source_" + str(index)
+                try:
+                    _tick(deadline)
+                    html_contexts[source] = collect_html(artifact["text"], source, site_origin=origin,
+                                                         deadline=deadline, document_url=documents[side])
+                except Exception:
+                    html_contexts[source] = None
+            script_context = (next(iter(html_contexts.values())) or {}) if len(html_contexts) == 1 else {}
+            script_base = {"base_url": script_context.get("base_url"),
+                           "base_unresolved": script_context.get("base_unresolved", False)}
             for index, artifact in enumerate(capture["artifacts"], 1):
                 source, kind = "source_" + str(index), artifact["kind"]
                 if kind == "html":
                     counts["html"] += 1
-                    try:
-                        _tick(deadline)
-                        collected = collect_html(artifact["text"], source, site_origin=origin, deadline=deadline)
-                    except Exception:
+                    collected = html_contexts[source]
+                    if collected is None:
                         mark_incomplete(source, CATEGORIES[:-1], "html_uninspected")
                         warn(side_name, source, "html_uninspected")
                         continue
@@ -359,10 +400,11 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                         try:
                             _tick(deadline)
                             inline = collect_tracking(script["text"], source, "javascript", script["module_mode"],
-                                                      script["line_offset"])
+                                                      script["line_offset"], base_url=collected.get("base_url"),
+                                                      base_unresolved=collected.get("base_unresolved", False))
                         except Exception:
                             mark_incomplete(source, ("tracking", "endpoint", "navigation"), "inline_javascript_uninspected",
-                                            javascript_navigation_only=True)
+                                            javascript_only=True)
                             warn(side_name, source, "inline_javascript_uninspected")
                             tracking_engines.add("unavailable")
                             continue
@@ -371,12 +413,16 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                     collected["records"] = html_rows
                 elif kind in {"javascript", "typescript"}:
                     counts["javascript"] += 1
+                    if len(html_contexts) == 1 and next(iter(html_contexts.values())) is None:
+                        mark_incomplete(source, ("tracking", "endpoint", "navigation"), "document_context_uninspected",
+                                        javascript_only=True)
+                        warn(side_name, source, "document_context_uninspected")
                     try:
                         _tick(deadline)
-                        collected = collect_tracking(artifact["text"], source, kind, source in module_sources)
+                        collected = collect_tracking(artifact["text"], source, kind, source in module_sources, **script_base)
                     except Exception:
                         mark_incomplete(source, ("tracking", "endpoint", "navigation"), "javascript_uninspected",
-                                        javascript_navigation_only=True)
+                                        javascript_only=True)
                         warn(side_name, source, "javascript_uninspected")
                         tracking_engines.add("unavailable")
                         continue
@@ -414,13 +460,13 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                     warn("before" if index == 0 else "after", source, "navigation_static_coverage_partial")
                 if row.get("category") == "navigation" and row.get("navigation_root") in navigation_mutated:
                     source = _evidence(row["evidence"])["source"]
-                    mark_incomplete(source, ("navigation",), "global_navigation_identity_uncertain", javascript_navigation_only=True)
+                    mark_incomplete(source, ("navigation",), "global_navigation_identity_uncertain", javascript_only=True)
                     warn("before" if index == 0 else "after", source, "global_navigation_identity_uncertain")
                 if row.get("category") == "endpoint" and row.get("assumed_global_axios") and (
                         axios_state["global_axios_modified"] or
                         axios_state["global_axios_lexical"] and row.get("assumed_bare_axios")):
                     source = _evidence(row["evidence"])["source"]
-                    mark_incomplete(source, ("endpoint",), "global_client_identity_uncertain")
+                    mark_incomplete(source, ("endpoint",), "global_client_identity_uncertain", javascript_only=True)
                     warn("before" if index == 0 else "after", source, "global_client_identity_uncertain")
         # One-sided parse/limit failures must never fabricate disappearances.
         # Suppress the affected category for that source on BOTH sides.
@@ -430,7 +476,9 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
                 entry = incomplete.get(_evidence(row["evidence"])["source"], {})
                 if row.get("category") not in entry.get("categories", set()) or (
                         row.get("category") == "navigation" and not entry.get("full_navigation_exclusion")
-                        and row.get("navigation_root") is None):
+                        and row.get("navigation_root") is None) or (
+                        row.get("category") == "endpoint" and not entry.get("full_endpoint_exclusion")
+                        and row.get("confidence") == "declared"):
                     filtered.append(row)
             sides[index] = filtered
         aliases = _Aliases()
@@ -463,7 +511,9 @@ def compare_signals(before, after, *, javascript_engine="enhanced", site_origin=
         incomplete_sources = [{"source": source, "categories": sorted(entry["categories"] | {"origin"}),
                                "reasons": sorted(entry["reasons"]),
                                **({"navigation_scope": "javascript_only"} if "navigation" in entry["categories"]
-                                  and not entry["full_navigation_exclusion"] else {})}
+                                  and not entry["full_navigation_exclusion"] else {}),
+                               **({"endpoint_scope": "javascript_only"} if "endpoint" in entry["categories"]
+                                  and not entry["full_endpoint_exclusion"] else {})}
                               for source, entry in sorted(incomplete.items())]
         tracking_incomplete = any("tracking" in entry["categories"] for entry in incomplete_sources)
         navigation_incomplete = any("navigation" in entry["categories"] for entry in incomplete_sources) or navigation_has_omissions

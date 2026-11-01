@@ -99,6 +99,153 @@ function sourceList(sources) {
   }
 }
 
+// Fixed server codes map to plain text. Unknown or future codes get a generic
+// label; raw codes, names and values from a response are never used as labels.
+const label = (map, code, fallback) => Object.hasOwn(map, code) ? map[code] : fallback;
+const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
+const plural = (value, one, many = one + "s") => `${value.toLocaleString()} ${value === 1 ? one : many}`;
+const sourceName = value => /^source_[1-9][0-9]{0,2}$/.test(value) ? value.replace("_", " ") : "a source";
+const locationName = value => /^(entry|line) [1-9][0-9]{0,8}$/.test(value) ? value : "an unknown location";
+const BODY_READ = {json_shape:"JSON shape read, values discarded", form_fields:"Form field names read, values discarded"};
+const BODY_SKIPPED = {
+  unavailable_text:"Body text was not saved in the HAR",
+  body_too_large:"Larger than the inspection limit",
+  invalid_base64:"Marked base64 but not valid base64",
+  invalid_utf8:"Not readable UTF-8 text",
+  invalid_json:"Labelled JSON but does not parse",
+  json_structure_limit:"JSON too deeply nested or too large",
+  unsupported_mime:"A media type that is not inspected",
+  unsupported_encoding:"An encoding other than base64",
+  invalid_text:"Body text has an unexpected type",
+  invalid_body:"Body record is malformed",
+  invalid_form_params:"Form parameters are malformed",
+  invalid_form_text:"Form text could not be decoded",
+  too_many_form_fields:"More form fields than the limit",
+  multipart_params_unavailable:"Multipart body without saved field names",
+  conflicting_form_representations:"Form text and saved fields disagree"
+};
+const BODY_OTHER = "Not inspected for another reason";
+const BODY_NOT_RECORDED = "No body record in the HAR";
+const TEXT_OMISSIONS = {multipart_text_not_inspected:"multipart text not read; only saved field names were used"};
+const FORM_FORMATS = {urlencoded:"URL-encoded form", multipart:"Multipart form"};
+
+function bodyRows(report) {
+  return Array.isArray(report?.har_body_analysis) ? report.har_body_analysis.filter(isRecordValue) : [];
+}
+function isRecordValue(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
+
+function bodyTotals(report) {
+  const totals = {sources:0, entries:0, bodies:0, inspected:0, omitted:0, notRecorded:0, skipped:new Map(), textOmissions:new Map(), truncated:0};
+  for (const item of bodyRows(report)) {
+    const counts = isRecordValue(item.counts) ? item.counts : {};
+    const reasons = isRecordValue(counts.reasons) ? counts.reasons : {};
+    totals.sources++; totals.entries += count(item.entries); totals.bodies += count(counts.bodies);
+    totals.inspected += count(counts.inspected); totals.omitted += count(counts.omitted);
+    totals.notRecorded += count(reasons.not_present);
+    for (const [code, value] of Object.entries(reasons)) {
+      if (code === "not_present" || Object.hasOwn(BODY_READ, code)) continue;
+      const text = label(BODY_SKIPPED, code, BODY_OTHER);
+      totals.skipped.set(text, (totals.skipped.get(text) || 0) + count(value));
+    }
+    for (const [code, value] of Object.entries(isRecordValue(counts.text_omissions) ? counts.text_omissions : {})) {
+      const text = label(TEXT_OMISSIONS, code, "some saved text not read");
+      totals.textOmissions.set(text, (totals.textOmissions.get(text) || 0) + count(value));
+    }
+    if (item.truncated === true) totals.truncated += count(item.omitted_body_records);
+  }
+  totals.notInspected = Math.max(0, totals.omitted - totals.notRecorded);
+  totals.reconciled = totals.inspected + totals.omitted === totals.bodies
+    && totals.notRecorded <= totals.omitted
+    && [...totals.skipped.values()].reduce((sum, value) => sum + value, 0) === totals.notInspected;
+  return totals;
+}
+
+function showBodyCoverage(report) {
+  const panel = $("#body-coverage"), rows = bodyRows(report);
+  panel.hidden = !rows.length;
+  $("#body-coverage-reasons").replaceChildren(); $("#body-coverage-notes").replaceChildren();
+  if (!rows.length) {
+    $("#body-coverage-summary").replaceChildren(); $("#body-coverage-total").textContent = "";
+    $("#body-coverage-why").hidden = true;
+    return;
+  }
+  const totals = bodyTotals(report);
+  const figure = (value, text) => { const item = node("span", "coverage-figure"); item.append(node("strong", "", value.toLocaleString()), document.createTextNode(" " + text)); return item; };
+  $("#body-coverage-summary").replaceChildren(
+    figure(totals.inspected, "inspected"), figure(totals.notInspected, "not inspected"), figure(totals.notRecorded, "not recorded in the HAR"));
+  $("#body-coverage-total").textContent = `${plural(totals.bodies, "request or response body slot")} across ${plural(totals.entries, "HAR entry", "HAR entries")}`;
+  const list = $("#body-coverage-reasons");
+  for (const [text, value] of [...totals.skipped].sort((a, b) => b[1] - a[1])) {
+    if (!value) continue;
+    const item = node("li"); item.append(node("span", "", text), node("span", "reason-count", value.toLocaleString())); list.append(item);
+  }
+  if (totals.notRecorded) { const item = node("li", "muted-reason"); item.append(node("span", "", BODY_NOT_RECORDED), node("span", "reason-count", totals.notRecorded.toLocaleString())); list.append(item); }
+  if (!list.children.length) list.append(node("li", "muted-reason", "Every recorded body was inspected"));
+  $("#body-coverage-why").hidden = !(totals.notInspected || totals.notRecorded);
+  const notes = $("#body-coverage-notes");
+  if (totals.notRecorded) notes.append(node("li", "", "A missing body record does not mean the request or response had no body."));
+  for (const [text, value] of totals.textOmissions) if (value) notes.append(node("li", "", `${plural(value, "body", "bodies")}: ${text}.`));
+  if (totals.truncated) notes.append(node("li", "", `${plural(totals.truncated, "body row")} beyond the per-source limit are counted but not listed in route details.`));
+  if (!totals.reconciled) notes.append(node("li", "", "These counts did not add up as expected. Use the report JSON as the source of truth."));
+}
+
+function routeBodyRecords(route) {
+  const records = [], wanted = new Set((route.evidence || []).filter(entry => entry.kind === "har").map(entry => `${entry.source}\u0000${entry.location}`));
+  if (!wanted.size || !current) return {records, missing:0, sources:new Set()};
+  const sources = new Set();
+  for (const item of bodyRows(current.report)) {
+    for (const body of Array.isArray(item.bodies) ? item.bodies : []) {
+      if (isRecordValue(body) && wanted.has(`${item.source}\u0000${body.location}`)) records.push({source:item.source, ...body});
+    }
+    if (item.truncated === true) sources.add(item.source);
+  }
+  const found = new Set(records.map(body => `${body.source}\u0000${body.location}`));
+  return {records, missing:[...wanted].filter(key => !found.has(key)).length, sources};
+}
+
+function bodyRecordText(body) {
+  if (body.state === "inspected") return label(BODY_READ, body.reason, "Inspected");
+  if (body.reason === "not_present") return BODY_NOT_RECORDED;
+  return label(BODY_SKIPPED, body.reason, BODY_OTHER);
+}
+
+function appendRouteBodies(panel, route) {
+  const {records, missing} = routeBodyRecords(route);
+  if (!records.length && !missing) return;
+  panel.append(node("h4", "", "Body coverage"));
+  const list = node("ul", "body-records");
+  for (const body of records.slice(0, 24)) {
+    const item = node("li", body.state === "inspected" ? "inspected" : "");
+    item.append(node("span", "body-direction", body.direction === "response" ? "Response" : body.direction === "request" ? "Request" : "Body"),
+      node("span", "", bodyRecordText(body)), node("span", "provenance", `${sourceName(body.source)} · ${locationName(body.location)}`));
+    list.append(item);
+  }
+  panel.append(list);
+  if (records.length > 24) panel.append(node("p", "detail-note", `${plural(records.length - 24, "more body row")} in the report JSON.`));
+  if (missing) panel.append(node("p", "detail-note", `${plural(missing, "HAR entry", "HAR entries")} for this route fell outside the retained body rows. Totals above still count them.`));
+}
+
+function appendRequestFields(panel, route) {
+  const observations = (Array.isArray(route.request_fields) ? route.request_fields : []).filter(isRecordValue);
+  if (!observations.length) return;
+  panel.append(node("h4", "", "Observed form fields"));
+  for (const observation of observations.slice(0, 16)) {
+    const block = node("div", "field-observation");
+    block.append(node("p", "field-source", `${label(FORM_FORMATS, observation.format, "Form")} · ${sourceName(observation.source)} · ${locationName(observation.location)}`));
+    const list = node("ul", "field-list");
+    for (const field of (Array.isArray(observation.fields) ? observation.fields : []).filter(isRecordValue)) {
+      const times = count(field.occurrences);
+      const item = node("li");
+      item.append(node("code", "", typeof field.name === "string" ? field.name : "unnamed field"), node("span", "field-count", times > 1 ? `${times} times` : "once"));
+      item.setAttribute("aria-label", `${typeof field.name === "string" ? field.name : "unnamed field"}, sent ${times === 1 ? "once" : times + " times"} in this entry`);
+      list.append(item);
+    }
+    block.append(list); panel.append(block);
+  }
+  if (observations.length > 16) panel.append(node("p", "detail-note", `${plural(observations.length - 16, "more observation")} in the report JSON.`));
+  panel.append(node("p", "detail-note", "Names and repeat counts only. Values, types and file data are never kept. Unknown names are renamed."));
+}
+
 function details(route) {
   const panel = $("#detail"); panel.replaceChildren();
   panel.append(node("span", "detail-label", "Route evidence"), node("h3", "", `${route.method || "METHOD UNKNOWN"} ${route.path}`), node("p", "", `${route.confidence.toUpperCase()} · Path parameters and unknown names are conservative aliases.`));
@@ -111,11 +258,19 @@ function details(route) {
   for (const entry of route.evidence) evidence.append(node("li", "", `${entry.source.replace("_", " ")} · ${entry.location} · ${entry.kind}${entry.origin_relation ? " · " + (origins[entry.origin_relation] || origins.unknown) : ""}`));
   panel.append(evidence);
   panel.append(node("h4", "", "Query fields"), node("p", "", route.query_fields.join(", ") || "None observed"));
-  for (const [key, title] of [["request_shapes", "Request field shapes"], ["response_shapes", "Response field shapes"]]) {
+  appendRequestFields(panel, route);
+  const hasBodyRows = routeBodyRecords(route).records.length > 0;
+  for (const [key, title] of [["request_shapes", "Request JSON shapes"], ["response_shapes", "Response JSON shapes"]]) {
     panel.append(node("h4", "", title));
-    panel.append(route[key]?.length ? node("pre", "", JSON.stringify(route[key], null, 2)) : node("p", "", "No supported body shape observed."));
+    panel.append(route[key]?.length ? node("pre", "", JSON.stringify(route[key], null, 2))
+      : node("p", "", hasBodyRows ? "No JSON shape kept. See body coverage below for why." : "No JSON shape kept."));
   }
+  appendRouteBodies(panel, route);
 }
+
+const routeFieldNames = route => (Array.isArray(route.request_fields) ? route.request_fields : [])
+  .flatMap(observation => Array.isArray(observation?.fields) ? observation.fields : [])
+  .map(field => typeof field?.name === "string" ? field.name.toLowerCase() : "");
 
 function allRoutes(report) {
   return [...report.routes, ...(report.unresolved_operations || [])];
@@ -124,7 +279,8 @@ function allRoutes(report) {
 function table(focusRoute = null) {
   const rows = $("#route-rows"); rows.replaceChildren();
   const query = $("#search").value.toLowerCase();
-  const routes = current ? allRoutes(current.report).filter(route => (filter === "all" || route.confidence === filter) && route.path.toLowerCase().includes(query)) : [];
+  const routes = current ? allRoutes(current.report).filter(route => (filter === "all" || route.confidence === filter)
+    && (route.path.toLowerCase().includes(query) || (query && routeFieldNames(route).some(name => name.includes(query))))) : [];
   $("#empty-routes").hidden = routes.length !== 0;
   const all = current ? allRoutes(current.report) : [];
   $("#empty-routes").textContent = !current ? "No evidence yet. Add saved artifacts and analyze them, or explore the example workspace."
@@ -164,11 +320,12 @@ function show(result, example = false) {
   $("#inferred-count").textContent = routes.length - observed;
   $("#sources-count").textContent = report.sources.length;
   $("#workspace-mode").textContent = example ? "EXAMPLE WORKSPACE" : "YOUR SAVED ARTIFACTS";
-  sourceList(report.sources); table();
+  sourceList(report.sources); showBodyCoverage(report); table();
   if (routes.length) { selected = routes[0].id; details(routes[0]); table(); }
   else emptyDetail("No routes retained", "Nothing to inspect yet", "Supported routes, forms and literal requests appear here with their source locations. A HAR capture usually gives the strongest evidence.");
   const engines = [...new Set((report.javascript_analysis || []).map(item => item.engine))].join(", ");
-  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`, false, "success");
+  const bodies = bodyRows(report).length ? bodyTotals(report) : null;
+  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${bodies ? `HAR bodies: ${bodies.inspected} inspected, ${bodies.notInspected} not inspected, ${bodies.notRecorded} not recorded. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`, false, "success");
   refresh();
 }
 
@@ -251,8 +408,14 @@ async function action(task) {
   finally { busy = false; refresh(); }
 }
 
-function showDiff(value) {
-  diff = value; $("#diff-panel").hidden = false;
+function showDiff(value, review = null, context = null) {
+  // Keep the existing normalized keys in downloads while retaining the review
+  // and per-side coverage that explain what the comparison could inspect.
+  diff = {...value};
+  if (isRecordValue(review)) diff.review_signals = review;
+  if (isRecordValue(context)) for (const side of ["before", "after"])
+    if (isRecordValue(context[side])) diff[side] = context[side];
+  $("#diff-panel").hidden = false;
   const unresolved = (value.unresolved_added || []).length + (value.unresolved_removed || []).length + (value.unresolved_changed || []).length;
   $("#diff-summary").textContent = `${value.added.length} added · ${value.removed.length} absent · ${value.changed.length} changed${unresolved ? ` · ${unresolved} unresolved-method changes` : ""}`;
   const list = $("#diff-list"); list.replaceChildren();
@@ -268,6 +431,8 @@ function showDiff(value) {
         scripts_omitted_from_analysis:"Scripts omitted from analysis",
         scripts_omitted_before:"Scripts omitted from prior analysis",
         javascript_engine_changed:"JavaScript engine changed",
+        capture_bodies_uninspected_before:"The baseline capture contains bodies that were not inspected",
+        capture_bodies_uninspected_after:"The new capture contains bodies that were not inspected",
         not_seen_in_supplied_capture:"Absent from supplied capture"
       };
       const context = (route.absence_context || route.presence_context || route.context || []).map(code => absenceLabels[code]).filter(Boolean).join("; ");
@@ -285,6 +450,160 @@ function showDiff(value) {
     }
   }
   if (!list.children.length) list.append(node("div", "diff-row", "No changes in the normalized evidence."));
+  showReviewSignals(review);
+}
+
+function clearDiff() {
+  diff = null; $("#diff-panel").hidden = true;
+  $("#diff-summary").textContent = ""; $("#diff-list").replaceChildren();
+  showReviewSignals(null);
+}
+
+const SIGNAL_CATEGORIES = [
+  ["form_field", "Form fields", "form field"], ["script", "Scripts", "script"], ["stylesheet", "Stylesheets", "stylesheet"],
+  ["navigation", "Navigation", "navigation target"], ["origin", "Origins", "origin"], ["tracking", "Tracking calls", "tracking call"],
+  ["document_base", "Document base", "document base"], ["endpoint", "Request targets", "request target"]
+];
+const SIGNAL_STATUS = {
+  available:"Static page review complete for the paired HTML and scripts.",
+  partial:"Partial static page review. Supported changes remain listed below. Uninspected evidence is unknown; this is not an unchanged or passing result."
+};
+const SIGNAL_REASONS = {
+  unpaired_artifact_kinds:"Static page review did not run: the two captures do not contain the same kinds of files in the same order.",
+  har_only_capture:"Static page review does not apply: these captures contain only HAR files, which are compared above as observed routes.",
+  document_context_mismatch:"Static page review is unavailable: a page URL was supplied for only one side.",
+  unsupported_or_limit:"Static page review is unavailable: an input was unsupported or reached a limit."
+};
+const SIGNAL_WARNINGS = {
+  javascript_syntax_analysis_unavailable:"JavaScript syntax analysis was unavailable, so script-based hints are partial",
+  navigation_static_coverage_partial:"Some navigation could not be resolved statically",
+  navigation_target_unresolved:"A navigation target could not be resolved",
+  global_client_identity_uncertain:"A global client could not be identified with certainty",
+  global_tracking_identity_uncertain:"A global tracking client could not be identified with certainty",
+  global_navigation_identity_uncertain:"A global navigation helper could not be identified with certainty",
+  html_uninspected:"An HTML source was not inspected",
+  inline_javascript_uninspected:"Inline JavaScript was not inspected",
+  document_context_uninspected:"Document context was not inspected",
+  javascript_uninspected:"A script source was not inspected",
+  review_record_limit:"A review record limit was reached",
+  html_static_coverage_partial:"Some HTML declarations could not be fully inspected",
+  tracking_static_coverage_partial:"Some script-based hints could not be fully inspected",
+  review_unavailable:"The review could not run"
+};
+const SCOPE_NOTES = {
+  document_path_unknown:"The page URL is unknown, so relative links are compared as written",
+  first_party_origin_unknown:"No site origin was supplied, so origins are not classed as first or third party",
+  scheme_relative_origin_unclassified:"Scheme-relative origins are not classified",
+  forms_aggregated_by_target:"Form fields are grouped by form target",
+  template_content_excluded:"Template content is excluded",
+  non_http_references_excluded:"Non-HTTP references are excluded",
+  tracking_static_syntax_only:"Tracking calls are found from static syntax only",
+  tracking_wrappers_and_aliases_not_resolved:"Tracking wrappers and aliases are not resolved"
+};
+const INPUT_TYPES = new Set("text email password number checkbox radio submit button file search tel url date datetime-local time month week color range reset image textarea select unknown".split(" "));
+const SIGNAL_APIS = new Set("gtag_event posthog_capture analytics_track mixpanel_track fbq_track fbq_track_custom data_layer_event navigator_send_beacon gtag_config fbq_init analytics_page location_assign location_replace location_href location_assignment window_open".split(" "));
+const ATTRIBUTE_TEXT = {
+  input_type:value => value === "hidden" ? "hidden input" : value === "mixed" ? "mixed input types" : INPUT_TYPES.has(value) ? `${value} input` : "input",
+  asset_kind:value => ({script:"script", stylesheet:"stylesheet", link:"link", "embedded-document":"embedded document"})[value] || "",
+  origin_relation:value => ({same_origin:"same origin", cross_origin:"different origin", relative:"relative", unknown:"origin not classified"})[value] || "",
+  method:value => /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(value) ? value : "",
+  api:value => SIGNAL_APIS.has(value) ? value.replaceAll("_", " ") : "other call"
+};
+const OPAQUE_ID = /^(signal|origin|target|path|field|event)_[1-9][0-9]{0,5}$/;
+const opaque = value => typeof value === "string" && OPAQUE_ID.test(value) ? value : null;
+
+function signalAttributes(row) {
+  const parts = [];
+  for (const attributes of (Array.isArray(row.attributes) ? row.attributes : []).filter(isRecordValue)) {
+    for (const [key, render] of Object.entries(ATTRIBUTE_TEXT)) {
+      if (typeof attributes[key] === "string") { const text = render(attributes[key]); if (text && !parts.includes(text)) parts.push(text); }
+    }
+  }
+  return parts;
+}
+
+function signalEvidence(row, side) {
+  const where = rows => (Array.isArray(rows) ? rows : []).filter(isRecordValue).slice(0, 3)
+    .map(entry => `${sourceName(entry.source)} · ${locationName(entry.location)}`).join("; ");
+  if (side === "changed") return [where(row.before_evidence) && `Baseline: ${where(row.before_evidence)}`, where(row.evidence) && `New: ${where(row.evidence)}`].filter(Boolean).join(". ");
+  const text = where(row.evidence);
+  return text ? `${side === "removed" ? "Baseline" : "New"}: ${text}` : "";
+}
+
+function signalRow(row, change, noun) {
+  const item = node("li", "signal-row");
+  const refs = ["field_id", "target_id", "origin_id", "path_id", "event_id"].map(key => opaque(row[key])).filter(Boolean);
+  const reference = opaque(row.id);
+  const attributes = signalAttributes(row);
+  const times = count(row.count);
+  item.append(node("span", "signal-change " + change, {added:"Added", removed:"Absent", changed:"Changed"}[change]));
+  const body = node("span", "signal-body");
+  body.append(node("span", "", `${attributes.length ? attributes.join(", ") : noun}${times > 1 ? ` · ${times} occurrences` : ""}`));
+  const ids = [reference, ...refs].filter((value, index, all) => value && all.indexOf(value) === index);
+  body.append(node("code", "signal-ref", ids.length ? ids.join(" · ") : "reference withheld"));
+  const evidence = signalEvidence(row, change);
+  if (evidence) body.append(node("span", "provenance", evidence));
+  item.append(body);
+  return item;
+}
+
+function showReviewSignals(review) {
+  const panel = $("#review-signals"), groups = $("#review-groups"), notes = $("#review-notes");
+  groups.replaceChildren(); notes.replaceChildren();
+  for (const id of ["review-quiet", "review-withheld", "review-summary", "review-status"]) $("#" + id).textContent = "";
+  panel.hidden = !isRecordValue(review);
+  if (!isRecordValue(review)) return;
+  const status = review.status;
+  const banner = $("#review-status");
+  banner.className = "review-status" + (status === "available" ? "" : " partial");
+  if (status === "available" || status === "partial") banner.textContent = SIGNAL_STATUS[status];
+  else banner.textContent = label(SIGNAL_REASONS, review.reason, status === "not_applicable" ? "Static page review does not apply to these captures." : "Static page review is unavailable for these captures.") + " This is not an unchanged or passing result.";
+  const comparison = isRecordValue(review.comparison) ? review.comparison : null;
+  const coverage = isRecordValue(review.coverage) ? review.coverage : {};
+  if (!comparison || !(status === "available" || status === "partial")) { $("#review-summary").textContent = ""; return; }
+  const incomplete = new Set();
+  for (const source of (Array.isArray(coverage.incomplete_sources) ? coverage.incomplete_sources : []).filter(isRecordValue))
+    for (const category of Array.isArray(source.categories) ? source.categories : []) incomplete.add(category);
+  if (status === "partial" && !incomplete.size) for (const [key, value] of [["tracking", coverage.tracking_analysis], ["navigation", coverage.javascript_navigation_analysis]]) if (value === "unavailable_or_partial") incomplete.add(key);
+  let total = 0; const quiet = [], incompleteNames = [];
+  const known = new Set(SIGNAL_CATEGORIES.map(([key]) => key));
+  const extra = Object.keys(comparison).filter(key => !known.has(key)).map(key => [key, "Other static signals", "signal"]);
+  for (const [key, title, noun] of [...SIGNAL_CATEGORIES, ...extra]) {
+    const group = comparison[key];
+    if (!isRecordValue(group)) continue;
+    // The backend excludes only affected sources and JavaScript scopes. A
+    // category can still contain independent supported HTML/source changes.
+    if (incomplete.has(key)) incompleteNames.push(title);
+    const changes = ["added", "removed", "changed"].map(change => [change, (Array.isArray(group[change]) ? group[change] : []).filter(isRecordValue)]);
+    const size = changes.reduce((sum, [, rows]) => sum + rows.length, 0);
+    if (!size) { if (status === "available" && !incomplete.has(key)) quiet.push(title); continue; }
+    total += size;
+    const details = node("details", "signal-group"); details.open = true;
+    const summary = node("summary");
+    const [added, removed, changed] = changes.map(([, rows]) => rows.length);
+    summary.append(node("span", "signal-title", title), node("span", "signal-counts", `${added} added · ${removed} absent · ${changed} changed${incomplete.has(key) ? " · partial coverage" : ""}`));
+    const list = node("ul", "signal-list");
+    for (const [change, rows] of changes) for (const row of rows.slice(0, 50)) list.append(signalRow(row, change, noun));
+    details.append(summary, list);
+    if (size > 50 * 3 || changes.some(([, rows]) => rows.length > 50)) details.append(node("p", "detail-note", "Some rows are not listed. Use the comparison JSON for the full set."));
+    groups.append(details);
+  }
+  $("#review-summary").textContent = `${plural(total, "supported page change")} beyond routes${incompleteNames.length ? ` · ${incompleteNames.length} categories with incomplete coverage` : ""}`;
+  if (incompleteNames.length) $("#review-withheld").textContent = `Coverage is incomplete for: ${incompleteNames.join(", ")}. Affected source evidence is withheld; supported changes remain listed.`;
+  if (quiet.length) $("#review-quiet").textContent = `No differences in the inspected static source for: ${quiet.join(", ")}.`;
+  const excluded = (Array.isArray(coverage.excluded_sources) ? coverage.excluded_sources : []).filter(isRecordValue);
+  if (excluded.length) notes.append(node("li", "", `${plural(excluded.length, "HAR source")} (${excluded.map(item => sourceName(item.source)).join(", ")}) compared above as observed routes, not here.`));
+  for (const note of Array.isArray(coverage.scope_notes) ? coverage.scope_notes : []) if (Object.hasOwn(SCOPE_NOTES, note)) notes.append(node("li", "", SCOPE_NOTES[note] + "."));
+  const warnings = (Array.isArray(coverage.warnings) ? coverage.warnings : []).filter(isRecordValue);
+  const warningText = new Map();
+  for (const warning of warnings) { const text = label(SIGNAL_WARNINGS, warning.reason, "A source could not be fully compared"); warningText.set(text, (warningText.get(text) || 0) + 1); }
+  for (const [text, value] of warningText) notes.append(node("li", "", `${text}${value > 1 ? ` (${value} times)` : ""}.`));
+  notes.append(node("li", "", "IDs such as field_2 or origin_1 are private to this comparison. Original names, domains and values are not shown."));
+}
+
+function reviewNotice(review) {
+  if (!isRecordValue(review)) return "";
+  return review.status === "available" ? " Static page review complete." : review.status === "partial" ? " Static page review is partial." : " Static page review did not run.";
 }
 
 function download(value, suffix) {
@@ -478,7 +797,7 @@ function resetWorkspace(clearURL = true) {
   files=[]; baselineFiles=[]; current=null; diff=null; selected=null;
   $("#files").value="";
   if (clearURL) $("#public-url").value="";
-  $("#source-list").replaceChildren(); $("#diff-panel").hidden=true;
+  $("#source-list").replaceChildren(); clearDiff(); showBodyCoverage(null);
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent="0";
   $("#workspace-mode").textContent = modeLabel();
   emptyDetail("Session cleared", "Nothing selected", "Add evidence in the inputs panel, or explore an example. The server does not retain uploads or reports.");
@@ -514,7 +833,8 @@ $("#view-public-routes").addEventListener("click", () => {
 $("#files").addEventListener("change", () => {
   clearPlan();
   clearSourceView();
-  files = Array.from($("#files").files); current = null; selected = null; diff = null; $("#diff-panel").hidden = true;
+  files = Array.from($("#files").files); current = null; selected = null;
+  clearDiff(); showBodyCoverage(null);
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent = "0";
   $("#workspace-mode").textContent = modeLabel();
   emptyDetail("Selection ready", "Selection awaiting analysis", "Analyze artifacts to map routes, or build a plan for an agent brief. Nothing is sent until you choose an action.");
@@ -536,7 +856,7 @@ $("#build-plan").addEventListener("click", () => action(async () => {
 $("#demo-plan").addEventListener("click", () => action(async () => {
   clearPlan();
   files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value="";
-  clearSourceView(); $("#diff-panel").hidden=true; $("#diff-list").replaceChildren();
+  clearSourceView(); showBodyCoverage(null); clearDiff();
   $("#baseline-status").textContent="No baseline kept. Select and analyze artifacts to compare evidence.";
   const result = await request("/api/rebuild-demo", {});
   sourceList(result.plan.coverage.sources || []);
@@ -545,7 +865,7 @@ $("#demo-plan").addEventListener("click", () => action(async () => {
 $("#demo").addEventListener("click", () => action(async () => {
   clearPlan();
   files=[]; baselineFiles=[]; current=null; diff=null; selected=null; $("#files").value="";
-  clearSourceView(); $("#diff-panel").hidden=true; $("#diff-list").replaceChildren();
+  clearSourceView(); showBodyCoverage(null); clearDiff();
   $("#baseline-status").textContent="No baseline kept. Select and analyze artifacts to compare evidence.";
   const result = await request(sourceMode() ? "/api/source-demo" : "/api/demo", {});
   if (sourceMode()) showSource(result.inventory, true); else show(result, true);
@@ -553,9 +873,14 @@ $("#demo").addEventListener("click", () => action(async () => {
 $("#baseline").addEventListener("click", () => { baselineFiles=files.slice(); $("#baseline-status").textContent=`Baseline kept: ${baselineFiles.length} artifacts in browser memory. Import a second capture, analyze it, then compare.`; refresh(); });
 $("#compare").addEventListener("click", () => action(async () => {
   const result = await request(sourceMode() ? "/api/source-compare" : "/api/compare", {baseline:await read(baselineFiles),candidate:await read(files),javascript_engine:$("#javascript-engine").value});
-  if (sourceMode()) showSourceDiff(result.diff); else showDiff(result.diff);
+  if (sourceMode()) showSourceDiff(result.diff);
+  else { showDiff(result.diff, result.review_signals, result); notice(`Comparison ready. ${$("#diff-summary").textContent}.${reviewNotice(result.review_signals)}`, false, "success"); }
 }));
-$("#demo-diff").addEventListener("click", () => action(async () => showDiff((await request("/api/demo-diff", {})).diff)));
+$("#demo-diff").addEventListener("click", () => action(async () => {
+  const result = await request("/api/demo-diff", {});
+  showDiff(result.diff, result.review_signals, result);
+  notice(`Example comparison ready. ${$("#diff-summary").textContent}.${reviewNotice(result.review_signals)}`, false, "success");
+}));
 for (const button of document.querySelectorAll("[data-filter]")) button.addEventListener("click", () => {filter=button.dataset.filter; document.querySelectorAll("[data-filter]").forEach(item => { item.classList.toggle("selected", item===button); item.setAttribute("aria-pressed", String(item===button)); }); table();});
 $("#search").addEventListener("input", table);
 for (const name of ["report","openapi","contract"]) $("#export-"+name).addEventListener("click", () => { if(current) download(current[name], name); });
