@@ -37,6 +37,21 @@ class RejectedPostDeliveryTests(unittest.TestCase):
         cls.server.server_close()
         cls.worker.join(2)
 
+    def setUp(self):
+        # A complete response reaches the peer before its connection worker
+        # finishes lingering close. Establish full capacity before another test
+        # assumes it can admit sixteen peers, without sleeping or retrying HTTP.
+        acquired, deadline = 0, time.monotonic() + 1
+        try:
+            for _ in range(16):
+                left = max(0, deadline - time.monotonic())
+                self.assertTrue(self.server.connections.acquire(timeout=left),
+                                "A previous connection worker did not release its slot")
+                acquired += 1
+        finally:
+            for _ in range(acquired):
+                self.server.connections.release()
+
     @staticmethod
     def _body():
         return json.dumps({"private": CANARY}).encode()
