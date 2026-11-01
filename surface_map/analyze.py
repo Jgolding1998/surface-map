@@ -9,7 +9,7 @@ import time
 from html.entities import html5
 from html.parser import HTMLParser
 import html.parser as html_parser
-from urllib.parse import parse_qsl, unquote, urldefrag, urljoin, urlsplit
+from urllib.parse import parse_qsl, unquote, unquote_to_bytes, urldefrag, urljoin, urlsplit
 
 MAX_ARTIFACTS = 6
 MAX_FILE_BYTES = 512 * 1024
@@ -21,6 +21,13 @@ HTML_FOREIGN_BREAKOUT = frozenset("b big blockquote body br center code dd div d
 MAX_ROUTES = 400
 MAX_JS_TOKENS = 300000
 JS_WORK_SECONDS = 3.0
+HAR_WORK_SECONDS = 3.0
+MAX_HAR_ENTRIES = 300
+MAX_HAR_BODY_BYTES = 65536
+MAX_HAR_BODY_RECORDS = 128
+MAX_HAR_FORM_FIELDS = 64
+HAR_JSON_DEPTH = 12
+HAR_JSON_NODES = 4000
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 SEGMENTS = set("api v1 v2 v3 public private users user accounts account auth login logout register session sessions profile settings dashboard health healthz status orders order customers customer invoices invoice products product inventory items item cart checkout payments payment reports report search files file upload download events event notifications messages message contact submit forms form assets static js css images index.html app.js main.js bundle.js app.css main.css index.js favicon.ico favicon.svg robots.txt admin list details create update delete feed tags categories comments posts post projects project tasks task export import docs openapi.json graphql".split())
 FIELDS = set("id name email password token authorization api_key secret access_token refresh_token session cookie customer_id invoice_id order_id items total amount currency status created_at updated_at page limit offset search q query sort filter count username enabled success error message description sku quantity price url path method version phone address first_name last_name data result results type key value timestamp code active title content next previous roles role permissions fields format include exclude size file files subject body user customer order invoice product metadata cursor locale language expires csrf csrf_token".split())
@@ -389,23 +396,191 @@ def shape(value, depth=0):
     return {}
 
 
+_HAR_MISSING = object()
+_HAR_JSON_MIMES = frozenset({"application/json", "application/problem+json"})
+_HAR_FORM_MIMES = {"application/x-www-form-urlencoded": "urlencoded", "multipart/form-data": "multipart"}
+_HAR_BASE64 = re.compile(r"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z")
+_HAR_BAD_PERCENT = re.compile(r"%(?![0-9A-Fa-f]{2})")
+
+
+def _har_check_deadline(deadline):
+    if deadline is not None and time.monotonic() >= deadline:
+        raise ArtifactError("HAR analysis exceeded its work deadline")
+
+
+def _har_body_text(container, deadline=None):
+    """Decode only a bounded, explicitly encoded UTF-8 body; never guess content."""
+    _har_check_deadline(deadline)
+    encoding = container.get("encoding")
+    if encoding not in (None, "", "base64") or type(encoding) not in (str, type(None)):
+        return None, "unsupported_encoding"
+    text = container.get("text", _HAR_MISSING)
+    if text is _HAR_MISSING or text is None:
+        return None, "unavailable_text"
+    if not isinstance(text, str):
+        return None, "invalid_text"
+    if encoding == "base64":
+        # Check characters before allocating bytes or decoding. The padding
+        # and round trip checks reject noncanonical or partially valid input.
+        if len(text) > 4 * ((MAX_HAR_BODY_BYTES + 2) // 3):
+            return None, "body_too_large"
+        if not _HAR_BASE64.fullmatch(text):
+            return None, "invalid_base64"
+        try:
+            encoded = text.encode("ascii")
+            decoded = base64.b64decode(encoded, validate=True)
+        except (UnicodeError, ValueError, binascii.Error):
+            return None, "invalid_base64"
+        if len(decoded) > MAX_HAR_BODY_BYTES:
+            return None, "body_too_large"
+        if base64.b64encode(decoded) != encoded:
+            return None, "invalid_base64"
+        try:
+            text = decoded.decode("utf-8", errors="strict")
+        except UnicodeError:
+            return None, "invalid_utf8"
+    else:
+        if len(text) > MAX_HAR_BODY_BYTES:
+            return None, "body_too_large"
+        try:
+            if len(text.encode("utf-8", errors="strict")) > MAX_HAR_BODY_BYTES:
+                return None, "body_too_large"
+        except UnicodeError:
+            return None, "invalid_utf8"
+    _har_check_deadline(deadline)
+    return text, None
+
+
+def _har_json_shape(container, deadline=None):
+    text, reason = _har_body_text(container, deadline)
+    if reason:
+        return None, reason
+    try:
+        value = strict_json(text, depth=HAR_JSON_DEPTH, nodes=HAR_JSON_NODES)
+    except ArtifactError as error:
+        # Only fixed reason codes escape this layer; body text and parser
+        # diagnostics never become report prose.
+        limited = any(word in str(error) for word in ("limit", "too many"))
+        return None, "json_structure_limit" if limited else "invalid_json"
+    _har_check_deadline(deadline)
+    return shape(value), "json_shape"
+
+
 def json_body(container):
+    """Backward-compatible shape-only helper, including explicit base64 JSON."""
     if not isinstance(container, dict):
         return None
-    mime, text = container.get("mimeType", ""), container.get("text")
-    if not isinstance(mime, str) or not isinstance(text, str) or container.get("encoding"):
+    mime = container.get("mimeType", "")
+    if not isinstance(mime, str) or mime.split(";", 1)[0].strip().lower() not in _HAR_JSON_MIMES:
         return None
-    try:
-        if len(text.encode("utf-8")) > 65536:
-            return None
-    except UnicodeError:
-        return None
-    if mime.split(";", 1)[0].strip().lower() not in {"application/json", "application/problem+json"}:
-        return None
-    try:
-        return shape(strict_json(text, depth=12, nodes=4000))
-    except ArtifactError:
-        return None
+    return _har_json_shape(container)[0]
+
+
+def _har_param_names(container, deadline):
+    params = container.get("params", _HAR_MISSING)
+    if params is _HAR_MISSING:
+        return None, None
+    if not isinstance(params, list):
+        return None, "invalid_form_params"
+    if len(params) > MAX_HAR_FORM_FIELDS:
+        return None, "too_many_form_fields"
+    names, size = {}, 0
+    for item in params:
+        _har_check_deadline(deadline)
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            return None, "invalid_form_params"
+        name = item["name"]
+        if len(name) > MAX_HAR_BODY_BYTES:
+            return None, "body_too_large"
+        try:
+            size += len(name.encode("utf-8", errors="strict"))
+        except UnicodeError:
+            return None, "invalid_form_params"
+        if size > MAX_HAR_BODY_BYTES:
+            return None, "body_too_large"
+        names[name] = names.get(name, 0) + 1
+        # Values, content types and file names are deliberately never read.
+    return names, None
+
+
+def _har_urlencoded_names(text, deadline):
+    if text.count("&") + 1 > MAX_HAR_FORM_FIELDS:
+        return None, "too_many_form_fields"
+    if _HAR_BAD_PERCENT.search(text):
+        return None, "invalid_form_text"
+    names = {}
+    for pair in text.split("&"):
+        _har_check_deadline(deadline)
+        if not pair:
+            continue
+        raw_name = pair.partition("=")[0]
+        try:
+            name = unquote_to_bytes(raw_name.replace("+", " ")).decode("utf-8", errors="strict")
+        except UnicodeError:
+            return None, "invalid_form_text"
+        names[name] = names.get(name, 0) + 1
+    return names, None
+
+
+def _har_form_fields(container, format, deadline):
+    encoding = container.get("encoding")
+    if encoding not in (None, "", "base64") or type(encoding) not in (str, type(None)):
+        return None, "unsupported_encoding", None
+    names, reason = _har_param_names(container, deadline)
+    if reason:
+        return None, reason, None
+    if format == "multipart":
+        # Raw multipart data may contain uploaded files. Only HAR params names
+        # are eligible; raw text is never decoded, parsed, or searched.
+        omission = "multipart_text_not_inspected" if "text" in container else None
+        if names is None:
+            return None, "multipart_params_unavailable", omission
+    else:
+        if "text" in container and container["text"] is not None:
+            text, reason = _har_body_text(container, deadline)
+            if reason:
+                return None, reason, None
+            text_names, reason = _har_urlencoded_names(text, deadline)
+            if reason:
+                return None, reason, None
+            if names is not None and names != text_names:
+                return None, "conflicting_form_representations", None
+            names = text_names
+        elif names is None:
+            return None, "unavailable_text", None
+        omission = None
+    used = set()
+    fields = [{"name": safe_field(name, index, used), "occurrences": names[name]}
+              for index, name in enumerate(sorted(names), 1)]
+    return fields, "form_fields", omission
+
+
+def _inspect_har_body(container, *, request=False, deadline=None):
+    """Return minimized coverage and the separate shape / form observations."""
+    _har_check_deadline(deadline)
+    coverage, model, fields = {"state": "omitted"}, None, None
+    if container is _HAR_MISSING or container is None:
+        coverage["reason"] = "not_present"
+        return coverage, model, fields
+    if not isinstance(container, dict):
+        coverage["reason"] = "invalid_body"
+        return coverage, model, fields
+    mime = container.get("mimeType", "")
+    mime = mime.split(";", 1)[0].strip().lower() if isinstance(mime, str) else ""
+    if mime in _HAR_JSON_MIMES:
+        coverage["format"] = "json"
+        model, reason = _har_json_shape(container, deadline)
+    elif request and mime in _HAR_FORM_MIMES:
+        coverage["format"] = _HAR_FORM_MIMES[mime]
+        fields, reason, omission = _har_form_fields(container, coverage["format"], deadline)
+        if omission:
+            coverage["text_omission"] = omission
+    else:
+        reason = "unsupported_mime"
+    coverage["reason"] = reason
+    if model is not None or fields is not None:
+        coverage["state"] = "inspected"
+    return coverage, model, fields
 
 
 class Builder:
@@ -413,6 +588,8 @@ class Builder:
         self.routes, self.assets, self.sources, self.warnings = {}, {}, [], []
         self.evidence_omissions = {}
         self.unresolved, self.javascript = {}, []
+        self.har_body_analysis = []
+        self.deadline = None
         self.javascript_engine = javascript_engine
         self.pending_global_axios = []
         self.global_axios_modified = False
@@ -489,7 +666,7 @@ class Builder:
             assumptions.sort()
         self.warn(source, GLOBAL_AXIOS_WARNING)
 
-    def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None, assumption=None):
+    def add(self, raw, method, kind, source, location, *, status=None, request=None, response=None, fields=None, assumption=None, request_fields=None):
         if kind != "har":
             raw = self.resolve(raw, kind)
         if kind != "har" and page_relative(raw):
@@ -516,6 +693,9 @@ class Builder:
             model = {"type": "object", "properties": fields}
             self.retain(route["request_shapes"], model, source, "route_request_shapes", 64)
         evidence = {"source": source, "location": location, "kind": kind}
+        if request_fields is not None:
+            observation = {**evidence, **request_fields}
+            self.retain(route.setdefault("request_fields", []), observation, source, "route_request_fields", 64)
         self._assumption(route, evidence, source, assumption)
         self.add_origin_context(route, evidence, raw)
         self.retain(route["evidence"], evidence, source, "route_evidence", 32)
@@ -594,6 +774,8 @@ class Builder:
             report["has_document_context"] = True
         if self.javascript:
             report["javascript_analysis"] = self.javascript
+        if self.har_body_analysis:
+            report["har_body_analysis"] = self.har_body_analysis
         if self.evidence_omissions:
             report["evidence_limits"] = {
                 "truncated": True,
@@ -610,11 +792,27 @@ class Builder:
 
 
 def parse_har(text, source, builder):
+    deadline = time.monotonic() + HAR_WORK_SECONDS
+    if builder.deadline is not None:
+        deadline = min(deadline, builder.deadline)
+    _har_check_deadline(deadline)
     document = strict_json(text)
+    _har_check_deadline(deadline)
     entries = document.get("log", {}).get("entries") if isinstance(document, dict) and isinstance(document.get("log"), dict) else None
-    if not isinstance(entries, list) or len(entries) > 300:
-        raise ArtifactError("HAR must contain at most 300 log.entries")
+    if not isinstance(entries, list) or len(entries) > MAX_HAR_ENTRIES:
+        raise ArtifactError(f"HAR must contain at most {MAX_HAR_ENTRIES} log.entries")
+    analysis = {"source": source, "entries": len(entries),
+        "counts": {"bodies": 0, "inspected": 0, "omitted": 0, "json_shapes": 0,
+                   "form_fields": 0, "reasons": {}, "text_omissions": {}},
+        "bodies": [], "omitted_body_records": 0, "truncated": False,
+        "limits": {"entries": MAX_HAR_ENTRIES, "body_bytes": MAX_HAR_BODY_BYTES,
+                   "body_records": MAX_HAR_BODY_RECORDS, "form_fields": MAX_HAR_FORM_FIELDS,
+                   "json_depth": HAR_JSON_DEPTH, "json_nodes": HAR_JSON_NODES,
+                   "shape_depth": 5, "shape_properties": 32, "shape_array_samples": 8,
+                   "work_seconds": HAR_WORK_SECONDS},
+        "scope": "Body coverage only: missing text does not establish an empty body. JSON shapes discard all values and may be sampled. Form fields count names per entry, not values or types. Multipart text and uploaded file data are never inspected. Counts cover all entries; body records are bounded."}
     for index, entry in enumerate(entries, 1):
+        _har_check_deadline(deadline)
         if not isinstance(entry, dict) or not isinstance(entry.get("request"), dict):
             raise ArtifactError("HAR entry has no supported request object")
         request = entry["request"]
@@ -627,7 +825,34 @@ def parse_har(text, source, builder):
         status = response.get("status")
         if type(status) is not int or not 100 <= status <= 599:
             status = None
-        builder.add(url, method, "har", source, f"entry {index}", status=status, request=json_body(request.get("postData")), response=json_body(response.get("content")))
+        location = f"entry {index}"
+        request_coverage, request_shape, fields = _inspect_har_body(
+            request.get("postData", _HAR_MISSING), request=True, deadline=deadline)
+        response_coverage, response_shape, _ = _inspect_har_body(
+            response.get("content", _HAR_MISSING), deadline=deadline)
+        for direction, coverage in (("request", request_coverage), ("response", response_coverage)):
+            counts = analysis["counts"]
+            counts["bodies"] += 1
+            counts[coverage["state"]] += 1
+            reason = coverage["reason"]
+            counts["reasons"][reason] = counts["reasons"].get(reason, 0) + 1
+            if reason == "json_shape":
+                counts["json_shapes"] += 1
+            elif reason == "form_fields":
+                counts["form_fields"] += 1
+            if "text_omission" in coverage:
+                omission = coverage["text_omission"]
+                counts["text_omissions"][omission] = counts["text_omissions"].get(omission, 0) + 1
+            if len(analysis["bodies"]) < MAX_HAR_BODY_RECORDS:
+                analysis["bodies"].append({"location": location, "direction": direction, **coverage})
+            else:
+                analysis["omitted_body_records"] += 1
+                analysis["truncated"] = True
+        request_fields = {"format": request_coverage["format"], "fields": fields} if fields is not None else None
+        builder.add(url, method, "har", source, location, status=status,
+                    request=request_shape, response=response_shape, request_fields=request_fields)
+    _har_check_deadline(deadline)
+    builder.har_body_analysis.append(analysis)
 
 
 def _js_tokens(text):
@@ -909,7 +1134,7 @@ class HTML(HTMLParser):
         if tag == "script" and not attrs.get("src") and not self.inline_warning:
             self.inline_warning = True
             self.builder.warn(self.source, "HTML analysis reads links, forms and asset references. Inline scripts and embedded JSON are not analyzed; add JavaScript or HAR evidence for those.")
-        if tag == "a" and attrs.get("href"):
+        if tag in {"a", "area"} and attrs.get("href"):
             href = self.builder.resolve(attrs["href"], "link")
             _guard_html_url(self.get_starttag_text(), "href", href)
             self.builder.add(href, "GET", "link", self.source, location)
@@ -1041,6 +1266,7 @@ def analyze(artifacts, *, javascript_engine="auto", deadline=None, document_url=
     if document_url is not None:
         document_url = validate_document_url(document_url)
     builder, html_deadline = Builder(javascript_engine), deadline
+    builder.deadline = deadline
     page_signals, script_omissions = [], []
     items = _read_artifacts(artifacts, builder, check_deadline)
     if document_url is not None or tolerate_script_errors:

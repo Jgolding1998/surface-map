@@ -367,7 +367,7 @@ class HTMLReviewSignalTests(unittest.TestCase):
         self.assertEqual(first["path"], "")
         self.assertIsNone(first["origin"])
 
-    def test_fragment_form_actions_keep_current_document_fields(self):
+    def test_fragment_form_actions_resolve_against_absolute_base_and_keep_fields(self):
         bare = self.records('<form><input name="private_field" type="hidden"></form>', "form_field")[0]
         for action in ("#", "#section", "  #section  "):
             result = signals.collect_html('<base href="https://cdn.invalid/elsewhere/">'
@@ -375,7 +375,9 @@ class HTMLReviewSignalTests(unittest.TestCase):
                                           'type="hidden" value="' + CANARY + '"></form>')
             fields = [r for r in result["records"] if r["category"] == "form_field"]
             self.assertEqual(len(fields), 1)
-            self.assertEqual(fields[0]["identity"], bare["identity"])
+            self.assertNotEqual(fields[0]["identity"], bare["identity"])
+            self.assertEqual(fields[0]["path"], "/elsewhere/")
+            self.assertEqual(fields[0]["origin"], "https://cdn.invalid")
             self.assertTrue(fields[0]["attrs"]["hidden"])
             self.assertEqual(result["limitations"], [])
             self.assertEqual(result["omitted_count"], 0)

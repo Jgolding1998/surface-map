@@ -1,0 +1,352 @@
+{
+  "schema": "craft-surface-har-comparison-v1",
+  "frozen_at": "2026-11-01T20:44:46.605082+00:00",
+  "status": "predeclared_before_analyzer_execution",
+  "purpose": "Source-informed capability and boundary comparison of a pinned offline Craft HAR CLI against Surface 1.6.3 and the upgraded checkout. Not an independent broad accuracy benchmark.",
+  "craft": {
+    "commit": "c316051c9e01e1bf9863f3c802a805179afa4663",
+    "release": "v0.1.0",
+    "binary_zip_sha256": "2544a2c457e5bc22ab0b57dd757ece6bb35e622de35cffed2a3e0f216d832e9c",
+    "command": "--deep web-recording-show --json <path,format=har,limit=1000,offset=0,hidden_values=[]>",
+    "source_sha256": {
+      "LICENSE-MIT": "777b5f0c65bd9c289cb234e32857b594745d5c76d613034870aa05bd00d32622",
+      "NOTICE": "16958e6200bd35164e2cab1dbfa3120d48123163dadc2c5b72c6c26ffb493d82",
+      "crates/analysis/src/web_har.rs": "7da9278067ea10983cf44c1c89d74d4749644e8845dbbf888ad403e5280b7d63",
+      "crates/formats/src/har.rs": "5a78a24eeb4cc33668e727411c361eaed93f9d569e77d7f8d3c70b750e099e06",
+      "crates/formats/src/sourcemap.rs": "605e98fc229f65149c63aaa9b5c7137b2c04783e8f8fc41ab875dc3a701e547d",
+      "apps/craft-anything-cli/src/main.rs": "2664f84ac46f1bf5ad8f5d082c43bdb19d8c7489af28743487f6bf2575944c85",
+      "crates/engine/src/tools/web_tools.rs": "a32f9941b3b79a7f16fa0b34bd9eb3c592343bf9d4fbe367def9082383a4ebd1",
+      "crates/engine/src/plugins.rs": "4bc8e1ff21f305b1d7fc43f86e263aa51beb13c38d63b765d0dffe28476a25ab",
+      "crates/engine/src/settings.rs": "759d8b45ed951c7a4d10037d29a2086d01e40d95d4ba08eb96f6b9f4c7b99b3f"
+    },
+    "scope": "Actual released Windows x64 offline HAR CLI, no MCP server, GUI, model, device, target website, setup or package installation.",
+    "configured_entry_cap": 500000
+  },
+  "surface_baseline": {
+    "commit": "2a516820cf1836d7025df90b81df1b1cdfbaea23",
+    "version": "1.6.3",
+    "call": "surface_map.analyze.analyze([{'kind':'har','text': fixture_utf8}], javascript_engine='basic')"
+  },
+  "surface_upgraded": {
+    "commit": "root_will_freeze_after_implementation",
+    "call": "same analyzer invocation and bytes as baseline"
+  },
+  "execution": {
+    "timeout_seconds_per_process": 20,
+    "env": "allowlist with isolated HOME/APPDATA/LOCALAPPDATA/config/data/TEMP, no API/provider/agent credentials",
+    "network": "offline code path; no target fetch/replay and no model/provider calls; OS networking is not sandbox-blocked"
+  },
+  "scoring": "Report every case and raw synthetic output. Extract route/status/body-field counts and privacy canaries without changing fixtures or their expected facts. Shared controls and advertised policies are separate from intentional scope/limit differences. No overall winner or fabricated percentage.",
+  "cases": [
+    {
+      "id": "01_json_control",
+      "file": "fixtures/01_json_control.har",
+      "sha256": "2fae9e9eef723ec0d2f1d213fc5067df8721f544238ee47d7941620b5df43fa2",
+      "bytes": 615,
+      "entry_count": 2,
+      "purpose": "Shared ordinary JSON control, including request and response type-only facts.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 2,
+        "statuses": [
+          200,
+          201
+        ],
+        "request_properties": 4,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "privacy": {}
+    },
+    {
+      "id": "02_base64_json",
+      "file": "fixtures/02_base64_json.har",
+      "sha256": "90e23040d3d186fa6b31eb5293110c5cfb127c2ae75f5b8b5f69d9a7ef86d01e",
+      "bytes": 324,
+      "entry_count": 1,
+      "purpose": "Saved base64 JSON response; encoded bodies are a known upgrade target.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "privacy": {}
+    },
+    {
+      "id": "03_invalid_base64",
+      "file": "fixtures/03_invalid_base64.har",
+      "sha256": "9864275b4658259d1d8801a68b769b866879e90787c88ace2324039ddddc890f",
+      "bytes": 309,
+      "entry_count": 1,
+      "purpose": "Invalid base64 must not produce a fabricated JSON body.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "04_non_utf8_base64",
+      "file": "fixtures/04_non_utf8_base64.har",
+      "sha256": "31768557631a9bf1d4a4fc7bb1bef2d865a8148400341c3bbddd4fefd84ce002",
+      "bytes": 308,
+      "entry_count": 1,
+      "purpose": "Non-UTF-8 decoded bytes must not become trusted JSON shape evidence.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "05_decoded_body_over_64k",
+      "file": "fixtures/05_decoded_body_over_64k.har",
+      "sha256": "e69de557e45efbb26239348a7c819d6325ea92fbc93d32efc564025282dbaaa9",
+      "bytes": 93648,
+      "entry_count": 1,
+      "purpose": "A documented Surface decoded-body cap; higher Craft acceptance is a scope difference.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "surface_response_properties": 0,
+        "surface_body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "06_urlencoded_text",
+      "file": "fixtures/06_urlencoded_text.har",
+      "sha256": "5a2908fceb5e6b3b25123ce36990c0a0380d69b8c2f61089279738cebfe8a227",
+      "bytes": 414,
+      "entry_count": 1,
+      "purpose": "Observed form field names, decoding, empty values and duplicate names; all values must stay private.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 5,
+        "form_unique_fields": 4
+      },
+      "boundary_case": false,
+      "privacy": {
+        "forbidden_values": [
+          "FORM_VALUE_CANARY"
+        ]
+      }
+    },
+    {
+      "id": "07_urlencoded_params",
+      "file": "fixtures/07_urlencoded_params.har",
+      "sha256": "b0f78a414a6dd04f6d886d18f1e0c67a3b0b96766ef1d1fe0c9a68c93a7f5030",
+      "bytes": 451,
+      "entry_count": 1,
+      "purpose": "HAR postData.params without text and with duplicated field names.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 3,
+        "form_unique_fields": 2
+      },
+      "boundary_case": false,
+      "privacy": {
+        "forbidden_values": [
+          "PARAM_VALUE_CANARY"
+        ]
+      }
+    },
+    {
+      "id": "08_multipart_params",
+      "file": "fixtures/08_multipart_params.har",
+      "sha256": "3a803b14e724ad2cfec579ae39ac171763701c62fd5d6a5eaa3daf7f21e05675",
+      "bytes": 545,
+      "entry_count": 1,
+      "purpose": "Multipart field names and duplicates; file names, contents and boundary details are not needed.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "form_field_occurrences": 4,
+        "form_unique_fields": 3
+      },
+      "boundary_case": false,
+      "privacy": {
+        "forbidden_values": [
+          "MULTIPART_VALUE_CANARY",
+          "FILE_NAME_CANARY",
+          "FILE_CONTENT_CANARY"
+        ]
+      }
+    },
+    {
+      "id": "09_problem_json_mime",
+      "file": "fixtures/09_problem_json_mime.har",
+      "sha256": "bfbae867e1a839d596de69fdd98a1b49e705040ecc2795e922700c422d154a29",
+      "bytes": 344,
+      "entry_count": 1,
+      "purpose": "Existing structured JSON MIME and parameter control.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 2
+      },
+      "boundary_case": false,
+      "privacy": {}
+    },
+    {
+      "id": "10_unknown_encoding",
+      "file": "fixtures/10_unknown_encoding.har",
+      "sha256": "667f027bc2983032a9f8f730f92d783e2bc64fdb8b3299689d0dff360569b304",
+      "bytes": 304,
+      "entry_count": 1,
+      "purpose": "Unknown HAR body encoding must be identified; parsing it as plaintext is reported separately.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "11_plaintext_json_policy",
+      "file": "fixtures/11_plaintext_json_policy.har",
+      "sha256": "6448279e6db2d2ed21d8807de163d20bfa3edce02085b0969094ab4df86abd3a",
+      "bytes": 280,
+      "entry_count": 1,
+      "purpose": "JSON-looking text/plain: Surface MIME policy differs from Craft content sniffing.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "surface_response_properties": 0
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "12_malformed_json",
+      "file": "fixtures/12_malformed_json.har",
+      "sha256": "994b4ac2267dd8d7223182314f5950a089c9f9fad1670da30393470cbc66799e",
+      "bytes": 284,
+      "entry_count": 1,
+      "purpose": "Malformed supported JSON; retain route and identify missing body evidence.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "response_properties": 0,
+        "body_inspection_gap": true
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "13_privacy_defaults",
+      "file": "fixtures/13_privacy_defaults.har",
+      "sha256": "950dd99834e6728b805769aaf34ed1f46bf4f3231b0e44821f73a2340874ae13",
+      "bytes": 578,
+      "entry_count": 1,
+      "purpose": "Shared credential/value-removal controls plus explicitly different identifier/header/query minimization policies.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1
+      },
+      "boundary_case": false,
+      "privacy": {
+        "forbidden_values": [
+          "USERINFO_CANARY",
+          "PASS_CANARY",
+          "AUTH_CANARY",
+          "COOKIE_CANARY",
+          "SET_COOKIE_CANARY",
+          "TOKEN_CANARY",
+          "BODY_VALUE_CANARY"
+        ],
+        "surface_only_omitted_values": [
+          "SEARCH_VALUE_CANARY",
+          "TRACE_VALUE_CANARY",
+          "PRIVATE_FIELD_CANARY"
+        ],
+        "note": "Craft hidden_values is empty, its documented default. Noncredential query/header values and field names are intentionally outside its default redaction promise."
+      }
+    },
+    {
+      "id": "14_path_templates",
+      "file": "fixtures/14_path_templates.har",
+      "sha256": "7adf03e16eb9938c92599975ce3bf1aadeeeb62783ee1ac56c7914b93168fd9e",
+      "bytes": 1684,
+      "entry_count": 8,
+      "purpose": "Numeric, UUID, ISO-date and long-hex grouping; compare group counts, not policy-specific path spellings.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 4,
+        "request_entries": 8
+      },
+      "boundary_case": false,
+      "privacy": {}
+    },
+    {
+      "id": "15_malformed_entry",
+      "file": "fixtures/15_malformed_entry.har",
+      "sha256": "061a3cf357778e6ced953560bc7c156fb620aad17633b9601695a338344e7866",
+      "bytes": 103,
+      "entry_count": 1,
+      "purpose": "Malformed HAR control: rejection versus permissive empty records must remain visible.",
+      "expected_facts": {
+        "accepted": false
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "16_entry_cap_301",
+      "file": "fixtures/16_entry_cap_301.har",
+      "sha256": "fc95b062769e53dc3dce21b7d47db71d1be93903e002aa0455401a1f2bc0a69a",
+      "bytes": 54770,
+      "entry_count": 301,
+      "purpose": "Above Surface's documented 300-entry cap; not a shared-capacity accuracy score.",
+      "expected_facts": {
+        "surface_accepted": false,
+        "craft_accepted": true,
+        "craft_entries": 301
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "17_timings_and_headers",
+      "file": "fixtures/17_timings_and_headers.har",
+      "sha256": "2be5afd730039be5e6cd5b6e6ef3249dbcfb01bc6c4e231c1fb540aeaa2b9553",
+      "bytes": 572,
+      "entry_count": 2,
+      "purpose": "Craft historical timing metadata is additional scope, not Surface failure.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 1,
+        "request_entries": 2,
+        "craft_timing_entries": 2
+      },
+      "boundary_case": true,
+      "privacy": {}
+    },
+    {
+      "id": "18_empty_capture",
+      "file": "fixtures/18_empty_capture.har",
+      "sha256": "364b204d9142db758f051a09b5ea5e6238ac67f1017ce14da864c1b6e7da0f76",
+      "bytes": 99,
+      "entry_count": 0,
+      "purpose": "Empty valid HAR control.",
+      "expected_facts": {
+        "accepted": true,
+        "routes": 0
+      },
+      "boundary_case": false,
+      "privacy": {}
+    }
+  ]
+}

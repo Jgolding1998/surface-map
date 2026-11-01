@@ -1,0 +1,47 @@
+{
+  "url": "https://github.com/storytold/craft-anything/releases/download/v0.1.0/craft-anything-0.1.0-windows-x64-portable.zip",
+  "sha256": "2544a2c457e5bc22ab0b57dd757ece6bb35e622de35cffed2a3e0f216d832e9c",
+  "verified": true,
+  "entries": [
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/craft-anything-cli.exe",
+      "size": 35012480
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/craft-anything.exe",
+      "size": 52556160
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/LICENSE-APACHE",
+      "size": 10174
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/LICENSE-MIT",
+      "size": 1106
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/NOTICE",
+      "size": 1767
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/OFL-DMSans.txt",
+      "size": 4400
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/OFL-GeistMono.txt",
+      "size": 4383
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/OFL-JetBrainsMono.txt",
+      "size": 4399
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/portable.txt",
+      "size": 389
+    },
+    {
+      "name": "craft-anything-0.1.0-windows-x64-portable/README.md",
+      "size": 16850
+    }
+  ]
+}

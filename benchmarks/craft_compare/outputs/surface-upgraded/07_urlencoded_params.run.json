@@ -1,0 +1,31 @@
+{
+  "tool": "surface-upgraded",
+  "case": "07_urlencoded_params",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 297.566,
+  "stdout_bytes": 1953,
+  "stderr_bytes": 0,
+  "stdout_sha256": "cb24e7da13bc48b6de770f21b96bd1ad8ad4e114ef04a747bae98696865b067f",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "b0f78a414a6dd04f6d886d18f1e0c67a3b0b96766ef1d1fe0c9a68c93a7f5030",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-upgraded\\07_urlencoded_params"
+}

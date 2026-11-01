@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "06_urlencoded_text",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 105.417,
+  "stdout_bytes": 732,
+  "stderr_bytes": 0,
+  "stdout_sha256": "122627540d8c1c9718a06741985ec95b3044688adf4d050dd5ef83ad2a6a88b0",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "5a2908fceb5e6b3b25123ce36990c0a0380d69b8c2f61089279738cebfe8a227",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\06_urlencoded_text"
+}

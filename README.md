@@ -70,6 +70,12 @@ analysis reports failures rather than silently switching to weaker parsing.
 This screenshot shows the saved-artifact workspace with synthetic data.
 The [trial guide](docs/TRY_IT.md) covers current example-brief and public-URL controls.
 
+The HAR view explains which bodies were inspected and why others were omitted:
+
+![Actual HAR coverage panel showing inspected, omitted and unrecorded body counts from a synthetic capture](docs/har-coverage.png)
+
+[See the same panel on mobile](docs/har-coverage-mobile.png).
+
 </details>
 
 ## What can I use it for?
@@ -80,6 +86,8 @@ The [trial guide](docs/TRY_IT.md) covers current example-brief and public-URL co
 | Review a pull request | Supported endpoint, field, script/domain, navigation, and tracking changes | [Automatic Git comparison](docs/CI.md#automatic-static-source-comparison) |
 | Inspect a public page | A bounded HTTPS capture and a brief from the same evidence | [Public-page mode](docs/TRY_IT.md#try-a-public-url-without-preparing-files) |
 | Inventory selected implementation files | Minimized language, dependency, capability, and literal-import hints | [Source inspection](docs/REFERENCE.md#inspect-selected-source-files) |
+| Investigate a saved network capture | JSON shapes, form-field repeat counts, and explicit body-inspection gaps | [HAR evidence](docs/MCP.md#har-bodies-and-comparison-coverage) |
+| Ask an agent about one part of a large report | Filtered evidence pages with counts, source references and coverage warnings | [Compact review](docs/MCP.md#compact-review) |
 
 ## Use from an agent with MCP
 
@@ -145,6 +153,13 @@ accuracy on every website or superiority over another tool.
 
 [Evaluation results and caveats](docs/REFERENCE.md#check-it) ·
 [Alternative tools and research](docs/RESEARCH.md)
+
+We tested the HAR improvements against our previous release and Craft Anything's
+actual released offline CLI using the same 18 frozen synthetic inputs. The new
+version recovers base64 JSON and observed form fields missed by our old version,
+while retaining minimization and inspection limits. Craft supports larger captures
+and historical timings; this test does not establish an overall winner.
+[Read the results and reproduce them](benchmarks/craft_compare/README.md).
 
 The local workbench takes visual inspiration from [Handy](https://github.com/cjpais/Handy):
 clear navigation, warm colors and readable results. The screenshots above show

@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "03_invalid_base64",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 115.591,
+  "stdout_bytes": 707,
+  "stderr_bytes": 0,
+  "stdout_sha256": "56ec299d3081ce9da5e5a9d52da2164780acf7f9b7a23af607b4b473fbf4d75d",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "9864275b4658259d1d8801a68b769b866879e90787c88ace2324039ddddc890f",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\03_invalid_base64"
+}

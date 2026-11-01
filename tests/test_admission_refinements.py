@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from surface_map import analyze as analysis
-from surface_map import js_parser, server
+from surface_map import capture_compare, js_parser, server
 from surface_map.analyze import ArtifactError, HTML, SEGMENTS, Builder, analyze, strict_json
 
 CANARY = "CANARYMARKEDSECTION7Q"
@@ -192,7 +192,7 @@ class HTTPRefinementTests(unittest.TestCase):
 
     def test_compare_shares_one_deadline_and_reports_expiry(self):
         page = [{"kind": "html", "text": '<a href="/api/users">People</a>'}]
-        with patch.object(server, "analyze", wraps=analyze) as wrapped:
+        with patch.object(capture_compare, "analyze", wraps=analyze) as wrapped:
             status, _ = self.request("/api/compare", "POST", {"baseline": page, "candidate": page, "javascript_engine": "basic"})
         self.assertEqual(status, 200)
         deadlines = [call.kwargs["deadline"] for call in wrapped.call_args_list]

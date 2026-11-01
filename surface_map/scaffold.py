@@ -15,7 +15,7 @@ FILENAMES = ('mock_app.py', 'contract.json', 'rebuild-plan.json', 'test_mock.py'
 ROOT_KEYS = {'format', 'operations', 'pages', 'unresolved', 'candidate_references', 'coverage',
              'unknowns', 'capture_guide', 'privacy', 'scope', 'limits'}
 COMMON_KEYS = {'id', 'path', 'confidence', 'evidence', 'additional_evidence_count', 'origin_relations', 'assumptions'}
-OPERATION_KEYS = COMMON_KEYS | {'method', 'statuses', 'query_fields', 'request_shapes', 'response_shapes', 'stub', 'unknowns'}
+OPERATION_KEYS = COMMON_KEYS | {'method', 'statuses', 'query_fields', 'request_shapes', 'response_shapes', 'request_fields', 'stub', 'unknowns'}
 RELATIONS = {'same_origin', 'cross_origin', 'unknown'}
 SUMMARY_NOTE = 'Read the original plan for detailed warnings; this export contains bounded summaries, not complete coverage.'
 
@@ -51,7 +51,10 @@ def _path(value):
 
 
 def _field(value):
-    if not isinstance(value, str) or len(value) > 128 or not (
+    # Up to 64 observed fields may collide after case-folding. Each collision
+    # adds the fixed suffix _2; the last valid alias can exceed 128 characters.
+    max_alias = max(len(name) for name in FIELDS) + 2 * (64 - 1)
+    if not isinstance(value, str) or len(value) > max_alias or not (
         value in FIELDS or re.fullmatch(r'field_[0-9]+(?:_2)*', value)
         or any(value.startswith(name + '_2') and re.fullmatch(re.escape(name) + r'(?:_2)+', value) for name in FIELDS)
     ):
@@ -135,6 +138,47 @@ def _common(row, *, unresolved=False):
     return clean
 
 
+def _request_fields(value):
+    result = []
+    for row in _rows(value, 64):
+        if (not isinstance(row, dict) or set(row) != {'source', 'location', 'kind', 'format', 'fields'}
+                or row.get('kind') != 'har' or row.get('format') not in {'urlencoded', 'multipart'}):
+            _fail()
+        provenance = _evidence([{key: row[key] for key in ('source', 'location', 'kind')}])[0]
+        if not provenance['location'].startswith('entry '):
+            _fail()
+        fields, names = [], set()
+        for field in _rows(row['fields'], 64):
+            if not isinstance(field, dict) or set(field) != {'name', 'occurrences'}:
+                _fail()
+            name, occurrences = _field(field['name']), _number(field['occurrences'], 64)
+            if not occurrences or name in names:
+                _fail()
+            names.add(name)
+            fields.append({'name': name, 'occurrences': occurrences})
+        result.append({**provenance, 'format': row['format'], 'fields': fields})
+    return result
+
+
+def _body_summary(value):
+    result = dict(bodies=0, inspected=0, omitted=0, not_recorded=0, omitted_body_records=0)
+    for row in _rows(value, 6):
+        if not isinstance(row, dict) or not isinstance(row.get('counts'), dict):
+            _fail()
+        counts = row['counts']
+        reasons = counts.get('reasons', {})
+        if not isinstance(reasons, dict):
+            _fail()
+        item = {key: _number(counts.get(key), 600) for key in ('bodies', 'inspected', 'omitted')}
+        item['not_recorded'] = _number(reasons.get('not_present', 0), 600)
+        item['omitted_body_records'] = _number(row.get('omitted_body_records', 0), 600)
+        if item['inspected'] + item['omitted'] != item['bodies'] or item['not_recorded'] > item['omitted']:
+            _fail()
+        for key, number in item.items():
+            result[key] += number
+    return result
+
+
 def _minimize_plan(plan):
     from .rebuild import CAPTURE_GUIDE, SCOPE, UNKNOWNS, operation_unknowns
     if not isinstance(plan, dict) or set(plan) - ROOT_KEYS or plan.get('format') != 'surface-map-rebuild-v1':
@@ -173,6 +217,8 @@ def _minimize_plan(plan):
                      unknowns=unknowns)
         for prefix in ('request', 'response'):
             clean[prefix + '_shapes'] = [_shape(model) for model in _rows(row.get(prefix + '_shapes', []), 64)]
+        if 'request_fields' in row:
+            clean['request_fields'] = _request_fields(row['request_fields'])
         operations.append(clean)
     pages, unresolved = [], []
     for row in _rows(plan.get('pages', []), 50):
@@ -205,6 +251,8 @@ def _minimize_plan(plan):
                    evidence_omissions_count=sum(_number(row.get('omitted_occurrences', 0)) for row in omissions),
                    evidence_limit_reached=bool(evidence_limits.get('truncated')),
                    source_count=len(_rows(coverage.get('sources', []), 64)), note=SUMMARY_NOTE)
+    if 'har_body_analysis' in coverage:
+        summary['har_bodies'] = _body_summary(coverage['har_body_analysis'])
     reference_summary = {'candidate_count': len(_rows(references.get('candidates', []), 100)),
                          'module_reference_count': len(_rows(references.get('module_references', []), 100)),
                          'truncated': bool(reference_limits.get('truncated')), 'stubbed': False}

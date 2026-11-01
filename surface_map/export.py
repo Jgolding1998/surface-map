@@ -52,11 +52,11 @@ def openapi_routes(routes):
         for route in group:
             method = route["method"]
             if method not in operations:
-                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence", "origin_relations", "assumptions") if key in route}}
+                operations[method] = {**route, "path": path, **{key: [] for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "request_fields", "evidence", "origin_relations", "assumptions") if key in route}}
             merged = operations[method]
-            for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "evidence"):
-                for value in route[key]:
-                    if value not in merged[key]:
+            for key in ("statuses", "query_fields", "request_shapes", "response_shapes", "request_fields", "evidence"):
+                for value in route.get(key, []):
+                    if value not in merged.setdefault(key, []):
                         merged[key].append(value)
             if "origin_relations" in route:
                 relations = merged.setdefault("origin_relations", [])
@@ -92,6 +92,8 @@ def openapi(report):
         if route.get("assumptions"):
             operation["x-surface-map-assumptions"] = list(route["assumptions"])
             operation["description"] += ASSUMPTION_DESCRIPTION
+        if route.get("request_fields"):
+            operation["x-surface-map-observed-form-fields"] = route["request_fields"]
         for status in route["statuses"]:
             operation["responses"][str(status)] = {"description": "Status observed in a HAR entry. Body shapes are combined observations, not guaranteed for this status."}
             if route["response_shapes"]:
@@ -106,6 +108,8 @@ def openapi(report):
         result["x-surface-map-unresolved-operations"] = report["unresolved_operations"]
     if report.get("evidence_limits"):
         result["x-surface-map-evidence-limits"] = report["evidence_limits"]
+    if report.get("har_body_analysis"):
+        result["x-surface-map-har-body-analysis"] = report["har_body_analysis"]
     assumptions = sorted({assumption for row in report["routes"] + report.get("unresolved_operations", [])
                           for assumption in row.get("assumptions", [])})
     if assumptions:
@@ -115,11 +119,13 @@ def openapi(report):
 
 
 def contract(report):
-    result = {"format": "surface-map-contract-v1", "routes": [{**{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}, **_origin_fields(route), **_assumption_fields(route)} for route in report["routes"]], "privacy": report["privacy"]}
+    result = {"format": "surface-map-contract-v1", "routes": [{**{key: route[key] for key in ("method", "path", "confidence", "statuses", "query_fields", "request_shapes", "response_shapes", "evidence")}, **({"request_fields": route["request_fields"]} if "request_fields" in route else {}), **_origin_fields(route), **_assumption_fields(route)} for route in report["routes"]], "privacy": report["privacy"]}
     if report.get("unresolved_operations"):
         result["unresolved_operations"] = report["unresolved_operations"]
     if report.get("evidence_limits"):
         result["evidence_limits"] = report["evidence_limits"]
+    if report.get("har_body_analysis"):
+        result["har_body_analysis"] = report["har_body_analysis"]
     return result
 
 
@@ -130,7 +136,13 @@ def compare(before, after):
     def changed_fields(a, b, keys):
         fields = []
         for key in keys:
-            left, right = a[key], b[key]
+            left, right = a.get(key, []), b.get(key, [])
+            if key == "request_fields":
+                # Capture order/source positions are evidence locations, not a
+                # change to the observed form shape. Repeated observations of
+                # the same shape likewise do not create a schema change.
+                projected = lambda rows: sorted({json.dumps({"format": row["format"], "fields": row["fields"]}, sort_keys=True) for row in rows})
+                left, right = projected(left), projected(right)
             if isinstance(left, list):
                 left = sorted(json.dumps(item, sort_keys=True) for item in left)
                 right = sorted(json.dumps(item, sort_keys=True) for item in right)
@@ -191,11 +203,20 @@ def compare(before, after):
         return context or ["not_seen_in_prior_capture"]
 
     def coverage(report):
-        return {"source_kinds": sorted({row["kind"] for row in report["sources"]}),
+        result = {"source_kinds": sorted({row["kind"] for row in report["sources"]}),
                 "has_document_context": bool(report.get("has_document_context")),
                 "retained_warning_count": len(report["warnings"]),
                 "omitted_script_count": len(report.get("script_omissions", [])),
                 "evidence_retention_limited": bool(report.get("evidence_limits"))}
+        if report.get("har_body_analysis"):
+            analyses = report["har_body_analysis"]
+            result["har_bodies"] = {
+                "inspected": sum(item["counts"]["inspected"] for item in analyses),
+                "omitted": sum(item["counts"]["omitted"] for item in analyses),
+                "not_present": sum(item["counts"]["reasons"].get("not_present", 0) for item in analyses),
+                "omitted_body_records": sum(item["omitted_body_records"] for item in analyses),
+            }
+        return result
 
     old, new = keyed(before), keyed(after)
     added = [{"method": method, "path": path, "evidence": new[(method, path)]["evidence"],
@@ -207,7 +228,7 @@ def compare(before, after):
     changed = []
     for method, path in sorted(old.keys() & new.keys()):
         a, b = old[(method, path)], new[(method, path)]
-        fields = changed_fields(a, b, ("statuses", "query_fields", "request_shapes", "response_shapes", "confidence"))
+        fields = changed_fields(a, b, ("statuses", "query_fields", "request_shapes", "response_shapes", "request_fields", "confidence"))
         if fields:
             context = []
             if missing_kind(a, supplied):
@@ -217,6 +238,11 @@ def compare(before, after):
             kinds = set(a.get("kinds", (entry["kind"] for entry in a["evidence"]))) | set(b.get("kinds", (entry["kind"] for entry in b["evidence"])))
             if "javascript" in kinds and old_engines and new_engines and old_engines != new_engines:
                 context.append("javascript_engine_changed")
+            if any(key in fields for key in ("request_shapes", "response_shapes", "request_fields")):
+                for side, report in (("before", before), ("after", after)):
+                    if any(item["counts"]["omitted"] > item["counts"]["reasons"].get("not_present", 0)
+                           for item in report.get("har_body_analysis", [])):
+                        context.append("capture_bodies_uninspected_" + side)
             changed.append({"method": method, "path": path, "changed_fields": fields,
                             "before_evidence": a["evidence"], "evidence": b["evidence"], "context": context,
                             **_origin_change(a, b), **_assumption_change(a, b)})

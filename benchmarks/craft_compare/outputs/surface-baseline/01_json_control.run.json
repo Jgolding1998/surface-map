@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "01_json_control",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 172.996,
+  "stdout_bytes": 1282,
+  "stderr_bytes": 0,
+  "stdout_sha256": "67cb66edbb2fcd018cda6a4613c7563db54eddea4c31227b6e6af248dd4d0761",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "2fae9e9eef723ec0d2f1d213fc5067df8721f544238ee47d7941620b5df43fa2",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\01_json_control"
+}

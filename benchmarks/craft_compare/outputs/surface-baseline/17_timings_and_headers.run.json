@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "17_timings_and_headers",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 114.244,
+  "stdout_bytes": 805,
+  "stderr_bytes": 0,
+  "stdout_sha256": "4bb57a4c58e49e5f846893e285288bb26249307888369f8fdb1a6034a55fe2b7",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "2be5afd730039be5e6cd5b6e6ef3249dbcfb01bc6c4e231c1fb540aeaa2b9553",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\17_timings_and_headers"
+}

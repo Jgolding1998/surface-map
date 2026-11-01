@@ -1,0 +1,72 @@
+{
+  "schema": "craft-surface-python-module-pins-v1",
+  "normalization": "SHA-256 of Python file bytes after replacing CRLF with LF; every selected .py module path and file hash must match by default",
+  "tools": {
+    "surface-baseline": {
+      "package_version": "1.6.3",
+      "commit": "2a516820cf1836d7025df90b81df1b1cdfbaea23",
+      "files_lf_sha256": {
+        "surface_map/__init__.py": "d77f74b6be00e4c43c83cde549c23be077a629cf4006b2025c9d2657f910c975",
+        "surface_map/__main__.py": "f2d235b11b460e46d9d8bbdc408d2069debd716333cc788467a4c20083d79514",
+        "surface_map/analyze.py": "283f58903eb81e01b5c24ec9c1826150d180b47b45390b02ff7e22c16ad7e5f6",
+        "surface_map/ci.py": "4fabe8e77e89b84434c726e774b8c318fee3dd5745d1bc409ada41841f3fdfe2",
+        "surface_map/ci_assets.py": "dafd5364d95425a36167933b21fce7dbe69903351d26b143ae59b31d010b905a",
+        "surface_map/export.py": "a7bc81726332ce6dc65cf3d1b970fa97475f26736d6df9b3632f075b37ee82bc",
+        "surface_map/git_compare.py": "36abcbab3842d4fea0dc70a11da9709ef6b5ad2c33ba717c19423ed9b55e3bde",
+        "surface_map/js_analysis.py": "48fe78b917b0dfe14f658d88afeb3e6e8f17578a0394f8158b9a19b7c345ce78",
+        "surface_map/js_parser.py": "574705704710b1546de16a7d8049862547c2cec6cdc09e6578912866d016a749",
+        "surface_map/mcp_server.py": "e31b0b5f82d74ae5385379f2abe773548ff0710b7db1fd47a79a70094110cc66",
+        "surface_map/page_signals.py": "944373aacb4fa48554354e166451b11eb71ed9c4dc10e8c90450a6328083be74",
+        "surface_map/pr_html_signals.py": "5806591c5efaf6cf59dc7eece3246e088b58c3cea82a873dd043812a0155aefa",
+        "surface_map/pr_js_signals.py": "ada6a41b17e0ced001c95df222e3432813b79fe4685d23ffc3beefd462c9c6fd",
+        "surface_map/pr_signals.py": "2622ba265c845b8ff690269e3a74bd2ab19e48231c88ad29e11407d1496556c7",
+        "surface_map/project.py": "54b93427e8cb30f8fd543be8b3476b0c15c32ccb76d98c2b25d3b8145be3d6a2",
+        "surface_map/public_url.py": "ddb8bbc06e00fce046e5209d0ffdefcff5048ab99102671a333086bc06c527c7",
+        "surface_map/rebuild.py": "c1c5236453c07cd49fc2e808d5eaff1058de19b285c7d958472c28476da0eee0",
+        "surface_map/references.py": "d0351a5e108c777d137f9e91dcbce789ef7eee07e99708fc60e506ef88c9d11e",
+        "surface_map/review.py": "92f3563f23bc91af6ce4bcad6cbcd570093bcda4c405d4e0128772612404bb35",
+        "surface_map/samples.py": "3fe5e1dc030bf66520869dbdf8df2bb5de201de3ec0713339ef4c07f77904a08",
+        "surface_map/scaffold.py": "6abe719fe0e2670ac6f75510ee7fc0d7f8a611de9e177b948a01a19132980632",
+        "surface_map/server.py": "eb6a6d4fb89bdb96f26a6f8187a88c0e32528f79e52d1d3432a3a06d3d05a1d4",
+        "surface_map/source.py": "c0e291c2cb075e872ff616fd8f95884371a5fe662ae743272198a08bc4c5b73a",
+        "surface_map/source_io.py": "914aff239db8dea4f7e6df21ff9cd050026777899a832233cab492d1ccc9c424",
+        "surface_map/url_capture.py": "7a5276595ba90d0f3557c57abba9c3d0d168c52d306de19932ff8ebf741a4c8e"
+      },
+      "canonical_module_map_sha256": "fc5659000b0122ed13a796837393b64b523af81ad81e0173cbfb3da85024da43"
+    },
+    "surface-upgraded": {
+      "package_version": "1.7.0",
+      "commit": null,
+      "files_lf_sha256": {
+        "surface_map/__init__.py": "ffd6c0dbbe59e86fba5fb2f48bfc4f5ff48e22385280be624e7e5fec1e4f590b",
+        "surface_map/__main__.py": "f2d235b11b460e46d9d8bbdc408d2069debd716333cc788467a4c20083d79514",
+        "surface_map/analyze.py": "ab5634c835742e4c1d768853251f955f3d6849f3972661d2ba986d57c12c84ef",
+        "surface_map/capture_compare.py": "abadae3fc0c48ac073bee699df9f110d33ce2b8dfbd2c1bbc819a2b3ee21e743",
+        "surface_map/ci.py": "4fabe8e77e89b84434c726e774b8c318fee3dd5745d1bc409ada41841f3fdfe2",
+        "surface_map/ci_assets.py": "dafd5364d95425a36167933b21fce7dbe69903351d26b143ae59b31d010b905a",
+        "surface_map/evidence.py": "291cd704fd41cfeaa2b4cb3e59d33335db4365a6318220a67793e3bb6ce5a7cf",
+        "surface_map/export.py": "276150adb51c4b377f5b8b54d52b7ca91cfe4761f1dc1235f9cc052bb5fe5be3",
+        "surface_map/git_compare.py": "36abcbab3842d4fea0dc70a11da9709ef6b5ad2c33ba717c19423ed9b55e3bde",
+        "surface_map/js_analysis.py": "48fe78b917b0dfe14f658d88afeb3e6e8f17578a0394f8158b9a19b7c345ce78",
+        "surface_map/js_parser.py": "574705704710b1546de16a7d8049862547c2cec6cdc09e6578912866d016a749",
+        "surface_map/mcp_server.py": "6bf5b4aed61bc8ca9b595d27bcc45f0fe6795c893ea2538ebf19822fba079d11",
+        "surface_map/page_signals.py": "944373aacb4fa48554354e166451b11eb71ed9c4dc10e8c90450a6328083be74",
+        "surface_map/pr_html_signals.py": "b5112f276fb2fa1ea15ba2ccee611b2548ad79435b4e86e696cc250fbb18b9d9",
+        "surface_map/pr_js_signals.py": "ada6a41b17e0ced001c95df222e3432813b79fe4685d23ffc3beefd462c9c6fd",
+        "surface_map/pr_signals.py": "e870024c007b8e1729ae69ebdafc8a3a41256c7b3a4c949118eac8ca8f9ffe72",
+        "surface_map/project.py": "54b93427e8cb30f8fd543be8b3476b0c15c32ccb76d98c2b25d3b8145be3d6a2",
+        "surface_map/public_url.py": "ddb8bbc06e00fce046e5209d0ffdefcff5048ab99102671a333086bc06c527c7",
+        "surface_map/rebuild.py": "88d8320b28823063bea9fd181b70d35c7febb4676bedfacbfdf981b7fa8302e1",
+        "surface_map/references.py": "d0351a5e108c777d137f9e91dcbce789ef7eee07e99708fc60e506ef88c9d11e",
+        "surface_map/review.py": "06883097dfbad1cd3e9c78f4e0e5dd10bf0a424b5c3328aa2a6c90bb724a1611",
+        "surface_map/samples.py": "3fe5e1dc030bf66520869dbdf8df2bb5de201de3ec0713339ef4c07f77904a08",
+        "surface_map/scaffold.py": "1367dc8cd85868bac113a8acb0112def3a00cc2024145923d1658171a04f9e13",
+        "surface_map/server.py": "ec70b506e2e61ec4a1800a0f0a489347270c0bfcc6652d3ab71d2e10ac0b3db6",
+        "surface_map/source.py": "c0e291c2cb075e872ff616fd8f95884371a5fe662ae743272198a08bc4c5b73a",
+        "surface_map/source_io.py": "914aff239db8dea4f7e6df21ff9cd050026777899a832233cab492d1ccc9c424",
+        "surface_map/url_capture.py": "7a5276595ba90d0f3557c57abba9c3d0d168c52d306de19932ff8ebf741a4c8e"
+      },
+      "canonical_module_map_sha256": "43cad4897bf71fc6be8499c5444a873a724152aae1797c27c17783e3987f4b12"
+    }
+  }
+}

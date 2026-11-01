@@ -73,7 +73,7 @@ def review(report, *, route_limit=12):
         "privacy": report["privacy"],
     }
     for key in ("sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context",
-                "capture", "capture_warnings"):
+                "capture", "capture_warnings", "har_body_analysis"):
         if key in report:
             result[key] = report[key]
     if "page_signals" in report:

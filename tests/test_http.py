@@ -14,6 +14,23 @@ from test_analysis import CANARY, EMAIL, entry, har
 
 
 class HTTPTests(unittest.TestCase):
+    def test_encoded_upload_rich_comparison_and_body_coverage(self):
+        old = '<form action="/api/orders"><input type="hidden" name="old_private"></form>'
+        new = old.replace('old_private', 'new_private')
+        encoded = lambda text: {'kind': 'html', 'text_b64': base64.b64encode(text.encode()).decode()}
+        response = self.request('/api/compare', 'POST', {'baseline': [encoded(old)], 'candidate': [encoded(new)],
+                                                        'javascript_engine': 'basic'})
+        self.assertEqual(response[0], 200)
+        result = json.loads(response[2])
+        self.assertEqual(result['review_signals']['status'], 'available')
+        self.assertEqual(len(result['review_signals']['comparison']['form_field']['added']), 1)
+        self.assertNotIn('old_private', response[2].decode())
+        self.assertNotIn('new_private', response[2].decode())
+        response = self.request('/api/compare', 'POST', {'baseline': [encoded(old)], 'candidate': [encoded(new)],
+                                'javascript_engine': 'basic', 'include_review_signals': False})
+        self.assertEqual(response[0], 200)
+        self.assertNotIn('review_signals', json.loads(response[2]))
+
     def test_limits_and_large_encoded_html_roundtrip_and_comparison(self):
         from test_large_html import marketing_page
         response = self.request('/api/limits')

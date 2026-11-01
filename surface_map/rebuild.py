@@ -100,6 +100,7 @@ def _plan_from_report(report, references, *, deadline=None, scope=SCOPE, coverag
         excluded_cross_origin += int(cross_origin)
         operations.append({**common,
             **{key: route[key] for key in ("method", "statuses", "query_fields", "request_shapes", "response_shapes")},
+            **({"request_fields": route["request_fields"]} if "request_fields" in route else {}),
             "stub": "none" if cross_origin else "not_implemented",
             "unknowns": operation_unknowns(route.get("origin_relations"), route.get("assumptions", []))})
     unresolved = report.get("unresolved_operations", [])
@@ -107,6 +108,10 @@ def _plan_from_report(report, references, *, deadline=None, scope=SCOPE, coverag
         "sources", "warnings", "javascript_analysis", "evidence_limits", "script_omissions", "has_document_context",
         "capture", "capture_warnings"
     ) if key in report}
+    if "har_body_analysis" in report:
+        coverage["har_body_analysis"] = [{**{key: value for key, value in item.items() if key != "bodies"},
+                                          "retained_body_rows_not_in_plan": len(item["bodies"])}
+                                         for item in report["har_body_analysis"]]
     if coverage_extra:
         coverage.update(coverage_extra)
     coverage.update({"retained_operation_groups": len(operations), "planned_operations": min(len(operations), MAX_OPERATIONS),

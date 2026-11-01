@@ -1,0 +1,31 @@
+{
+  "tool": "surface-upgraded",
+  "case": "05_decoded_body_over_64k",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 315.954,
+  "stdout_bytes": 1717,
+  "stderr_bytes": 0,
+  "stdout_sha256": "654de6490ed358e6188852a2db1ed7b012b989c32717cb471ac092fdf5dd3e50",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "e69de557e45efbb26239348a7c819d6325ea92fbc93d32efc564025282dbaaa9",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-upgraded\\05_decoded_body_over_64k"
+}

@@ -1,0 +1,31 @@
+{
+  "tool": "surface-baseline",
+  "case": "10_unknown_encoding",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 122.054,
+  "stdout_bytes": 707,
+  "stderr_bytes": 0,
+  "stdout_sha256": "84cc1a71592f48f64463e2f0c4f014d79d2abf0fe4cae86133572aeb769aea03",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "667f027bc2983032a9f8f730f92d783e2bc64fdb8b3299689d0dff360569b304",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\surface-baseline\\10_unknown_encoding"
+}

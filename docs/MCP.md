@@ -1,6 +1,6 @@
 # Surface Map over MCP
 
-Surface Map provides eight read-only tools over stdio using the [official Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk). A client such as Claude or Codex starts a local process and calls the tools. No HTTP listener, account, API key or global registration is required. `analyze_url` contacts a public website; the other seven tools work on supplied or bundled content without network access.
+Surface Map provides nine read-only tools over stdio using the [official Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk). A client such as Claude or Codex starts a local process and calls the tools. No HTTP listener, account, API key or global registration is required. `analyze_url` contacts a public website; the other eight tools work on supplied or bundled content without network access.
 
 `plan_rebuild` accepts the saved artifacts used by `analyze_capture`. It returns a bounded implementation plan, possible script references, evidence and unknowns. With `include_scaffold: true`, it returns `{plan, files}`: fixed mock files as text, without writing or running them. An agent can save and test these in a new directory. The generated handlers return 501 until implemented; their tests do not establish parity with the original app. [Workflow and example](REBUILD.md).
 
@@ -40,6 +40,10 @@ This is a local MCP server, not a hosted endpoint or a one-click remote connecto
 Use `output: "review"` on `analyze_url` or `analyze_capture` when the agent needs a small first pass. `review_limit` accepts 1 through 25 route examples, defaulting to 12. It prioritizes unresolved methods, recorded error statuses, unobserved operations and missing response statuses. It returns source references, counts, warnings, capture omissions and fixed suggestions for further evidence gathering. These are review priorities, not vulnerability findings or a safety score.
 
 The brief omits body schemas and most route details, explicitly counts additional review candidates, and summarizes optional page signals without their findings. A route absent from the brief can still exist in the full report. Request `output: "report"` for all retained evidence. No report is cached; calling `analyze_url` again fetches a new capture that may differ. Smaller output does not increase input, parser or host limits.
+
+For saved captures, use `inspect_evidence` to ask a narrower question. For example, pass the same `artifacts` with `category: "routes"`, `method: "POST"`, `confidence: "observed"`, and `limit: 10`. Default rows omit schemas; `detail: true` includes retained details. Continue using `page.next_offset`, repeating identical artifacts and options. Each call analyzes again; there is no saved cursor or server-side capture. Counts, warnings and omission totals remain in every page. Pagination cannot recover evidence discarded at an analyzer retention limit.
+
+Use `category: "har_bodies"` and `body_state: "omitted"` to review body-inspection gaps. `not_present` means the HAR has no body record, not that the original request or response was empty. Body rows are capped at 128 per HAR source; totals include rows beyond that cap. Other filters are `source_id` and `evidence_kind`; operation categories also accept `method` and `confidence`. Page sizes are 1 through 100, default 25.
 
 When evidence retention reaches a cap, `evidence_limits` reports discarded occurrences by fixed category and generic source ID. Repeated discarded values can count more than once. Its absence does not establish full website coverage.
 
@@ -102,8 +106,11 @@ Every tool advertises `readOnlyHint: true`, `destructiveHint: false`, and `idemp
 | --- | --- | --- |
 | `analyze_url` | `url`, optional `include_scripts`, `javascript_engine`, `include_page_signals`, `output` and `review_limit` | Static public-page report or compact review, with capture counts and omissions |
 | `analyze_capture` | `artifacts`, optional `document_url`, `javascript_engine`, `output`, `review_limit` and `include_page_signals` | Minimized report, compact review, or OpenAPI/contract document with source and warning context |
-| `compare_captures` | `before`, `after`, optional `before_document_url`, `after_document_url` and `javascript_engine` | Added, absent (`removed`) and changed normalized evidence, plus each capture's warnings |
+| `compare_captures` | `before`, `after`, optional `before_document_url`, `after_document_url`, `javascript_engine` and `include_review_signals` | Normalized evidence changes, per-capture warnings, and supplemental static review with explicit coverage status |
+| `inspect_evidence` | `artifacts`, optional `category`, filters, `offset`, `limit`, `detail`, `document_url` and `javascript_engine` | A filtered page with retained/matching/returned counts, next offset and capture coverage |
 | `inspect_sources` | `artifacts`, optional `javascript_engine` | Minimized source inventory, source parse status and warnings |
+| `inspect_project` | `files`, optional `javascript_engine` | Bounded selected-file dependency inventory and literal-import graph |
+| `plan_rebuild` | `artifacts`, optional `document_url`, `javascript_engine` and `include_scaffold` | Evidence-backed implementation plan and optional inert mock files |
 | `demo` | none | Actual analysis of bundled synthetic captures and source fixtures, plus a synthetic comparison |
 | `limits` | none | Current byte limits, scope and client privacy considerations |
 
@@ -143,6 +150,16 @@ For saved HTML, optionally supply its final `document_url`. This resolves relati
 ```
 
 This declares `GET /api/orders` and `POST /api/items`. It makes no requests and does not verify either operation.
+
+## HAR bodies and comparison coverage
+
+HAR analysis reads JSON shapes from UTF-8 text or strictly valid base64, for `application/json` and `application/problem+json`. A body has a 64 KiB inspection cap and separate structural bounds. URL-encoded text or saved form parameters contribute minimized field names and repeat counts. Multipart analysis uses saved parameters only; file bytes, filenames and raw multipart text are never inspected. Form evidence has no invented value types and does not become a JSON `requestBody` in OpenAPI. Contracts and the OpenAPI `x-surface-map-observed-form-fields` extension retain that evidence separately.
+
+`har_body_analysis` reports inspected and omitted body slots, fixed reasons, limits and retained-row omissions. Compact reviews, plans and exports preserve coverage context. These counts describe the supplied HAR, not every request a website can make. Unknown encodings, unsupported media types, malformed bodies and structural limits remain explicit gaps. Body values are discarded; unknown field names are aliased.
+
+`compare_captures` keeps its `comparison`, `before` and `after` fields and adds `review_signals` by default. Paired HTML/script slots can distinguish private hidden-field and domain renames using comparison-local opaque IDs. It also groups supported form, resource, navigation and tracking changes. These IDs do not identify the originals and should not be matched across separate comparisons. Supplemental inline JavaScript inspection uses the syntax parser; basic mode never starts Node and marks JavaScript coverage incomplete while retaining independent HTML evidence.
+
+Read `review_signals.status` and its coverage: `available` applies only to supported selected static source; `partial`, `unavailable` and `not_applicable` are not all-clear results. HAR-only selections have no supplemental static review. Mixed selections keep HAR observations in the normalized comparison and explicitly exclude them from the static collector. Mismatched artifact-kind sequences cannot be paired. Both document URLs must be supplied together or omitted for supplemental review. `include_review_signals: false` opts out. A missing or uninspected body does not prove a schema was removed from a service.
 
 ## Ask naturally
 

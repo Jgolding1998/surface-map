@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "03_invalid_base64",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 27.378,
+  "stdout_bytes": 2052,
+  "stderr_bytes": 0,
+  "stdout_sha256": "f353d505e69ead1c3019c753d5cfea47c3d81aef4158bae52fafc1a684ce2079",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "9864275b4658259d1d8801a68b769b866879e90787c88ace2324039ddddc890f",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\03_invalid_base64"
+}

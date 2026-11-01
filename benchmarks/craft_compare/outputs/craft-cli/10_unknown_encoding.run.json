@@ -1,0 +1,31 @@
+{
+  "tool": "craft-cli",
+  "case": "10_unknown_encoding",
+  "exit_code": 0,
+  "timeout": false,
+  "runtime_ms": 27.094,
+  "stdout_bytes": 2176,
+  "stderr_bytes": 0,
+  "stdout_sha256": "b98878f2dfa8ba45cdf19e1e4e7c1ac2673bff3f1a4670f99a6ef1e607213feb",
+  "json_output": true,
+  "accepted": true,
+  "fixture_sha256": "667f027bc2983032a9f8f730f92d783e2bc64fdb8b3299689d0dff360569b304",
+  "environment_keys": [
+    "APPDATA",
+    "CRAFT_ANYTHING_CONFIG_DIR",
+    "HOME",
+    "LOCALAPPDATA",
+    "PATH",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "isolation": "isolation\\craft-cli\\10_unknown_encoding"
+}
