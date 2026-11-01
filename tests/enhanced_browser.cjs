@@ -15,6 +15,21 @@ const {chromium} = require("playwright");
     page.on("request", request => {if (!request.url().startsWith(base + "/") && !request.url().startsWith("blob:")) external.push(request.url());});
     await page.goto(base);
     await page.waitForFunction(() => document.querySelector("#routes-count").textContent === "7");
+    // Keyboard: inspecting a route re-renders the table but must not drop focus to <body>.
+    const inspect = page.locator("#route-rows .row-detail").nth(1);
+    const inspectLabel = await inspect.getAttribute("aria-label");
+    await inspect.focus();
+    await page.keyboard.press("Enter");
+    const focused = await page.evaluate(() => ({tag:document.activeElement.tagName, label:document.activeElement.getAttribute("aria-label"), controls:document.activeElement.getAttribute("aria-controls"), current:document.activeElement.closest("tr")?.getAttribute("aria-current")}));
+    check(focused.tag === "BUTTON" && focused.label === inspectLabel && focused.controls === "detail" && focused.current === "true", "Inspect keeps keyboard focus on the same selected route control");
+    check((await page.locator("#detail h3").textContent()).includes(inspectLabel.replace(/^Inspect /, "")), "Detail panel shows the route that was inspected from the keyboard");
+    await page.keyboard.press("Tab");
+    check(await page.evaluate(() => document.activeElement !== document.body), "Tab continues from the inspected row rather than restarting at the page");
+    await page.locator('[data-filter="observed"]').focus();
+    await page.keyboard.press("Enter");
+    check(await page.getAttribute('[data-filter="observed"]', "aria-pressed") === "true" && await page.getAttribute('[data-filter="all"]', "aria-pressed") === "false", "Filter state is exposed with aria-pressed");
+    check(await page.locator('[data-filter="observed"] .filter-count').textContent() === "3" && await page.locator('[data-filter="all"] .filter-count').textContent() === "7", "Filters show live route counts");
+    await page.locator('[data-filter="all"]').click();
     await page.selectOption("#javascript-engine", "enhanced");
     const upload = async text => {
       await page.locator("#files").setInputFiles({name:"example.ts",mimeType:"text/plain",buffer:Buffer.from(text)});
