@@ -5,10 +5,16 @@
   "description": "Optional local evaluation UI for Surface Map's frozen synthetic tasks",
   "engines": {"node": ">=22.22.0"},
   "scripts": {
+    "check:globs": "node check-globs.mjs",
     "eval": "python run.py basic",
     "eval:enhanced": "python run.py enhanced",
     "eval:mcp": "python run.py mcp",
     "view": "python run.py view"
   },
-  "devDependencies": {"promptfoo": "0.125.1"}
+  "devDependencies": {"promptfoo": "0.125.1"},
+  "overrides": {
+    "basic-ftp": "6.2.1",
+    "glob": "14.0.3",
+    "minimatch": "11.0.3"
+  }
 }

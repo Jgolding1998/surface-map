@@ -12,6 +12,52 @@ These are the same developer-authored cases, not additional independent sites,
 a held-out benchmark or evidence of improved accuracy. Repeating them measures
 repeat consistency, not corpus diversity.
 
+## Dependency security and compatibility
+
+Exact npm overrides pin `glob` 14.0.3, `minimatch` 11.0.3 and `basic-ftp` 6.2.1
+while retaining promptfoo 0.125.1. They address
+[minimatch preprocessing amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249),
+[glob cancellation](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), and
+[FTP listing-parser CPU use](https://github.com/advisories/GHSA-c475-qrg2-pj4r).
+
+The glob upgrade is required alongside minimatch: [minimatch 11 changes parsed
+pattern parts from RegExp to Matcher objects](https://github.com/isaacs/minimatch/blob/v11.0.3/changelog.md),
+and [glob 14 adopts that API](https://github.com/isaacs/node-glob/blob/v14.0.3/changelog.md).
+Glob 13's default entrypoint also bundles its older matcher, so changing only
+the separately installed minimatch would leave that code in place. The canary
+checks the actual default bundle and the raw-module entrypoint. Matching follows
+the new upstream rules in edge cases involving empty path parts, Unicode and
+Windows paths; the tests cover this integration's file-selection patterns.
+
+[FTP 6's documented compatibility change](https://github.com/patrickjuchli/basic-ftp/blob/v6.2.1/CHANGELOG.md)
+rejects separate transfer hosts by default. That security default is retained.
+The existing get-uri adapter uses the same named `Client` export and
+`access`/`lastMod`/`list`/`downloadTo`/`close` methods. The canary checks those APIs,
+the get-uri entrypoint and directory-list parsing without connecting to an FTP
+server. It does not validate remote transfers or every optional promptfoo provider.
+
+The lockfile was regenerated with Node 24.22.1/npm 11.19.1. In addition to the
+three overridden packages, glob requires path-scurry 3.0.0 and the new
+nonrecursive matcher 1.0.3. Npm pruned 19 unused lock entries; other package
+versions were retained. A clean `npm ci --ignore-scripts` and full `npm audit`
+passed with zero findings at validation. CI checks the compatibility canary and
+fails `npm audit --audit-level=moderate` when actionable findings appear.
+
+```sh
+npm run check:globs
+npm audit --audit-level=moderate
+```
+
+`check-globs.mjs` exercises positive/negative selections on an inert temporary
+filesystem: sync/async calls, arrays, braces, ignores, dotfiles, escaping and
+Windows separators. A three-second child-process deadline bounds its small
+preprocessing-cap probe. The same eight-section pattern was checked against an
+isolated minimatch 10.2.6 tarball, verified with the original lock integrity:
+the old version generated 256 parts and failed the cap assertion; 11.0.3
+generated 16 and passed. The default glob bundle must also honor the 16-part
+cap and expose Matcher parts. This negative control was a local verification;
+CI never installs the vulnerable version.
+
 ## Run locally
 
 Use Python 3.11+ and Node.js >=22.22.0 (the repository's enhanced JavaScript
