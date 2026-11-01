@@ -36,11 +36,12 @@ Analysis is serialized, with bounded MCP input and output and fixed busy/error m
 - Fixed static assets, no path-based file access, no upload storage, no request-body logging and no source data in error responses.
 - Content Security Policy disallows inline scripts, remote scripts, framing and form submission. Browser camera, microphone and location permissions are disabled.
 - HTTP responses omit the Python and base-server version banner.
-- Error responses to POSTs with unread input are flushed and the write side is
-  closed before discarding at most 16 KiB for at most 0.1 seconds, with reads
-  capped at 50 ms. This is best-effort connection cleanup, never JSON parsing or
-  processing of an unauthenticated request. Fully consumed bodies are not read
-  again. Large or stalled senders can still be closed early; response delivery
+- Connection teardown half-closes the write side after the response, then
+  discards up to 16 KiB of raw socket input under a 0.1-second deadline. Each
+  read uses the remaining budget, so an initial idle gap does not shorten that
+  window. This is best-effort cleanup, never JSON parsing or processing of an
+  unauthenticated or pipelined request. It also covers busy and method-error
+  responses. Large or late senders can still be closed early; response delivery
   is not guaranteed for arbitrary peers. The staged-close rationale follows
   [HTTP/1.1 teardown guidance](https://httpwg.org/specs/rfc9112.html#rfc.section.9.6).
 

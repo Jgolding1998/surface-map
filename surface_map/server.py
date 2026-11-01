@@ -51,6 +51,29 @@ def bundle(report):
     return {"report": report, "openapi": openapi(report), "contract": contract(report)}
 
 
+def _linger_discard(request):
+    # A body arriving after full close can reset the peer's unread response.
+    # Send FIN first, then discard raw socket bytes without interpreting framing
+    # or processing another request. Buffered input already left the kernel.
+    try:
+        request.shutdown(socket.SHUT_WR)
+    except OSError:
+        return
+    remaining, deadline = 16 * 1024, time.monotonic() + 0.1
+    while remaining:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return
+        try:
+            request.settimeout(left)
+            block = request.recv(min(4096, remaining))
+        except OSError:
+            return
+        if not block:
+            return
+        remaining -= len(block)
+
+
 def make_server(port=8768):
     token = secrets.token_hex(32)
     processing = threading.BoundedSemaphore(2)
@@ -110,29 +133,6 @@ def make_server(port=8768):
             self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(body)
-            if code >= 400 and getattr(self, "command", None) == "POST" and not getattr(self, "_body_complete", False):
-                self._finish_rejected_upload()
-
-        def _finish_rejected_upload(self):
-            # An immediate close with unread POST bytes can reset the connection
-            # before the peer receives the rejection. Send FIN first, then only
-            # discard bounded raw bytes; never parse or process another request.
-            self.close_connection = True
-            try:
-                self.wfile.flush()
-                self.connection.shutdown(socket.SHUT_WR)
-                remaining, deadline = 16 * 1024, time.monotonic() + 0.1
-                while remaining:
-                    left = deadline - time.monotonic()
-                    if left <= 0:
-                        break
-                    self.connection.settimeout(min(0.05, left))
-                    block = self.rfile.read1(min(4096, remaining))
-                    if not block:
-                        break
-                    remaining -= len(block)
-            except OSError:
-                pass
 
         def send_error(self, code, message=None, explain=None):
             self.close_connection = True
@@ -223,7 +223,6 @@ def make_server(port=8768):
                     raise ArtifactError("Incomplete HTTP body")
                 chunks.append(block)
                 remaining -= len(block)
-            self._body_complete = True
             return strict_json(b"".join(chunks).decode("utf-8"), depth=6,
                                nodes=160 if self.path == "/api/project" else 100, prescan=False)
 
@@ -346,18 +345,18 @@ def make_server(port=8768):
             connection.settimeout(2)
             return connection, address
 
+        def shutdown_request(self, request):
+            # Handler.finish() has already flushed its response. Admission
+            # failures also come here after sendall(), using the same bounds.
+            try:
+                _linger_discard(request)
+            finally:
+                super().shutdown_request(request)
+
         def process_request(self, request, address):
             if not self.connections.acquire(blocking=False):
                 try:
                     request.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
-                    request.shutdown(socket.SHUT_WR)
-                    request.settimeout(0.05)
-                    remaining, deadline = 16 * 1024, time.monotonic() + 0.1
-                    while remaining > 0 and time.monotonic() < deadline:
-                        block = request.recv(min(4096, remaining))
-                        if not block:
-                            break
-                        remaining -= len(block)
                 except OSError:
                     pass
                 finally:
