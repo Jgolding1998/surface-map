@@ -25,15 +25,23 @@ const node = (tag, className, value) => {
   return element;
 };
 
-function notice(message, error = false) {
+// Tone is presentation only: "success" after a completed result, otherwise neutral.
+function notice(message, error = false, tone = "") {
   $("#notice").textContent = message;
   $("#notice").classList.toggle("error", error);
+  $("#notice").classList.toggle("success", !error && tone === "success");
+}
+const modeLabel = () => projectMode() ? "SELECTED PROJECT INSPECTION" : sourceMode() ? "STATIC SOURCE INSPECTION" : publicMode() ? "PUBLIC HTTPS INSPECTION" : "WEB ARTIFACT INSPECTION";
+function emptyDetail(label, title, text) {
+  $("#detail").replaceChildren(node("span", "detail-label", label), node("h3", "", title), node("p", "", text));
 }
 
 function refresh() {
   const source = codeMode(), project = projectMode(), active = source ? sourceCurrent : current;
   const publicPage = publicMode();
   const blocked = busy || !limits;
+  document.body.classList.toggle("is-busy", busy);
+  $("#report").setAttribute("aria-busy", String(busy));
   $("#analysis-mode").disabled = blocked;
   $("#javascript-engine").disabled = blocked;
   $("#files").disabled = blocked || publicPage;
@@ -112,21 +120,35 @@ function allRoutes(report) {
   return [...report.routes, ...(report.unresolved_operations || [])];
 }
 
-function table() {
+function table(focusRoute = null) {
   const rows = $("#route-rows"); rows.replaceChildren();
   const query = $("#search").value.toLowerCase();
   const routes = current ? allRoutes(current.report).filter(route => (filter === "all" || route.confidence === filter) && route.path.toLowerCase().includes(query)) : [];
   $("#empty-routes").hidden = routes.length !== 0;
+  const all = current ? allRoutes(current.report) : [];
+  $("#empty-routes").textContent = !current ? "No evidence yet. Add saved artifacts and analyze them, or explore the example workspace."
+    : !all.length ? "This analysis retained no routes. Missing evidence does not prove that an API is absent; review the warnings or add a HAR capture."
+    : "No routes match this filter or search.";
+  for (const button of document.querySelectorAll("[data-filter]")) {
+    const count = all.filter(route => button.dataset.filter === "all" || route.confidence === button.dataset.filter).length;
+    let badge = button.querySelector(".filter-count");
+    if (!badge) { badge = node("span", "filter-count"); button.append(badge); }
+    badge.textContent = current ? String(count) : "";
+  }
   for (const route of routes) {
     const row = node("tr", selected === route.id ? "selected" : "");
+    if (selected === route.id) row.setAttribute("aria-current", "true");
     const method = node("td"); method.append(node("span", "method " + (route.method || "unknown").toLowerCase(), route.method || "UNKNOWN"));
     const path = node("td", "", route.path);
     const confidence = node("td"); confidence.append(node("span", "confidence " + route.confidence, route.confidence));
     const status = node("td", "", (route.statuses || []).join(", ") || "Unobserved");
     const action = node("td"); const button = node("button", "row-detail", "↗");
     button.setAttribute("aria-label", `Inspect ${route.method || "unknown method"} ${route.path}`);
-    button.addEventListener("click", () => { selected = route.id; details(route); table(); });
+    button.setAttribute("aria-controls", "detail");
+    button.addEventListener("click", () => { selected = route.id; details(route); table(route.id); });
     action.append(button); row.append(method, path, confidence, status, action); rows.append(row);
+    // Re-rendering replaces the row; keep keyboard focus on the same route's control.
+    if (focusRoute !== null && focusRoute === route.id) button.focus();
   }
 }
 
@@ -143,8 +165,9 @@ function show(result, example = false) {
   $("#workspace-mode").textContent = example ? "EXAMPLE WORKSPACE" : "YOUR SAVED ARTIFACTS";
   sourceList(report.sources); table();
   if (routes.length) { selected = routes[0].id; details(routes[0]); table(); }
+  else emptyDetail("NO ROUTES RETAINED", "Nothing to inspect yet.", "Supported routes, forms and literal requests appear here with their source locations. A HAR capture usually gives the strongest evidence.");
   const engines = [...new Set((report.javascript_analysis || []).map(item => item.engine))].join(", ");
-  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`);
+  notice(`${example ? "Synthetic example loaded." : "Analysis complete."} ${report.routes.length} known-method routes, ${(report.unresolved_operations || []).length} unresolved-method targets. ${engines ? `JavaScript engine: ${engines}. ` : ""}${report.warnings.length ? `${report.warnings.length} analysis warnings; inspect the report. ` : ""}${publicMode() ? "A public page and selected scripts were fetched; discovered forms and APIs were not called." : "No service was contacted."} Exports discard body and query values.`, false, "success");
   refresh();
 }
 
@@ -359,7 +382,7 @@ function showPlan(result, example = false) {
   if (plan.candidate_references?.limits?.truncated) coverage.append(node("p", "source-empty", "Some candidate references exceeded a limit or could not be resolved without a document base. Inspect the plan JSON for omission counts."));
   $("#plan-scope").textContent = plan.scope || "Reconstruction still requires your implementation and verification.";
   updateHandoff();
-  notice(publicMode() ? "Public-page capture ready. Review capture limits and the brief before using it. A page and selected scripts were fetched; forms and APIs were not called." : "Plan ready. Choose an explanation style, review the agent brief, and copy or download it. Check the unknowns before implementing behavior.");
+  notice(publicMode() ? "Public-page capture ready. Review capture limits and the brief before using it. A page and selected scripts were fetched; forms and APIs were not called." : "Plan ready. Choose an explanation style, review the agent brief, and copy or download it. Check the unknowns before implementing behavior.", false, "success");
   refresh();
 }
 
@@ -392,7 +415,7 @@ function showSource(inventory, example = false) {
   }
   const rejected = inventory.sources.filter(item => item.status === "rejected").length;
   const engines = [...new Set(inventory.sources.map(item => item.engine).filter(Boolean))].join(", ");
-  notice(`${example ? "Synthetic example." : "Static inspection complete."} ${inventory.sources.length} logical sources, ${inventory.dependencies.length} known dependency labels. ${engines ? `JavaScript engine: ${engines}. ` : ""}${rejected ? `${rejected} sources were rejected; inspect the warnings. ` : ""}No source code was executed, dependency installed, or service contacted. Declarations and imports do not prove runtime behavior.`);
+  notice(`${example ? "Synthetic example." : "Static inspection complete."} ${inventory.sources.length} logical sources, ${inventory.dependencies.length} known dependency labels. ${engines ? `JavaScript engine: ${engines}. ` : ""}${rejected ? `${rejected} sources were rejected; inspect the warnings. ` : ""}No source code was executed, dependency installed, or service contacted. Declarations and imports do not prove runtime behavior.`, false, rejected ? "" : "success");
   refresh();
 }
 
@@ -419,7 +442,7 @@ function showProject(inventory) {
   }
   if (!omissions.children.length) omissions.append(node("p", "source-empty", "No counted omissions. Unsupported syntax may still be absent without a count."));
   $("#project-graph-scope").textContent = graph.scope || "Only relationships between supplied files are considered.";
-  notice(`Project inspection complete. ${inventory.sources.length} selected files, ${edges.length} candidate file links.${inventory.coverage?.partial ? " Coverage is partial; inspect omissions." : ""} Input names are used transiently for matching; results contain generic source IDs. No code was run.`);
+  notice(`Project inspection complete. ${inventory.sources.length} selected files, ${edges.length} candidate file links.${inventory.coverage?.partial ? " Coverage is partial; inspect omissions." : ""} Input names are used transiently for matching; results contain generic source IDs. No code was run.`, false, "success");
   refresh();
 }
 
@@ -456,7 +479,8 @@ function resetWorkspace(clearURL = true) {
   if (clearURL) $("#public-url").value="";
   $("#source-list").replaceChildren(); $("#diff-panel").hidden=true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent="0";
-  $("#detail").replaceChildren(node("h3", "", "Session cleared."));
+  $("#workspace-mode").textContent = modeLabel();
+  emptyDetail("SESSION CLEARED", "Nothing selected.", "Add evidence in the inputs panel, or explore an example. The server does not retain uploads or reports.");
   $("#baseline-status").textContent="No baseline kept. All files and reports have been cleared from this workspace.";
   clearSourceView(); clearPlan(); table(); refresh();
 }
@@ -491,7 +515,8 @@ $("#files").addEventListener("change", () => {
   clearSourceView();
   files = Array.from($("#files").files); current = null; selected = null; diff = null; $("#diff-panel").hidden = true;
   for (const id of ["routes", "observed", "inferred", "sources"]) $("#"+id+"-count").textContent = "0";
-  $("#detail").replaceChildren(node("h3", "", "Selection awaiting analysis."));
+  $("#workspace-mode").textContent = modeLabel();
+  emptyDetail("SELECTION READY", "Selection awaiting analysis.", "Analyze artifacts to map routes, or build a plan for an agent brief. Nothing is sent until you choose an action.");
   sourceList(files.map((file,index) => ({id:`source_${index + 1}`,kind:kind(file) || "unsupported",bytes:file.size})));
   table(); notice("Selection ready. Analyze artifacts to build a fresh evidence map."); refresh();
 });
@@ -530,7 +555,7 @@ $("#compare").addEventListener("click", () => action(async () => {
   if (sourceMode()) showSourceDiff(result.diff); else showDiff(result.diff);
 }));
 $("#demo-diff").addEventListener("click", () => action(async () => showDiff((await request("/api/demo-diff", {})).diff)));
-for (const button of document.querySelectorAll("[data-filter]")) button.addEventListener("click", () => {filter=button.dataset.filter; document.querySelectorAll("[data-filter]").forEach(item => item.classList.toggle("selected", item===button)); table();});
+for (const button of document.querySelectorAll("[data-filter]")) button.addEventListener("click", () => {filter=button.dataset.filter; document.querySelectorAll("[data-filter]").forEach(item => { item.classList.toggle("selected", item===button); item.setAttribute("aria-pressed", String(item===button)); }); table();});
 $("#search").addEventListener("input", table);
 for (const name of ["report","openapi","contract"]) $("#export-"+name).addEventListener("click", () => { if(current) download(current[name], name); });
 $("#export-diff").addEventListener("click", () => { if(diff) download(diff,"diff"); });
@@ -583,7 +608,7 @@ $("#analysis-mode").addEventListener("change", () => {
   $("#upload-title").textContent = project ? "Add selected project files" : source ? "Add selected source files" : "Add saved artifacts";
   $("#upload-formats").textContent = source ? "Manifests, Python, JS/TS, Rust or shell" : "HTML, HAR or JavaScript";
   $("#files").accept = source ? ".txt,.toml,.json,.py,.ts,.tsx,.js,.jsx,.mjs,.cjs,.rs,.sh,.bash" : ".html,.htm,.har,.json,.js,.jsx,.mjs,.cjs,.ts,.tsx";
-  $("#workspace-mode").textContent = project ? "SELECTED PROJECT INSPECTION" : source ? "STATIC SOURCE INSPECTION" : publicMode() ? "PUBLIC HTTPS INSPECTION" : "WEB ARTIFACT INSPECTION";
+  $("#workspace-mode").textContent = modeLabel();
   notice(project ? "Select individual project files to inspect. Literal relative imports can match another selected file; nested projects work best through the CLI with an explicit root." : source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : publicMode() ? "Enter a public HTTPS page URL. Requests begin only when you select Inspect page + create brief. No login, browser rendering, form submission or API testing occurs." : "Select saved web artifacts, or load the synthetic example. Build a plan creates a mock starting point from your selected files.");
   refresh();
 });
