@@ -63,6 +63,12 @@ try {
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].name, 'fixture.txt');
   assert.equal(parsed[0].size, 42);
+  // Unknown MLSD fact names must be ignored rather than resolved through an
+  // inherited object property. This one-line regression uses no connection.
+  const mlsd = parseList('type=file;__proto__=ignored;size=42; mlsd-fixture.txt\r\n');
+  assert.equal(mlsd.length, 1);
+  assert.equal(mlsd[0].name, 'mlsd-fixture.txt');
+  assert.equal(mlsd[0].size, 42);
 
   // A short amplification-pattern regression runs in a separate process with
   // a hard deadline. It checks the documented preprocessing cap, not timing on

@@ -36,11 +36,11 @@ jobs:
       - name: Check dependency API and file-matching compatibility
         run: npm run check:globs
         working-directory: evals/promptfoo
-      - name: Audit optional evaluation dependencies
-        run: npm audit --audit-level=moderate
-        working-directory: evals/promptfoo
       - name: Run the local evaluation without model API calls
         run: npm run eval:enhanced
+        working-directory: evals/promptfoo
+      - name: Audit optional evaluation dependencies
+        run: npm audit --audit-level=moderate
         working-directory: evals/promptfoo
       - name: Retain local public-fixture results
         if: always()

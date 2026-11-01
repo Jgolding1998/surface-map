@@ -125,3 +125,18 @@ Both current project outputs have four graph nodes, **zero internal edges**, **2
 The current source and project responses now explicitly return `analysis_scope`: `whole_repository`, `runtime_verified`, `control_flow_analyzed`, `security_audited` and `version_control_semantics_analyzed` are all false. Its text explains that `parsed` means the supported inventory pass completed without establishing semantic completeness or ruling out a parser defect, that unknown-dependency counts describe manifest declarations rather than every import, and that `partial: false` does not mean the entire application was understood. Here `coverage` reports four selected and inspected files, zero rejected/omitted files, and `partial: false`; graph omissions still remain visible. This is a disclosure improvement, not added runtime, Git-behavior or security understanding. Newly curated GitPython and `simple-git` labels are not exercised by these four REA files.
 
 The local executable harness, exact MCP requests/responses/payloads, initialized tool catalogs, empty server stderr logs and hash receipt are under ignored **`work/audit-rea/mcp/`**. Current analyzer/transport source hashes were checked unchanged across the calls; the receipt identifies the local build separately from the baseline. The current source-inventory implementation measured here has SHA-256 **`74f5acac17ae535b4a0901926d6af53ee319c5a321ef58fd1f7de696e55eb4e5`**. To repeat after reviewing the trusted local code and supplying the same saved public files, run `.venv/Scripts/python.exe -I work/audit-rea/mcp/run_crosscheck.py` from the UndoWeave checkout. This is a selected-source MCP compatibility and inventory check, not a whole-product accuracy, speed or security ranking.
+
+To reproduce the current inventory without that local research harness, save
+the four immutable linked files above in a directory preserving their relative
+paths, then run this from a Surface Map checkout:
+
+```sh
+python -m surface_map project --root /absolute/saved-rea --files package.json src/browser/CdpPageCapture.ts src/browser/history/CaptureRedaction.ts src/config/mcpInputSchemaProfile.ts --javascript-engine basic
+```
+
+Basic mode needs only Python and produces the same inventory labels on this
+selection. To exercise the syntax parser too, complete the documented optional
+parser setup and change `basic` to `enhanced`. The selected REA files are read
+as text; their package scripts and source are never run. The local protocol
+harness and raw receipts are research working files, not part of the published
+package.
