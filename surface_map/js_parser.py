@@ -35,6 +35,17 @@ _PARSER = "node_modules/@babel/parser/lib/index.js"
 _PACKAGE = "node_modules/@babel/parser/package.json"
 _FILES = {"parse.mjs", "package.json", "package-lock.json", _PARSER, _PACKAGE}
 _CODES = {"invalid_input", "input_limit", "syntax", "limit", "busy", "timeout", "output_limit", "failed", "node_missing", "node_unsupported", "parser_missing", "parser_integrity", "npm_missing", "setup_failed"}
+_SETUP_RETRY = "Then run python -m surface_map setup-js again, or use basic analysis without this optional parser."
+_SETUP_MESSAGES = {
+    "node_missing": "JavaScript setup could not find supported Node.js. Install Node.js 24.22.1 or a newer 24.x release with npm from https://nodejs.org, or set SURFACE_MAP_NODE to its absolute executable path. " + _SETUP_RETRY,
+    "node_unsupported": "JavaScript setup requires Node.js 24.22.1 or a newer 24.x release. Install that supported version with npm from https://nodejs.org. " + _SETUP_RETRY,
+    "npm_missing": "JavaScript setup could not find npm bundled with the selected Node.js. Reinstall the supported Node.js 24.x release with npm from https://nodejs.org. " + _SETUP_RETRY,
+    "parser_integrity": "The reviewed parser files are missing or changed. Extract a fresh official Surface Map release into a folder you own. " + _SETUP_RETRY,
+    "parser_missing": "The installed parser could not be verified. Extract a fresh official Surface Map release into a folder you own. " + _SETUP_RETRY,
+    "setup_failed": "JavaScript setup refused an unsafe or unsupported local parser folder. Extract a fresh official Surface Map release into a folder you own. " + _SETUP_RETRY,
+    "timeout": "JavaScript parser setup exceeded its time limit. Check internet access and folder write permissions. " + _SETUP_RETRY,
+    "failed": "Pinned JavaScript parser setup did not finish. Check internet access and folder write permissions. " + _SETUP_RETRY,
+}
 _NAME = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*\Z")
 _VERSION_CACHE = {}
 _CACHE_LOCK = threading.Lock()
@@ -856,7 +867,11 @@ def setup() -> int:
             if (ANALYZER / ".npmrc").exists():
                 raise JsParserError("setup_failed")
             modules = ANALYZER / "node_modules"
-            if modules.exists():
+            try:
+                modules.lstat()
+            except FileNotFoundError:
+                pass
+            else:
                 pending = [modules]
                 count = 0
                 while pending:
@@ -892,6 +907,9 @@ def setup() -> int:
                       "--userconfig=" + str(user), "--globalconfig=" + str(global_config), "--cache=" + str(home / "cache")],
                      cwd=ANALYZER, env=env, timeout=90, cap=65536)
             _integrity()
+            print("Enhanced JavaScript parser is ready.")
             return 0
-        except (JsParserError, OSError):
+        except (JsParserError, OSError) as error:
+            code = error.code if isinstance(error, JsParserError) else "failed"
+            print(_SETUP_MESSAGES.get(code, _SETUP_MESSAGES["failed"]), file=sys.stderr)
             return 1

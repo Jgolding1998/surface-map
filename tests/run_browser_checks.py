@@ -14,7 +14,7 @@ import threading
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKS = ("handoff.cjs", "browser_rebuild.cjs", "enhanced_browser.cjs", "public_url_browser.cjs")
+CHECKS = ("handoff.cjs", "browser_rebuild.cjs", "enhanced_browser.cjs", "public_url_browser.cjs", "bootstrap_browser.cjs")
 CHECK_TIMEOUT_SECONDS = 90
 
 

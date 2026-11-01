@@ -75,6 +75,7 @@ function refresh() {
   $("#baseline").disabled = busy || project || !active || rejected || files.length === 0;
   $("#compare").disabled = busy || project || !active || rejected || files.length === 0 || baselineFiles.length === 0;
   $("#clear").disabled = busy;
+  $("#retry-bootstrap").disabled = busy;
   for (const kind of ["report", "openapi", "contract"]) $("#export-" + kind).disabled = source || !current || busy;
   $("#export-source").disabled = !sourceCurrent || busy;
   $("#network-label").textContent = publicPage ? "PUBLIC HTTPS ON REQUEST" : "OFFLINE FILE ANALYSIS";
@@ -612,15 +613,78 @@ $("#analysis-mode").addEventListener("change", () => {
   notice(project ? "Select individual project files to inspect. Literal relative imports can match another selected file; nested projects work best through the CLI with an explicit root." : source ? "Select saved requirements.txt, pyproject.toml, package.json, Cargo.toml, or supported source files. No GitHub fetch, execution or dependency installation occurs." : publicMode() ? "Enter a public HTTPS page URL. Requests begin only when you select Inspect page + create brief. No login, browser rendering, form submission or API testing occurs." : "Select saved web artifacts, or load the synthetic example. Build a plan creates a mock starting point from your selected files.");
   refresh();
 });
-action(async () => {
-  try {
-    const response = await fetch("/api/limits");
+// Startup needs a valid limits contract before any input or analysis control is
+// enabled. The request and its body share one bounded deadline; a late or
+// superseded response is discarded rather than applied.
+const BOOTSTRAP_TIMEOUT_MS = 15000, BOOTSTRAP_RESPONSE_CHARS = 65536, MAX_CLIENT_TIMEOUT_MS = 600000;
+let bootstrapAttempt = 0;
+const isRecord = value => value !== null && typeof value === "object" && !Array.isArray(value);
+const isCount = value => Number.isSafeInteger(value) && value > 0;
+const isDeadline = value => isCount(value) && value <= MAX_CLIENT_TIMEOUT_MS;
+function validLimits(value) {
+  if (!isRecord(value) || !["web", "source", "project", "public_url"].every(key => isRecord(value[key]))) return false;
+  const {web, source, project} = value;
+  return [value.request_bytes, value.source_request_bytes, value.project_request_bytes,
+    web.max_artifacts, web.html_bytes, web.other_file_bytes, web.total_bytes,
+    source.max_artifacts || source.max_files, source.file_bytes, source.total_bytes,
+    project.max_artifacts || project.max_files, project.file_bytes, project.total_bytes].every(isCount)
+    && isDeadline(value.request_timeout_ms) && isDeadline(value.public_url.request_timeout_ms);
+}
+async function loadLimits() {
+  const controller = new AbortController();
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const error = new Error("Input limits timed out"); error.name = "TimeoutError"; reject(error);
+    }, BOOTSTRAP_TIMEOUT_MS);
+  });
+  const work = (async () => {
+    const response = await fetch("/api/limits", {cache:"no-store", signal:controller.signal});
     if (!response.ok) throw new Error("Input limits unavailable");
-    limits = await response.json();
-  } catch (_) {
-    const error = new Error("Input limits unavailable");
-    error.safeMessage = "Input limits could not load. Check the local server and reload this page.";
-    throw error;
-  }
-  show(await request("/api/demo", {}), true);
+    const text = await response.text();
+    if (text.length > BOOTSTRAP_RESPONSE_CHARS) throw new Error("Input limits unavailable");
+    const value = JSON.parse(text);
+    if (!validLimits(value)) throw new Error("Input limits unavailable");
+    return value;
+  })();
+  work.catch(() => {});
+  try { return await Promise.race([work, deadline]); }
+  finally { clearTimeout(timer); controller.abort(); }
+}
+function bootstrap() {
+  return action(async () => {
+    const attempt = ++bootstrapAttempt;
+    notice("Loading input limits and the synthetic example. No requests are made to the mapped service.");
+    let loaded;
+    try { loaded = await loadLimits(); }
+    catch (failure) {
+      if (attempt !== bootstrapAttempt || limits) return;
+      $("#upload-limits").textContent = "Input limits unavailable.";
+      $("#retry-bootstrap").hidden = false;
+      const error = new Error("Input limits unavailable");
+      error.safeMessage = failure.name === "TimeoutError"
+        ? `Input limits did not load within ${BOOTSTRAP_TIMEOUT_MS / 1000} seconds. File analysis stays unavailable until they load. Check that the local server is running, then select Retry.`
+        : "Input limits could not load or were not in the expected format. File analysis stays unavailable until they load. Check the local server, then select Retry.";
+      throw error;
+    }
+    if (attempt !== bootstrapAttempt || limits) return;
+    limits = loaded;
+    $("#retry-bootstrap").hidden = true;
+    refresh();
+    try { show(await request("/api/demo", {}), true); }
+    catch (failure) {
+      $("#workspace-mode").textContent = modeLabel();
+      table();
+      const error = new Error("Example unavailable");
+      error.safeMessage = `Input limits loaded, but the synthetic example did not. ${failure.safeMessage || ""} You can add your own files, or select Explore example workspace to try the example again.`.replace(/\s+/g, " ");
+      throw error;
+    }
+  });
+}
+$("#retry-bootstrap").addEventListener("click", async () => {
+  if (busy || limits) return;
+  await bootstrap();
+  (limits ? $("#report") : $("#retry-bootstrap")).focus();
 });
+bootstrap();
