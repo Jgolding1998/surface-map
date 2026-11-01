@@ -110,6 +110,29 @@ def make_server(port=8768):
             self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(body)
+            if code >= 400 and getattr(self, "command", None) == "POST" and not getattr(self, "_body_complete", False):
+                self._finish_rejected_upload()
+
+        def _finish_rejected_upload(self):
+            # An immediate close with unread POST bytes can reset the connection
+            # before the peer receives the rejection. Send FIN first, then only
+            # discard bounded raw bytes; never parse or process another request.
+            self.close_connection = True
+            try:
+                self.wfile.flush()
+                self.connection.shutdown(socket.SHUT_WR)
+                remaining, deadline = 16 * 1024, time.monotonic() + 0.1
+                while remaining:
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        break
+                    self.connection.settimeout(min(0.05, left))
+                    block = self.rfile.read1(min(4096, remaining))
+                    if not block:
+                        break
+                    remaining -= len(block)
+            except OSError:
+                pass
 
         def send_error(self, code, message=None, explain=None):
             self.close_connection = True
@@ -200,6 +223,7 @@ def make_server(port=8768):
                     raise ArtifactError("Incomplete HTTP body")
                 chunks.append(block)
                 remaining -= len(block)
+            self._body_complete = True
             return strict_json(b"".join(chunks).decode("utf-8"), depth=6,
                                nodes=160 if self.path == "/api/project" else 100, prescan=False)
 

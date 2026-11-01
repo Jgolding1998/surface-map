@@ -36,6 +36,13 @@ Analysis is serialized, with bounded MCP input and output and fixed busy/error m
 - Fixed static assets, no path-based file access, no upload storage, no request-body logging and no source data in error responses.
 - Content Security Policy disallows inline scripts, remote scripts, framing and form submission. Browser camera, microphone and location permissions are disabled.
 - HTTP responses omit the Python and base-server version banner.
+- Error responses to POSTs with unread input are flushed and the write side is
+  closed before discarding at most 16 KiB for at most 0.1 seconds, with reads
+  capped at 50 ms. This is best-effort connection cleanup, never JSON parsing or
+  processing of an unauthenticated request. Fully consumed bodies are not read
+  again. Large or stalled senders can still be closed early; response delivery
+  is not guaranteed for arbitrary peers. The staged-close rationale follows
+  [HTTP/1.1 teardown guidance](https://httpwg.org/specs/rfc9112.html#rfc.section.9.6).
 
 The server retains no upload files or reports. At most two optional parser workers are reused, with five-second idle expiry, a thirty-second maximum lifetime and a 128-request maximum. Explicit source and AST references are dropped after each response; memory is not securely erased. Selected files and a chosen baseline remain in browser memory until cleared or the page closes. Operating-system swap, a compromised browser, extensions, a debugger, or another process under the same account are outside this boundary. This is not an operating-system sandbox. Do not expose the port through a public tunnel or change its bind address.
 
