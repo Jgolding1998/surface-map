@@ -270,36 +270,44 @@ class AdmissionDrainTests(unittest.TestCase):
         request.recv.return_value = b"x" * 4096
         events = Mock()
         events.attach_mock(request, "socket")
-        with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", return_value=0):
+        with patch.object(self.server, "shutdown_request", wraps=self.server.shutdown_request) as finish, patch("surface_map.server.time.monotonic", return_value=0):
             events.attach_mock(finish, "finish")
             self.server.process_request(request, ("127.0.0.1", 0))
             finish.assert_called_once_with(request)
-        self.assertEqual(events.mock_calls[:3], [
+        self.assertEqual(events.mock_calls[:4], [
             call.socket.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"),
-            call.socket.shutdown(socket.SHUT_WR), call.socket.settimeout(0.05),
+            call.finish(request), call.socket.shutdown(socket.SHUT_WR), call.socket.settimeout(0.1),
         ])
         self.assertEqual(request.recv.call_args_list, [call(4096)] * 4)
-        self.assertEqual(events.mock_calls[-1], call.finish(request))
+        request.close.assert_called_once_with()
         self.server.connections.release.assert_not_called()
 
-    def test_busy_drain_stops_at_the_deadline_with_a_fixed_read_timeout(self):
+    def test_busy_drain_waits_for_the_remaining_budget_and_stops_at_deadline(self):
         request = Mock(spec=socket.socket)
-        request.recv.return_value = b"x"
-        with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", side_effect=[0, 0.01, 0.06, 0.11]):
+        clock = [0.0]
+        def delayed_byte(size):
+            clock[0] += 0.05
+            return b"x"
+        request.recv.side_effect = delayed_byte
+        with patch.object(self.server, "shutdown_request", wraps=self.server.shutdown_request) as finish, patch("surface_map.server.time.monotonic", side_effect=lambda: clock[0]):
             self.server.process_request(request, ("127.0.0.1", 0))
             finish.assert_called_once_with(request)
         self.assertEqual(request.recv.call_count, 2)
-        request.settimeout.assert_called_once_with(0.05)
+        self.assertEqual(request.settimeout.call_count, 2)
+        self.assertAlmostEqual(request.settimeout.call_args_list[0].args[0], 0.1)
+        self.assertAlmostEqual(request.settimeout.call_args_list[1].args[0], 0.05)
+        request.close.assert_called_once_with()
 
     def test_eof_and_socket_failure_still_finish_the_rejected_connection(self):
         for result in (b"", socket.timeout("idle")):
             with self.subTest(result=type(result).__name__):
                 request = Mock(spec=socket.socket)
                 request.recv.side_effect = [result]
-                with patch.object(self.server, "shutdown_request") as finish, patch("surface_map.server.time.monotonic", return_value=0):
+                with patch.object(self.server, "shutdown_request", wraps=self.server.shutdown_request) as finish, patch("surface_map.server.time.monotonic", return_value=0):
                     self.server.process_request(request, ("127.0.0.1", 0))
                     finish.assert_called_once_with(request)
                 self.assertEqual(request.recv.call_count, 1)
+                request.close.assert_called_once_with()
 
 
 if __name__ == "__main__":

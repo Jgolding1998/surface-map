@@ -37,6 +37,17 @@ WORK_SECONDS = 5.0
 PRIVACY = "Only fixed labels from curated tables, generic source IDs, and line numbers are reported. Filenames, paths, versions, project or package names outside the curated list, URLs, commands, option values, and source text are never returned."
 LIMITS = "Static inspection only: supplied code is never imported or executed. Declared means a manifest lists the dependency; inferred means an import references it. Neither proves runtime use, and workspace inheritance or non-registry sources are not resolved."
 
+
+def analysis_scope():
+    """Fixed disclosure shared by source and selected-project inventories."""
+    return {"kind": "selected_static_inventory", "whole_repository": False,
+            "runtime_verified": False, "control_flow_analyzed": False, "security_audited": False,
+            "version_control_semantics_analyzed": False,
+            "parsed_status": "The supported inventory pass completed for this input; it does not establish semantic completeness or rule out a parser defect.",
+            "dependency_catalogue": "Curated labels only. Unknown imports, built-ins and unsupported patterns may be absent.",
+            "unknown_dependencies": "Counts unrecognized manifest declarations, not all unrecognized imports. Zero does not mean all dependencies were identified.",
+            "partial_status": "Where present, partial describes parser, selection and graph limits; false does not mean the whole application was understood."}
+
 # label: (ecosystem, capability or None)
 PYPI = {
     "ollama": "local-llm-client", "openai": "hosted-llm-api-client", "anthropic": "hosted-llm-api-client",
@@ -54,7 +65,7 @@ PYPI = {
     "pyautogui": "desktop-automation-library", "pynput": "input-device-library", "keyboard": "input-device-library", "psutil": "system-information-library",
     "playwright": "browser-automation-library", "selenium": "browser-automation-library", "beautifulsoup4": "html-parsing-library",
     "sqlalchemy": "database-library", "pyyaml": "configuration-parsing-library", "python-dotenv": "configuration-parsing-library",
-    "rich": "terminal-ui-library", "click": "cli-argument-parsing", "typer": "cli-argument-parsing",
+    "rich": "terminal-ui-library", "click": "cli-argument-parsing", "typer": "cli-argument-parsing", "gitpython": "version-control-library",
     "pytest": "test-framework", "setuptools": None, "hatchling": None, "poetry-core": None, "wheel": None,
 }
 NPM = {
@@ -65,8 +76,16 @@ NPM = {
     "openai": "hosted-llm-api-client", "anthropic-sdk": "hosted-llm-api-client", "ollama": "local-llm-client",
     "vitest": "test-framework", "jest": "test-framework", "playwright": "browser-automation-library", "eslint": "lint-tooling",
     "prettier": "format-tooling", "zod": "data-validation-library", "i18next": "localization-library", "better-sqlite3": "database-library",
+    "babel-parser": "javascript-parser-library", "babel-types": "javascript-ast-library",
+    "modelcontextprotocol-sdk": "mcp-library", "modelcontextprotocol-client": "mcp-client-library",
+    "modelcontextprotocol-server": "mcp-server-library", "isomorphic-git": "version-control-library", "simple-git": "version-control-library",
 }
-NPM_ALIASES = {"@anthropic-ai/sdk": "anthropic-sdk", "@playwright/test": "playwright", "@reduxjs/toolkit": "redux", "@tailwindcss/vite": "tailwindcss"}
+NPM_ALIASES = {"@anthropic-ai/sdk": "anthropic-sdk", "@playwright/test": "playwright", "playwright-core": "playwright",
+               "@reduxjs/toolkit": "redux", "@tailwindcss/vite": "tailwindcss",
+               "@babel/parser": "babel-parser", "@babel/types": "babel-types",
+               "@modelcontextprotocol/sdk": "modelcontextprotocol-sdk",
+               "@modelcontextprotocol/client": "modelcontextprotocol-client",
+               "@modelcontextprotocol/server": "modelcontextprotocol-server"}
 NPM_SCOPES = {"@tauri-apps/": "tauri"}
 CRATES = {
     "serde": "serialization-library", "serde_json": "serialization-library", "tokio": "async-runtime", "reqwest": "http-client-library",
@@ -102,7 +121,7 @@ PY_IMPORTS = {
     "webrtcvad": "webrtcvad", "numpy": "numpy", "pandas": "pandas", "scipy": "scipy", "cv2": "opencv-python", "mediapipe": "mediapipe",
     "PIL": "pillow", "pyautogui": "pyautogui", "pynput": "pynput", "keyboard": "keyboard", "psutil": "psutil", "playwright": "playwright",
     "selenium": "selenium", "bs4": "beautifulsoup4", "sqlalchemy": "sqlalchemy", "yaml": "pyyaml", "dotenv": "python-dotenv",
-    "rich": "rich", "click": "click", "typer": "typer", "pytest": "pytest", "langchain": "langchain", "llama_cpp": "llama-cpp-python",
+    "rich": "rich", "click": "click", "typer": "typer", "pytest": "pytest", "langchain": "langchain", "llama_cpp": "llama-cpp-python", "git": "gitpython",
     "google": None,
 }
 PY_ALIASES = {"opencv-python-headless": "opencv-python", "opencv-contrib-python": "opencv-python", "torch-cpu": "torch"}
@@ -172,7 +191,8 @@ class _Inventory:
 
     def dependency(self, raw, ecosystem, confidence, source, location):
         if not isinstance(raw, str) or len(raw) > 214:
-            self.unknown[source] = self.unknown.get(source, 0) + 1
+            if confidence == "declared":
+                self.unknown[source] = self.unknown.get(source, 0) + 1
             return
         resolve, table = ECOSYSTEMS[ecosystem]
         label = resolve(raw)
@@ -211,6 +231,7 @@ class _Inventory:
             "capabilities": capabilities,
             "install_hints": [{"name": name, "evidence": evidence} for name, evidence in sorted(self.hints.items())],
             "warnings": list(self.warnings),
+            "analysis_scope": analysis_scope(),
             "privacy": PRIVACY,
             "limits": LIMITS,
         }

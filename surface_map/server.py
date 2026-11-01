@@ -51,6 +51,29 @@ def bundle(report):
     return {"report": report, "openapi": openapi(report), "contract": contract(report)}
 
 
+def _linger_discard(request):
+    # A body arriving after full close can reset the peer's unread response.
+    # Send FIN first, then discard raw socket bytes without interpreting framing
+    # or processing another request. Buffered input already left the kernel.
+    try:
+        request.shutdown(socket.SHUT_WR)
+    except OSError:
+        return
+    remaining, deadline = 16 * 1024, time.monotonic() + 0.1
+    while remaining:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return
+        try:
+            request.settimeout(left)
+            block = request.recv(min(4096, remaining))
+        except OSError:
+            return
+        if not block:
+            return
+        remaining -= len(block)
+
+
 def make_server(port=8768):
     token = secrets.token_hex(32)
     processing = threading.BoundedSemaphore(2)
@@ -322,18 +345,18 @@ def make_server(port=8768):
             connection.settimeout(2)
             return connection, address
 
+        def shutdown_request(self, request):
+            # Handler.finish() has already flushed its response. Admission
+            # failures also come here after sendall(), using the same bounds.
+            try:
+                _linger_discard(request)
+            finally:
+                super().shutdown_request(request)
+
         def process_request(self, request, address):
             if not self.connections.acquire(blocking=False):
                 try:
                     request.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
-                    request.shutdown(socket.SHUT_WR)
-                    request.settimeout(0.05)
-                    remaining, deadline = 16 * 1024, time.monotonic() + 0.1
-                    while remaining > 0 and time.monotonic() < deadline:
-                        block = request.recv(min(4096, remaining))
-                        if not block:
-                            break
-                        remaining -= len(block)
                 except OSError:
                     pass
                 finally:
