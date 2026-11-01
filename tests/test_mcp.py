@@ -49,6 +49,7 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 async with ClientSession(read, write) as client:
                     initialized = await client.initialize()
                     self.assertEqual(initialized.server_info.name, "surface-map")
+                    self.assertLessEqual(len((initialized.instructions or "").encode("utf-8")), 4096)
                     yield client
             errlog.seek(0)
             self.assertNotIn(CANARY, errlog.read())
@@ -62,8 +63,13 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_initialize_discover_demo_and_limits(self):
         async with self.session() as client:
             discovered = await client.list_tools()
+            # A real client must receive a compact complete catalogue, not just
+            # register names after silently dropping selectors from schemas.
+            client_catalogue = discovered.model_dump_json(by_alias=True).encode("utf-8")
+            self.assertLessEqual(len(client_catalogue), 16 * 1024)
             self.assertEqual({t.name for t in discovered.tools}, set(mcp_server.tool_specs()))
             for tool in discovered.tools:
+                self.assertEqual(tool.input_schema, mcp_server.tool_specs()[tool.name][1])
                 self.assertTrue(tool.annotations.read_only_hint)
                 self.assertTrue(tool.annotations.idempotent_hint)
                 self.assertFalse(tool.annotations.destructive_hint)
@@ -98,6 +104,8 @@ class MCPIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 {"kind": "python", "content": "import sounddevice\n"}]}))
             self.assertEqual({s["status"] for s in result["sources"]}, {"parsed"})
             self.assertIn("fastapi", [d["name"] for d in result["dependencies"]])
+            self.assertFalse(result["analysis_scope"]["security_audited"])
+            self.assertIn("manifest declarations", result["analysis_scope"]["unknown_dependencies"])
 
     async def test_redaction_across_real_stdio_tool_results(self):
         har = {"log": {"entries": [{

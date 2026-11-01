@@ -123,6 +123,19 @@ Capture kinds correspond to the supported formats: `requirements`, `pyproject`, 
 
 Each source reports `parsed` or `rejected`. Unsupported syntax or structural limits can reject one file while other files still contribute evidence; inspect warnings before using the report. Source comparisons require fully parsed selections, so a parser failure cannot masquerade as a removed dependency. Malformed envelopes, unreadable files and byte-limit failures are controlled errors; CLI failure exits with status 2. No source text or path is included in these errors.
 
+Source and selected-project outputs include fixed `analysis_scope` metadata.
+`parsed` means the supported inventory pass completed; it does not establish
+semantic completeness or rule out a parser defect. Runtime behavior, control
+flow, Git semantics and security are explicitly unassessed. `partial: false`,
+where present, describes processing coverage within the selection, not complete
+application understanding. `unknown_dependencies` counts unrecognized manifest
+declarations rather than every omitted import.
+
+The curated catalogue includes Babel, MCP client/server/SDK, Playwright Core,
+isomorphic-git, simple-git and GitPython library labels. These are declaration or
+import hints. Detecting a Git library does not establish safe checkpoint or undo
+behavior. [Pinned REA source check](REA_COMPARISON.md).
+
 ## Use from an agent with MCP
 
 The optional [MCP stdio interface](MCP.md) exposes `analyze_url`, `analyze_capture`, `compare_captures`, `inspect_sources`, `inspect_project`, `plan_rebuild`, `demo`, and `limits` through the official Python MCP SDK. Install `requirements-mcp.txt` in a virtual environment, then configure Claude or Codex using the linked guide. The default CLI and browser app still need no third-party Python packages.

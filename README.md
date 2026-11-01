@@ -108,7 +108,9 @@ comparison-local opaque IDs in the report.
 Saved-artifact analysis runs locally without uploading captures or executing
 their source. Reports exclude raw source, filenames, headers, cookies, query
 values, and body values. Unknown web paths and field names become aliases; Git
-review adds comparison-local IDs. Unknown dependency names are omitted and counted.
+review adds comparison-local IDs. Unrecognized manifest declarations are counted;
+unrecognized imports can be omitted without a count. A zero count is not a
+complete dependency inventory.
 
 **Public HTTPS page mode makes explicit network requests** from your computer.
 It uses no browser login or cookies and does not render pages, crawl links, submit
@@ -143,6 +145,12 @@ accuracy on every website or superiority over another tool.
 
 [Evaluation results and caveats](docs/REFERENCE.md#check-it) ·
 [Alternative tools and research](docs/RESEARCH.md)
+
+The local workbench takes visual inspiration from [Handy](https://github.com/cjpais/Handy):
+clear navigation, warm colors and readable results. The screenshots above show
+the actual interface with synthetic data. [REA comparison and verified inventory changes](docs/REA_COMPARISON.md)
+explain where a broader reverse-engineering tool is stronger and what this
+bounded evidence tool can demonstrate.
 
 ## Help us find what it misses
 

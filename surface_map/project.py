@@ -9,7 +9,7 @@ import time
 
 from .analyze import ArtifactError
 from .source import (SOURCE_KINDS, MAX_ARTIFACTS as GROUP_FILES, MAX_FILE_BYTES,
-                     MAX_TOTAL_BYTES as GROUP_BYTES, MAX_EVIDENCE, source_inventory)
+                     MAX_TOTAL_BYTES as GROUP_BYTES, MAX_EVIDENCE, source_inventory, analysis_scope)
 from .source_io import read_ordinary, source_kind
 
 MAX_FILES = 24
@@ -216,6 +216,7 @@ def inspect_project(files, *, javascript_engine="auto", deadline=None):
     return {"format": "surface-map-project-v1", "sources": sources,
             **{name: [store[key] for key in sorted(store)] for name, store in stores.items()},
             "warnings": warnings, "graph": graph, "omissions": dict(omissions),
+            "analysis_scope": analysis_scope(),
             "coverage": {"selected_files": len(prepared), "inspected_files": inspected,
                          "rejected_files": sum(row["status"] == "rejected" for row in sources),
                          "omitted_files": len(prepared) - inspected, "groups": groups, "partial": partial},

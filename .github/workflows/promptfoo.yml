@@ -9,6 +9,9 @@ on:
       - '.github/workflows/promptfoo.yml'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   evaluate:
     runs-on: ubuntu-latest
